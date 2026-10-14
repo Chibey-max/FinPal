@@ -10,3 +10,10 @@ export const allowedPaymentTransitions: Readonly<
   VOIDED: [],
   REFUNDED: [],
 };
+
+export function canTransitionPayment(
+  from: PaymentStatus,
+  to: PaymentStatus,
+): boolean {
+  return allowedPaymentTransitions[from].includes(to);
+}
