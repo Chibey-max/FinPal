@@ -1,0 +1,29 @@
+{
+  "name": "@finpal/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "@finpal/contracts": "workspace:*",
+    "@supabase/supabase-js": "2.117.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@vitest/coverage-v8": "5.0.4",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}
