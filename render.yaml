@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: finpal-web
+    runtime: docker
+    dockerfilePath: ./infra/docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_API_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: CHANNEL3_API_KEY
+        sync: false
+      - key: KERNEL_API_KEY
+        sync: false
