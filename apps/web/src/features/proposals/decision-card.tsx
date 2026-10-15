@@ -46,7 +46,7 @@ function money(amount: number | null, currency: string) {
   );
 }
 
-function PayButton({ decisionId }: { decisionId: string }) {
+export function PayButton({ decisionId }: { decisionId: string }) {
   // One key per decision, so retries and double-clicks reuse the same order.
   const idempotencyKey = useRef(crypto.randomUUID());
   const [pending, setPending] = useState(false);

@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   createAuditLog,
+  createDecisionDetailService,
   createEvaluationService,
   createPaymentService,
   createPayPalHttpClient,
@@ -94,4 +95,13 @@ export async function getUserAuditLog(): Promise<AuditLog> {
 export async function getUserDashboard(): Promise<DashboardRepository> {
   const supabase = await createServerSupabaseClient();
   return createSupabaseDashboardRepository(supabase);
+}
+
+/** Decision detail for the drawer, read through the user's own session. */
+export async function getUserDecisionDetail() {
+  const supabase = await createServerSupabaseClient();
+  return createDecisionDetailService({
+    dashboard: createSupabaseDashboardRepository(supabase),
+    audit: createAuditLog(createSupabaseAuditEventRepository(supabase)),
+  });
 }

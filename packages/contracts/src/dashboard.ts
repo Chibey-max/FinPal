@@ -1,8 +1,14 @@
 import { z } from "zod";
 
-import { decisionOutcomeSchema, trustSignalSchema } from "./decision";
-import { paymentStatusSchema } from "./payment";
-import { proposalSourceSchema } from "./proposal";
+import { auditEventSchema } from "./audit";
+import {
+  decisionOutcomeSchema,
+  decisionSchema,
+  evaluationSchema,
+  trustSignalSchema,
+} from "./decision";
+import { paymentAttemptSchema, paymentStatusSchema } from "./payment";
+import { proposalSchema, proposalSourceSchema } from "./proposal";
 import { qualityScoreSchema } from "./quality-score";
 
 /**
@@ -44,3 +50,16 @@ export const decisionRowsQuerySchema = z.object({
 });
 
 export type DecisionRowsQuery = z.infer<typeof decisionRowsQuerySchema>;
+
+/** Everything behind one dashboard row, for the detail drawer. */
+export const decisionDetailSchema = z.object({
+  proposal: proposalSchema,
+  evaluation: evaluationSchema,
+  decision: decisionSchema,
+  /** Most recently updated payment attempt, or null if none was started. */
+  payment: paymentAttemptSchema.nullable(),
+  /** Audit events for the proposal, evaluation, decision and payment, newest first. */
+  events: z.array(auditEventSchema),
+});
+
+export type DecisionDetail = z.infer<typeof decisionDetailSchema>;

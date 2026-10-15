@@ -149,6 +149,17 @@ export function createPayPalSandboxSimulator() {
     const method = init?.method ?? "GET";
 
     if (url.pathname === "/v1/oauth2/token") {
+      // Only the configured Sandbox merchant credentials get a token.
+      const expected = `Basic ${btoa("sandbox-client:sandbox-secret")}`;
+      if (headerOf(init, "Authorization") !== expected) {
+        return json(
+          {
+            error: "invalid_client",
+            error_description: "Client Authentication failed",
+          },
+          401,
+        );
+      }
       return json({ access_token: "sandbox-token", expires_in: 32_400 });
     }
     if (headerOf(init, "Authorization") !== "Bearer sandbox-token") {

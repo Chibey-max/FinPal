@@ -48,6 +48,7 @@ const paymentErrorStatus: Record<PaymentErrorCode, number> = {
   CONCURRENT_MODIFICATION: 409,
   PAYPAL_DECLINED: 422,
   PAYPAL_UNAVAILABLE: 503,
+  PAYPAL_AUTH_FAILED: 502,
 };
 
 export function handleRouteError(error: unknown) {

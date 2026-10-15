@@ -24,6 +24,7 @@ export * from "./repositories/supabase/supabase-evaluation-repository";
 export * from "./repositories/supabase/supabase-payment-attempt-repository";
 export * from "./repositories/supabase/supabase-proposal-repository";
 export * from "./services/audit-log";
+export * from "./services/decision-detail";
 export * from "./services/quality-score-service";
 export * from "./use-cases/comparable-offers";
 export * from "./use-cases/evaluate-proposal";

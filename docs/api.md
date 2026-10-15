@@ -15,6 +15,7 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `POST` | `/api/v1/payments/:paymentId/void`      | Void an authorization before capture                     |
 | `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
 | `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment    |
+| `GET`  | `/api/v1/decisions/:decisionId`         | Full detail for one decision, with its audit trail       |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
 
 Only the PayPal webhook still returns `501 Not Implemented`.
@@ -61,6 +62,7 @@ Errors use `{ "error": { "code", "message", "details" } }`.
 | 404  | `PAYMENT_NOT_FOUND`, `DECISION_NOT_FOUND`                                                                                |
 | 409  | `IDEMPOTENCY_KEY_REUSED`, `DECISION_ALREADY_PAID`, `ORDER_NOT_APPROVED`, `INVALID_TRANSITION`, `CONCURRENT_MODIFICATION` |
 | 422  | `DECISION_NOT_PAYABLE`, `PAYPAL_DECLINED`                                                                                |
+| 502  | `PAYPAL_AUTH_FAILED` (PayPal rejected FinPal's merchant credentials; fix configuration)                                  |
 | 503  | `PAYPAL_UNAVAILABLE` (timeouts, network, PayPal 5xx/429; safe to retry)                                                  |
 
 PayPal failures are also written to `audit_events` as `PAYPAL_CALL_FAILED` with PayPal's `debug_id`.
@@ -101,3 +103,5 @@ Event types are listed in `packages/contracts/src/audit.ts`.
 ## Decisions (dashboard)
 
 `GET /api/v1/decisions?limit=200` (1-500, default 200) returns `{ "rows": DecisionRow[] }`, newest decision first. Each row joins the decision to its proposal, evaluation and the most recently updated payment attempt; see `decisionRowSchema` in `packages/contracts/src/dashboard.ts`. `paymentStatus` is the exact uppercase state (`CREATED`, `APPROVED`, `AUTHORIZED`, `CAPTURED`, `VOIDED`) or `null` if no payment was started. Reads go through the user's own session, so RLS applies.
+
+`GET /api/v1/decisions/:decisionId` returns `{ proposal, evaluation, decision, payment, events }` (`decisionDetailSchema`): the full Quality Score with reference offers, the constraint check, the structured reasons, the most recent payment attempt (without internal fields) and the audit events of the proposal, evaluation, decision and payment, newest first. `404 DECISION_NOT_FOUND` for another user's decision.

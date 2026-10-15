@@ -99,6 +99,15 @@ export function createPaymentService(deps: PaymentServiceDeps) {
           details,
         );
       }
+      // FinPal's own merchant credentials were rejected: a configuration
+      // problem, not a decline of the buyer's payment.
+      if (error.status === 401 || error.status === 403) {
+        throw new PaymentError(
+          "PAYPAL_AUTH_FAILED",
+          "PayPal rejected FinPal's merchant credentials. Check the Sandbox client ID and secret.",
+          details,
+        );
+      }
       throw new PaymentError(
         "PAYPAL_DECLINED",
         `PayPal rejected the ${operation} request.`,

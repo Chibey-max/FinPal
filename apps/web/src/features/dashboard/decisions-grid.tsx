@@ -7,11 +7,18 @@ import {
   themeQuartz,
   type ColDef,
   type ICellRendererParams,
+  type IRowNode,
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+
+import {
+  hasActiveFilters,
+  passesFilters,
+  type DashboardFilters,
+} from "./filters";
 
 import {
   formatDateTime,
@@ -51,7 +58,25 @@ type Cell<K extends keyof DecisionRow> = ICellRendererParams<
   DecisionRow[K]
 >;
 
-export function DecisionsGrid({ rows }: { rows: DecisionRow[] }) {
+export function DecisionsGrid({
+  rows,
+  search,
+  filters,
+  onOpen,
+}: {
+  rows: DecisionRow[];
+  /** Free-text search across every column. */
+  search: string;
+  filters: DashboardFilters;
+  onOpen: (decisionId: string) => void;
+}) {
+  const gridRef = useRef<AgGridReact<DecisionRow>>(null);
+
+  // AG Grid reads external filters lazily; tell it when they change.
+  useEffect(() => {
+    gridRef.current?.api?.onFilterChanged();
+  }, [filters]);
+
   const columnDefs = useMemo<ColDef<DecisionRow>[]>(
     () => [
       {
@@ -72,7 +97,8 @@ export function DecisionsGrid({ rows }: { rows: DecisionRow[] }) {
         field: "amount",
         headerName: "Amount",
         type: "rightAligned",
-        width: 110,
+        filter: "agNumberColumnFilter",
+        width: 120,
         valueFormatter: (p) => formatMoney(p.value, p.data?.currency ?? "USD"),
       },
       {
@@ -112,7 +138,8 @@ export function DecisionsGrid({ rows }: { rows: DecisionRow[] }) {
         field: "medianPrice",
         headerName: "Median",
         type: "rightAligned",
-        width: 110,
+        filter: "agNumberColumnFilter",
+        width: 120,
         valueFormatter: (p) => formatMoney(p.value, p.data?.currency ?? "USD"),
       },
       {
@@ -138,21 +165,44 @@ export function DecisionsGrid({ rows }: { rows: DecisionRow[] }) {
     [],
   );
 
+  // Every column gets a text filter unless it sets its own.
   const defaultColDef = useMemo<ColDef<DecisionRow>>(
-    () => ({ sortable: true, resizable: true }),
+    () => ({ sortable: true, resizable: true, filter: "agTextColumnFilter" }),
     [],
+  );
+
+  const isExternalFilterPresent = useCallback(
+    () => hasActiveFilters(filters),
+    [filters],
+  );
+  const doesExternalFilterPass = useCallback(
+    (node: IRowNode<DecisionRow>) =>
+      node.data ? passesFilters(node.data, filters) : true,
+    [filters],
   );
 
   return (
     <div className="h-[560px] w-full">
       <AgGridReact<DecisionRow>
+        ref={gridRef}
         theme={theme}
         rowData={rows}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         getRowId={(p) => p.data.decisionId}
+        quickFilterText={search}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={doesExternalFilterPass}
+        onRowClicked={(event) => {
+          if (event.data) onOpen(event.data.decisionId);
+        }}
+        rowClass="cursor-pointer"
         tooltipShowDelay={300}
-        overlayNoRowsTemplate="No decisions yet. Create a purchase to see it here."
+        overlayNoRowsTemplate={
+          rows.length === 0
+            ? "No decisions yet. Create a purchase to see it here."
+            : "No decisions match these filters."
+        }
       />
     </div>
   );

@@ -58,6 +58,7 @@ export const paymentErrorCodeSchema = z.enum([
   "CONCURRENT_MODIFICATION",
   "PAYPAL_DECLINED",
   "PAYPAL_UNAVAILABLE",
+  "PAYPAL_AUTH_FAILED",
 ]);
 
 export type PaymentErrorCode = z.infer<typeof paymentErrorCodeSchema>;

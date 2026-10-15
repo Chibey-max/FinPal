@@ -31,7 +31,7 @@ const rowSchema = z.object({
   updated_at: z.string(),
 });
 
-function toRecord(row: unknown): PaymentAttemptRecord {
+export function toPaymentAttemptRecord(row: unknown): PaymentAttemptRecord {
   const r = rowSchema.parse(row);
   return {
     id: r.id,
@@ -81,7 +81,7 @@ export function createSupabasePaymentAttemptRepository(
       .eq(column, value)
       .maybeSingle();
     if (error) throw error;
-    return data ? toRecord(data) : null;
+    return data ? toPaymentAttemptRecord(data) : null;
   }
 
   return {
@@ -99,7 +99,7 @@ export function createSupabasePaymentAttemptRepository(
         .neq("status", "VOIDED")
         .maybeSingle();
       if (error) throw error;
-      return data ? toRecord(data) : null;
+      return data ? toPaymentAttemptRecord(data) : null;
     },
 
     async sumCommitted(userId, currency, from, to) {
@@ -142,7 +142,7 @@ export function createSupabasePaymentAttemptRepository(
         throw new DuplicatePaymentAttemptError();
       }
       if (error) throw error;
-      return toRecord(data);
+      return toPaymentAttemptRecord(data);
     },
 
     async updateIfStatus(id, expectedStatus, patch) {
@@ -153,7 +153,7 @@ export function createSupabasePaymentAttemptRepository(
         .select("*")
         .maybeSingle();
       if (error) throw error;
-      return data ? toRecord(data) : null;
+      return data ? toPaymentAttemptRecord(data) : null;
     },
   };
 }

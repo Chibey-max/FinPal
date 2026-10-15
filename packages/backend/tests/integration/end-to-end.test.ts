@@ -37,7 +37,9 @@ const limits: SpendingConstraints = {
   amountCaps: { perPurchase: 100, daily: 120 },
 };
 
-function createTestApp() {
+function createTestApp(
+  credentials: { channel3ApiKey?: string; paypalSecret?: string } = {},
+) {
   // Wednesday 21 Oct 2026, 12:00 in Lagos.
   const clock = () => new Date("2026-10-21T11:00:00Z");
   const db = createInMemoryDb(clock);
@@ -51,7 +53,7 @@ function createTestApp() {
     quality: createQualityScoreService({
       offers: createComparableOffersService({
         channel3: createChannel3HttpClient({
-          apiKey: "channel3-test-key",
+          apiKey: credentials.channel3ApiKey ?? "channel3-test-key",
           fetch: channel3.fetch,
         }),
         now: clock,
@@ -65,7 +67,7 @@ function createTestApp() {
   const payments = createPaymentService({
     paypal: createPayPalHttpClient({
       clientId: "sandbox-client",
-      clientSecret: "sandbox-secret",
+      clientSecret: credentials.paypalSecret ?? "sandbox-secret",
       baseUrl: "https://api-m.sandbox.paypal.com",
       fetch: paypal.fetch,
     }),
@@ -302,5 +304,125 @@ describe("end-to-end slice", () => {
     expect(again.id).toBe(retried.id);
     expect(app.paypal.orders.size).toBe(1);
     expect(app.db.payments.rows).toHaveLength(1);
+  });
+});
+
+describe("resilience", () => {
+  let app: ReturnType<typeof createTestApp>;
+
+  async function approvedDecision(target = app) {
+    await target.db.constraints.save(userId, limits);
+    const proposal = await target.evaluations.createProposal(userId, {
+      productName: "Desk lamp",
+      proposedPrice: 50,
+      currency: "USD",
+      source: "MANUAL",
+    });
+    const { decision } = await target.evaluations.evaluateProposal(
+      userId,
+      proposal.id,
+    );
+    expect(decision.outcome).toBe("AUTO_APPROVE");
+    return decision;
+  }
+
+  async function authorizedPayment() {
+    const decision = await approvedDecision();
+    const created = await app.payments.createPaymentOrder({
+      userId,
+      decisionId: decision.id,
+      idempotencyKey: "lamp-resilience-1",
+    });
+    app.paypal.buyerApproves(created.paypalOrderId);
+    return app.payments.completeApproval(userId, created.paypalOrderId);
+  }
+
+  const count = (type: string) =>
+    app.db.audit.types().filter((t) => t === type).length;
+
+  beforeEach(() => {
+    app = createTestApp();
+  });
+
+  it("two simultaneous create requests with the same key make one order", async () => {
+    const decision = await approvedDecision();
+    const request = {
+      userId,
+      decisionId: decision.id,
+      idempotencyKey: "double-click-1",
+    };
+
+    const [first, second] = await Promise.all([
+      app.payments.createPaymentOrder(request),
+      app.payments.createPaymentOrder(request),
+    ]);
+
+    expect(second.id).toBe(first.id);
+    expect(app.paypal.orders.size).toBe(1);
+    expect(app.db.payments.rows).toHaveLength(1);
+    expect(count("PAYMENT_CREATED")).toBe(1);
+  });
+
+  it("two simultaneous captures charge once and audit once", async () => {
+    const payment = await authorizedPayment();
+
+    const results = await Promise.all([
+      app.payments.capturePayment(userId, payment.id),
+      app.payments.capturePayment(userId, payment.id),
+    ]);
+
+    expect(results.map((r) => r.status)).toEqual(["CAPTURED", "CAPTURED"]);
+    expect(results[0]!.paypalCaptureId).toBe(results[1]!.paypalCaptureId);
+    expect(count("PAYMENT_CAPTURED")).toBe(1);
+  });
+
+  it("a PayPal outage during capture leaves the payment AUTHORIZED, and a retry captures it", async () => {
+    const payment = await authorizedPayment();
+    app.paypal.failNext(1);
+
+    await expect(
+      app.payments.capturePayment(userId, payment.id),
+    ).rejects.toMatchObject({ code: "PAYPAL_UNAVAILABLE" });
+    expect(app.db.payments.rows[0]!.status).toBe("AUTHORIZED");
+
+    const captured = await app.payments.capturePayment(userId, payment.id);
+    expect(captured.status).toBe("CAPTURED");
+    expect(count("PAYMENT_CAPTURED")).toBe(1);
+  });
+
+  it("a wrong Channel3 key degrades to manual review instead of failing", async () => {
+    app = createTestApp({ channel3ApiKey: "wrong-key" });
+    await app.db.constraints.save(userId, limits);
+    const proposal = await app.evaluations.createProposal(userId, {
+      productName: "Desk lamp",
+      proposedPrice: 50,
+      currency: "USD",
+      source: "MANUAL",
+    });
+    const { decision, evaluation } = await app.evaluations.evaluateProposal(
+      userId,
+      proposal.id,
+    );
+
+    expect(evaluation.quality.offerStatus).toBe("UNAVAILABLE");
+    expect(decision.outcome).toBe("MANUAL_REVIEW");
+  });
+
+  it("rejected PayPal credentials are reported as a configuration problem, not a decline", async () => {
+    app = createTestApp({ paypalSecret: "wrong-secret" });
+    const decision = await approvedDecision(app);
+
+    await expect(
+      app.payments.createPaymentOrder({
+        userId,
+        decisionId: decision.id,
+        idempotencyKey: "bad-credentials-1",
+      }),
+    ).rejects.toMatchObject({ code: "PAYPAL_AUTH_FAILED" });
+    expect(app.db.payments.rows).toHaveLength(0);
+    expect(app.db.audit.events.at(-1)).toMatchObject({
+      type: "PAYPAL_CALL_FAILED",
+      payload: { operation: "createOrder", httpStatus: 401 },
+    });
   });
 });

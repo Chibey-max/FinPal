@@ -1,5 +1,5 @@
 import { ActivityList } from "@/features/activity/activity-list";
-import { DecisionsGrid } from "@/features/dashboard/decisions-grid";
+import { DashboardView } from "@/features/dashboard/dashboard-view";
 import { requireUser } from "@/lib/auth";
 import { getUserAuditLog, getUserDashboard } from "@/lib/backend";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ export default async function DashboardPage({
         <h1 className="text-2xl font-semibold tracking-tight">Decisions</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Every purchase FinPal evaluated: the price check, the decision and the
-          exact PayPal payment state. Click a column header to sort.
+          exact PayPal payment state. Click a row for details.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default async function DashboardPage({
         </p>
       ) : null}
 
-      <DecisionsGrid rows={rows} />
+      <DashboardView rows={rows} />
 
       <details className="grid gap-3">
         <summary className="cursor-pointer text-sm font-semibold">
