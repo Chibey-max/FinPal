@@ -35,7 +35,7 @@ describe("payment service", () => {
     service = createPaymentService({
       paypal: paypal.client,
       payments,
-      audit: audit.repository,
+      audit: audit.log,
       decisions: createInMemoryDecisions([
         {
           decisionId: approvedDecisionId,

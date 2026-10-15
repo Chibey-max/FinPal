@@ -1,6 +1,10 @@
 import type { PaymentStatus } from "@finpal/contracts";
 
-import type { AuditEventInput } from "../../src/repositories/audit-event-repository";
+import type {
+  AuditEventInput,
+  AuditEventRepository,
+} from "../../src/repositories/audit-event-repository";
+import { createAuditLog } from "../../src/services/audit-log";
 import type { PayableDecision } from "../../src/repositories/decision-repository";
 import {
   DuplicatePaymentAttemptError,
@@ -153,15 +157,38 @@ export function createFakePayPal() {
   };
 }
 
+/** In-memory audit storage plus the real AuditLog on top of it. */
 export function createInMemoryAudit() {
-  const events: AuditEventInput[] = [];
+  const events: (AuditEventInput & { id: number })[] = [];
+  const repository: AuditEventRepository = {
+    async append(event) {
+      events.push({ ...event, id: events.length + 1 });
+    },
+    async list(userId, query) {
+      return events
+        .filter(
+          (event) =>
+            event.userId === userId &&
+            (query.before === undefined || event.id < query.before) &&
+            (!query.entityType || event.entityType === query.entityType) &&
+            (!query.entityId || event.entityId === query.entityId),
+        )
+        .reverse()
+        .slice(0, query.limit)
+        .map(({ id, entityType, entityId, type, payload }) => ({
+          id,
+          entityType,
+          entityId,
+          type,
+          payload,
+          createdAt: new Date(Date.UTC(2026, 9, 18, 0, 0, id)).toISOString(),
+        }));
+    },
+  };
   return {
     events,
-    repository: {
-      async append(event: AuditEventInput) {
-        events.push(event);
-      },
-    },
+    repository,
+    log: createAuditLog(repository),
     types: () => events.map((event) => event.type),
   };
 }

@@ -13,6 +13,7 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `GET`  | `/api/v1/payments/return`               | PayPal return URL; confirms approval and authorizes      |
 | `POST` | `/api/v1/payments/:paymentId/capture`   | Capture an authorized payment                            |
 | `POST` | `/api/v1/payments/:paymentId/void`      | Void an authorization before capture                     |
+| `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
 
 Routes that still return `501 Not Implemented`: proposals, evaluations, and the PayPal webhook.
@@ -48,3 +49,36 @@ Errors use `{ "error": { "code", "message", "details" } }`.
 | 503  | `PAYPAL_UNAVAILABLE` (timeouts, network, PayPal 5xx/429; safe to retry)                                                  |
 
 PayPal failures are also written to `audit_events` as `PAYPAL_CALL_FAILED` with PayPal's `debug_id`.
+
+## Activity
+
+`GET /api/v1/activity?limit=50&before=<id>&entityType=<type>&entityId=<id>`
+
+| Param        | Default | Notes                                                                    |
+| ------------ | ------- | ------------------------------------------------------------------------ |
+| `limit`      | 50      | 1-100                                                                    |
+| `before`     | -       | Event id; pass the previous page's `nextBefore`                          |
+| `entityType` | -       | `constraints`, `proposal`, `evaluation`, `decision` or `payment_attempt` |
+| `entityId`   | -       | e.g. a payment id, to get one payment's full history                     |
+
+```json
+{
+  "events": [
+    {
+      "id": 42,
+      "entityType": "payment_attempt",
+      "entityId": "6f1c…",
+      "type": "PAYMENT_AUTHORIZED",
+      "payload": {
+        "paypalAuthorizationId": "8AB…",
+        "amount": 49.5,
+        "currency": "USD"
+      },
+      "createdAt": "2026-10-18T10:00:00.000Z"
+    }
+  ],
+  "nextBefore": null
+}
+```
+
+Event types are listed in `packages/contracts/src/audit.ts`.

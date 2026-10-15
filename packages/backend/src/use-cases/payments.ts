@@ -1,4 +1,8 @@
-import type { PaymentStatus } from "@finpal/contracts";
+import type {
+  AuditEntityType,
+  AuditEventType,
+  PaymentStatus,
+} from "@finpal/contracts";
 
 import { PaymentError } from "../domain/payment-errors";
 import { canTransitionPayment } from "../domain/payment-state-machine";
@@ -6,7 +10,7 @@ import {
   PayPalApiError,
   type PayPalClient,
 } from "../integrations/paypal/paypal-client";
-import type { AuditEventRepository } from "../repositories/audit-event-repository";
+import type { AuditLog } from "../services/audit-log";
 import type { DecisionRepository } from "../repositories/decision-repository";
 import {
   DuplicatePaymentAttemptError,
@@ -19,7 +23,7 @@ export interface PaymentServiceDeps {
   paypal: PayPalClient;
   payments: PaymentAttemptRepository;
   decisions: DecisionRepository;
-  audit: AuditEventRepository;
+  audit: Pick<AuditLog, "record">;
   /** Where PayPal sends the buyer after approving; PayPal appends ?token=<orderId>. */
   returnUrl: string;
   cancelUrl: string;
@@ -44,10 +48,10 @@ export function createPaymentService(deps: PaymentServiceDeps) {
 
   async function record(
     payment: Pick<PaymentAttemptRecord, "id" | "userId">,
-    type: string,
+    type: AuditEventType,
     payload: Record<string, unknown>,
   ) {
-    await audit.append({
+    await audit.record({
       userId: payment.userId,
       entityType: "payment_attempt",
       entityId: payment.id,
@@ -59,7 +63,7 @@ export function createPaymentService(deps: PaymentServiceDeps) {
   // Calls PayPal, audits any failure, and maps it to a PaymentError.
   async function callPayPal<T>(
     operation: string,
-    entity: { userId: string; entityType: string; entityId: string },
+    entity: { userId: string; entityType: AuditEntityType; entityId: string },
     call: () => Promise<T>,
   ): Promise<T> {
     try {
@@ -68,7 +72,7 @@ export function createPaymentService(deps: PaymentServiceDeps) {
       if (!(error instanceof PayPalApiError)) throw error;
 
       await audit
-        .append({
+        .record({
           ...entity,
           type: "PAYPAL_CALL_FAILED",
           payload: {

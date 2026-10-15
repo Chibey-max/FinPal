@@ -1,3 +1,4 @@
+export * from "./domain/audit-payload";
 export * from "./domain/payment-errors";
 export * from "./domain/payment-state-machine";
 export * from "./integrations/paypal/paypal-client";
@@ -8,6 +9,7 @@ export * from "./repositories/payment-attempt-repository";
 export * from "./repositories/supabase/supabase-audit-event-repository";
 export * from "./repositories/supabase/supabase-decision-repository";
 export * from "./repositories/supabase/supabase-payment-attempt-repository";
+export * from "./services/audit-log";
 export * from "./services/decision-service";
 export * from "./services/quality-score-service";
 export * from "./use-cases/payments";

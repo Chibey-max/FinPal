@@ -1,17 +1,20 @@
 import "server-only";
 
 import {
+  createAuditLog,
   createPaymentService,
   createPayPalHttpClient,
   createSupabaseAuditEventRepository,
   createSupabaseDecisionRepository,
   createSupabasePaymentAttemptRepository,
+  type AuditLog,
   type PaymentService,
 } from "@finpal/backend";
 import { createClient } from "@supabase/supabase-js";
 
 import { getPublicEnv } from "@/lib/env";
 import { getServerEnv } from "@/lib/env.server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Composition root: wires backend use cases to real infrastructure. The
 // service-role client bypasses RLS, so every repository scopes by user id.
@@ -37,9 +40,19 @@ export function getPaymentService(): PaymentService {
     }),
     payments: createSupabasePaymentAttemptRepository(db),
     decisions: createSupabaseDecisionRepository(db),
-    audit: createSupabaseAuditEventRepository(db),
+    audit: createAuditLog(createSupabaseAuditEventRepository(db)),
     returnUrl: `${appUrl}/api/v1/payments/return`,
     cancelUrl: `${appUrl}/dashboard?payment=cancelled`,
   });
   return paymentService;
+}
+
+/**
+ * Audit reads go through the signed-in user's own session, so RLS limits
+ * rows to theirs in addition to the explicit user filter. Writes use the
+ * service role inside use cases (users cannot insert audit events).
+ */
+export async function getUserAuditLog(): Promise<AuditLog> {
+  const supabase = await createServerSupabaseClient();
+  return createAuditLog(createSupabaseAuditEventRepository(supabase));
 }
