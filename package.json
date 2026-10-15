@@ -21,11 +21,11 @@
     "db:reset": "supabase db reset"
   },
   "devDependencies": {
-    "eslint": "9.39.5",
+    "eslint": "10.12.0",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
     "turbo": "2.11.8",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "typescript-eslint": "8.71.2"
   }
 }
