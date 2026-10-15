@@ -13,10 +13,19 @@ export const serverEnvSchema = z.object({
   PAYPAL_API_BASE_URL: z
     .url()
     .default("https://api-m.sandbox.paypal.com")
-    .refine((url) => new URL(url).hostname.includes("sandbox"), {
-      message:
-        "FinPal is Sandbox-only; PAYPAL_API_BASE_URL must be a sandbox host.",
-    }),
+    .refine(
+      (url) => {
+        const parsed = new URL(url);
+        return (
+          parsed.protocol === "https:" &&
+          parsed.hostname.endsWith(".sandbox.paypal.com")
+        );
+      },
+      {
+        message:
+          "FinPal is Sandbox-only; PAYPAL_API_BASE_URL must be an https *.sandbox.paypal.com host.",
+      },
+    ),
   PAYPAL_WEBHOOK_ID: z.string().min(1).optional(),
   CHANNEL3_API_KEY: z.string().min(1),
   KERNEL_API_KEY: z.string().min(1).optional(),

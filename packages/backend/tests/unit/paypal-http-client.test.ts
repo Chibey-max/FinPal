@@ -45,14 +45,37 @@ describe("formatPayPalAmount", () => {
 });
 
 describe("PayPal HTTP client", () => {
-  it("refuses a non-sandbox base URL", () => {
+  it.each([
+    ["the live API", "https://api-m.paypal.com"],
+    ["a look-alike host", "https://sandbox.paypal.com.evil.example"],
+    ["a host merely containing 'sandbox'", "https://sandbox.evil.example"],
+    ["plain http", "http://api-m.sandbox.paypal.com"],
+  ])("refuses %s", (_label, baseUrl) => {
     expect(() =>
       createPayPalHttpClient({
         clientId: "id",
         clientSecret: "secret",
-        baseUrl: "https://api-m.paypal.com",
+        baseUrl,
       }),
     ).toThrow(/Sandbox-only/);
+  });
+
+  it("ignores trailing slashes on the base URL", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(tokenResponse())
+      .mockResolvedValueOnce(json({ id: "ORDER-1", status: "APPROVED" }));
+    const client = createPayPalHttpClient({
+      clientId: "id",
+      clientSecret: "secret",
+      baseUrl: `${baseUrl}///`,
+      fetch: fetchMock,
+    });
+
+    await client.getOrder("ORDER-1");
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      `${baseUrl}/v2/checkout/orders/ORDER-1`,
+    );
   });
 
   it("creates an AUTHORIZE order with the request id and approval link", async () => {

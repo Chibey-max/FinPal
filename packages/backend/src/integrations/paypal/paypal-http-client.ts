@@ -81,12 +81,17 @@ function toOrder(body: z.infer<typeof orderResponseSchema>): PayPalOrder {
 export function createPayPalHttpClient(
   options: PayPalHttpClientOptions,
 ): PayPalClient {
-  const baseUrl = options.baseUrl.replace(/\/+$/, "");
-  if (!new URL(baseUrl).hostname.includes("sandbox")) {
+  // PayPal API base URLs have no path, so the origin is the whole base URL.
+  const url = new URL(options.baseUrl);
+  if (
+    url.protocol !== "https:" ||
+    !url.hostname.endsWith(".sandbox.paypal.com")
+  ) {
     throw new Error(
       "FinPal is Sandbox-only; refusing a non-sandbox PayPal URL.",
     );
   }
+  const baseUrl = url.origin;
 
   const doFetch = options.fetch ?? fetch;
   const now = options.now ?? Date.now;

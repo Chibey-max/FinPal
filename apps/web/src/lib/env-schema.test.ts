@@ -16,10 +16,15 @@ describe("serverEnvSchema", () => {
     expect(env.LOG_LEVEL).toBe("info");
   });
 
-  it("rejects the live PayPal API", () => {
+  it.each([
+    "https://api-m.paypal.com",
+    "https://sandbox.evil.example",
+    "https://api-m.sandbox.paypal.com.evil.example",
+    "http://api-m.sandbox.paypal.com",
+  ])("rejects non-Sandbox PayPal URL %s", (url) => {
     const result = serverEnvSchema.safeParse({
       ...serverEnv,
-      PAYPAL_API_BASE_URL: "https://api-m.paypal.com",
+      PAYPAL_API_BASE_URL: url,
     });
     expect(result.success).toBe(false);
   });
