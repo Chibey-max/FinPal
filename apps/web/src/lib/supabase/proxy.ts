@@ -9,6 +9,7 @@ const protectedPrefixes = [
   "/calendar",
   "/proposals",
   "/settings",
+  "/dev",
 ];
 
 function isProtectedPage(pathname: string) {
