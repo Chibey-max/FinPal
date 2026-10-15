@@ -1,8 +1,10 @@
+import { scoreQuality } from "@finpal/backend";
 import {
   MIN_COMPARABLE_OFFERS,
   offerCurrencySchema,
   offerLookupQuerySchema,
   type OfferLookup,
+  type QualityScore,
 } from "@finpal/contracts";
 import { z } from "zod";
 
@@ -33,15 +35,34 @@ async function lookup(params: { query?: string; currency?: string }) {
   }
 }
 
+const proposedPriceSchema = z.coerce.number().positive().max(1_000_000);
+
+const scoreClasses: Record<QualityScore, string> = {
+  GOOD: "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100",
+  FAIR: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100",
+  POOR: "border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100",
+  INSUFFICIENT_DATA:
+    "border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+};
+
 /** Developer test page: shows the raw reference offers behind a Quality Score. */
 export default async function OffersTestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ query?: string; currency?: string }>;
+  searchParams: Promise<{ query?: string; currency?: string; price?: string }>;
 }) {
   await requireUser();
   const params = await searchParams;
   const result = await lookup(params);
+  const proposedPrice = proposedPriceSchema.safeParse(params.price);
+  const quality =
+    result && result !== "MISSING_KEY" && proposedPrice.success
+      ? scoreQuality({
+          proposedPrice: proposedPrice.data,
+          currency: result.currency,
+          lookup: result,
+        })
+      : null;
   const money = (amount: number, currency: string) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
       amount,
@@ -84,8 +105,34 @@ export default async function OffersTestPage({
             ))}
           </select>
         </div>
+        <div className="grid w-36 gap-2">
+          <Label htmlFor="price">Proposed price</Label>
+          <Input
+            id="price"
+            name="price"
+            type="number"
+            inputMode="decimal"
+            min="0.01"
+            step="0.01"
+            defaultValue={params.price ?? ""}
+            placeholder="optional"
+          />
+        </div>
         <Button type="submit">Look up</Button>
       </form>
+
+      {quality ? (
+        <div
+          role="status"
+          className={cn(
+            "rounded-md border px-4 py-3 text-sm",
+            scoreClasses[quality.score],
+          )}
+        >
+          <p className="font-medium">Quality Score: {quality.score}</p>
+          <p>{quality.explanation}</p>
+        </div>
+      ) : null}
 
       {result === "MISSING_KEY" ? (
         <p role="alert" className="text-destructive text-sm">

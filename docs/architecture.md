@@ -38,7 +38,22 @@ Normalization rules:
 - Prices are rounded to cents.
 - Provider failures never throw: the lookup returns `UNAVAILABLE` with the error code, so an outage routes the purchase to manual review instead of failing it. Timeouts, network and 5xx errors are retried once; auth, quota and validation errors are not.
 
-`/dev/offers` is a signed-in test page that shows the raw reference offers, exclusion counts and status for any query.
+`/dev/offers` is a signed-in test page that shows the raw reference offers, exclusion counts and status for any query, plus the Quality Score when a proposed price is entered.
+
+## Quality Score v1
+
+`scoreQuality()` in `packages/backend/src/domain/quality-score.ts` is deterministic: the same price and offers always give the same category. An LLM may rephrase the explanation but must never choose or change the category. Thresholds live in `QUALITY_THRESHOLDS` (`packages/contracts/src/quality-score.ts`).
+
+| Score               | Condition (median of comparable offers)                                 | Decision implication              |
+| ------------------- | ----------------------------------------------------------------------- | --------------------------------- |
+| `GOOD`              | At least 3 offers and proposed price ≤ median × 1.05                    | Eligible for auto-approval        |
+| `FAIR`              | At least 3 offers and proposed price ≤ median × 1.20                    | Manual review; trust must pass    |
+| `POOR`              | At least 3 offers and proposed price > median × 1.20                    | Block                             |
+| `INSUFFICIENT_DATA` | Fewer than 3 offers, lookup not `OK`, or offers in a different currency | Manual review; never auto-approve |
+
+- **Both bounds are inclusive:** exactly median × 1.05 is `GOOD`, one cent more is `FAIR`.
+- **Exact arithmetic:** comparisons use integer cents, and the median is kept in half-cents so an even count's midpoint (e.g. 100.005) is exact. Plain floating point would misclassify prices sitting exactly on a bound (`10.2 × 1.05 = 10.709999…`); tests cover these cases.
+- **Stored result:** score, explanation, proposed price, currency, offer count, median, lowest offer, ratio to median, the thresholds used, the lookup status and the Channel3 offers used as references. The decision orchestrator persists it on `evaluations` (`quality_score`, `explanation`, `offer_count`, `median_price`, `lowest_price`, `offer_currency`, `channel3_refs`).
 
 ## Security posture
 
