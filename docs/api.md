@@ -14,6 +14,7 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `POST` | `/api/v1/payments/:paymentId/capture`   | Capture an authorized payment                            |
 | `POST` | `/api/v1/payments/:paymentId/void`      | Void an authorization before capture                     |
 | `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
+| `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment    |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
 
 Only the PayPal webhook still returns `501 Not Implemented`.
@@ -96,3 +97,7 @@ PayPal failures are also written to `audit_events` as `PAYPAL_CALL_FAILED` with 
 ```
 
 Event types are listed in `packages/contracts/src/audit.ts`.
+
+## Decisions (dashboard)
+
+`GET /api/v1/decisions?limit=200` (1-500, default 200) returns `{ "rows": DecisionRow[] }`, newest decision first. Each row joins the decision to its proposal, evaluation and the most recently updated payment attempt; see `decisionRowSchema` in `packages/contracts/src/dashboard.ts`. `paymentStatus` is the exact uppercase state (`CREATED`, `APPROVED`, `AUTHORIZED`, `CAPTURED`, `VOIDED`) or `null` if no payment was started. Reads go through the user's own session, so RLS applies.

@@ -1,5 +1,6 @@
 export * from "./audit";
 export * from "./constraints";
+export * from "./dashboard";
 export * from "./decision";
 export * from "./offers";
 export * from "./payment";

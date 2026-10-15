@@ -8,11 +8,13 @@ import {
   createQualityScoreService,
   createSupabaseAuditEventRepository,
   createSupabaseConstraintsRepository,
+  createSupabaseDashboardRepository,
   createSupabaseDecisionRepository,
   createSupabaseEvaluationRepository,
   createSupabasePaymentAttemptRepository,
   createSupabaseProposalRepository,
   type AuditLog,
+  type DashboardRepository,
   type EvaluationService,
   type PaymentService,
 } from "@finpal/backend";
@@ -86,4 +88,10 @@ export function getPaymentService(): PaymentService {
 export async function getUserAuditLog(): Promise<AuditLog> {
   const supabase = await createServerSupabaseClient();
   return createAuditLog(createSupabaseAuditEventRepository(supabase));
+}
+
+/** Dashboard reads, through the user's own session so RLS applies. */
+export async function getUserDashboard(): Promise<DashboardRepository> {
+  const supabase = await createServerSupabaseClient();
+  return createSupabaseDashboardRepository(supabase);
 }

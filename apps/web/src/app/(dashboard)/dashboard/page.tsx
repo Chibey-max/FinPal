@@ -1,6 +1,7 @@
 import { ActivityList } from "@/features/activity/activity-list";
+import { DecisionsGrid } from "@/features/dashboard/decisions-grid";
 import { requireUser } from "@/lib/auth";
-import { getUserAuditLog } from "@/lib/backend";
+import { getUserAuditLog, getUserDashboard } from "@/lib/backend";
 import { cn } from "@/lib/utils";
 
 // Shown after PayPal's return redirect (see /api/v1/payments/return).
@@ -35,19 +36,22 @@ export default async function DashboardPage({
 }) {
   const user = await requireUser();
   const notice = paymentNotice(await searchParams);
-  const { events } = await (
-    await getUserAuditLog()
-  ).listActivity(user.id, {
-    limit: 50,
-  });
+  const [rows, activity] = await Promise.all([
+    getUserDashboard().then((dashboard) =>
+      dashboard.listDecisionRows(user.id, { limit: 200 }),
+    ),
+    getUserAuditLog().then((auditLog) =>
+      auditLog.listActivity(user.id, { limit: 50 }),
+    ),
+  ]);
 
   return (
     <main className="grid gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Decisions</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Every proposal, decision and payment step, newest first. Records are
-          permanent and cannot be edited.
+          Every purchase FinPal evaluated: the price check, the decision and the
+          exact PayPal payment state. Click a column header to sort.
         </p>
       </div>
 
@@ -68,7 +72,18 @@ export default async function DashboardPage({
         </p>
       ) : null}
 
-      <ActivityList events={events} />
+      <DecisionsGrid rows={rows} />
+
+      <details className="grid gap-3">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Audit trail (latest {activity.events.length} events)
+        </summary>
+        <p className="text-muted-foreground mt-2 mb-3 text-sm">
+          Every proposal, decision and payment step, newest first. Records are
+          permanent and cannot be edited.
+        </p>
+        <ActivityList events={activity.events} />
+      </details>
     </main>
   );
 }
