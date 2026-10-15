@@ -2,35 +2,66 @@ import "server-only";
 
 import {
   createAuditLog,
+  createEvaluationService,
   createPaymentService,
   createPayPalHttpClient,
+  createQualityScoreService,
   createSupabaseAuditEventRepository,
+  createSupabaseConstraintsRepository,
   createSupabaseDecisionRepository,
+  createSupabaseEvaluationRepository,
   createSupabasePaymentAttemptRepository,
+  createSupabaseProposalRepository,
   type AuditLog,
+  type EvaluationService,
   type PaymentService,
 } from "@finpal/backend";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { getComparableOffersService } from "@/lib/channel3";
 import { getPublicEnv } from "@/lib/env";
 import { getServerEnv } from "@/lib/env.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Composition root: wires backend use cases to real infrastructure. The
 // service-role client bypasses RLS, so every repository scopes by user id.
+let serviceDb: SupabaseClient | undefined;
 let paymentService: PaymentService | undefined;
+let evaluationService: EvaluationService | undefined;
+
+function getServiceDb(): SupabaseClient {
+  serviceDb ??= createClient(
+    getPublicEnv().NEXT_PUBLIC_SUPABASE_URL,
+    getServerEnv().SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  return serviceDb;
+}
+
+export function getEvaluationService(): EvaluationService {
+  if (evaluationService) return evaluationService;
+  const db = getServiceDb();
+
+  evaluationService = createEvaluationService({
+    proposals: createSupabaseProposalRepository(db),
+    constraints: createSupabaseConstraintsRepository(db),
+    payments: createSupabasePaymentAttemptRepository(db),
+    quality: createQualityScoreService({
+      offers: getComparableOffersService(),
+    }),
+    evaluations: createSupabaseEvaluationRepository(db),
+    audit: createAuditLog(createSupabaseAuditEventRepository(db)),
+    // Merchant trust (KERNEL) is not configured yet: every check is N/A.
+  });
+  return evaluationService;
+}
 
 export function getPaymentService(): PaymentService {
   if (paymentService) return paymentService;
 
-  const publicEnv = getPublicEnv();
   const serverEnv = getServerEnv();
-  const db = createClient(
-    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-    serverEnv.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const appUrl = publicEnv.NEXT_PUBLIC_APP_URL;
+  const db = getServiceDb();
+  const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
 
   paymentService = createPaymentService({
     paypal: createPayPalHttpClient({

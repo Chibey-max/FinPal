@@ -70,7 +70,40 @@ Normalization rules:
 
 - **Both bounds are inclusive:** exactly median × 1.05 is `GOOD`, one cent more is `FAIR`.
 - **Exact arithmetic:** comparisons use integer cents, and the median is kept in half-cents so an even count's midpoint (e.g. 100.005) is exact. Plain floating point would misclassify prices sitting exactly on a bound (`10.2 × 1.05 = 10.709999…`); tests cover these cases.
-- **Stored result:** score, explanation, proposed price, currency, offer count, median, lowest offer, ratio to median, the thresholds used, the lookup status and the Channel3 offers used as references. The decision orchestrator persists it on `evaluations` (`quality_score`, `explanation`, `offer_count`, `median_price`, `lowest_price`, `offer_currency`, `channel3_refs`).
+- **Stored result:** score, explanation, proposed price, currency, offer count, median, lowest offer, ratio to median, the thresholds used, the lookup status and the Channel3 offers used as references. The decision orchestrator persists it on `evaluations` (`quality_score`, `explanation`, `offer_count`, `median_price`, `lowest_price`, `offer_currency`, `channel3_refs`, and the full result in `quality_result`).
+
+## Decision orchestrator
+
+`createEvaluationService().evaluateProposal()` in `packages/backend/src/use-cases/evaluate-proposal.ts`:
+
+1. Loads the proposal (owned by the user) and the user's constraints.
+2. Sums money already committed (`AUTHORIZED` or `CAPTURED`) today and this month **in the user's timezone**, for the daily and monthly caps.
+3. Runs `checkConstraints()` at the planned purchase time, the Quality Score, and the merchant trust check in parallel.
+4. Applies `decide()` (`packages/backend/src/domain/decision-table.ts`).
+5. Stores the evaluation and decision (service role; users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events.
+
+### Decision table v1
+
+| Constraints | Quality      | Trust       | Amount    | Result          |
+| ----------- | ------------ | ----------- | --------- | --------------- |
+| Pass        | Good         | Pass or N/A | Under cap | `AUTO_APPROVE`  |
+| Pass        | Fair         | Pass        | Under cap | `MANUAL_REVIEW` |
+| Fail        | any          | any         | any       | `BLOCK`         |
+| any         | Poor         | any         | any       | `BLOCK`         |
+| any         | any          | any         | Over cap  | `BLOCK`         |
+| any         | Insufficient | any         | any       | `MANUAL_REVIEW` |
+
+Precedence: any block condition wins and every block reason is reported; otherwise anything short of every auto-approval condition goes to manual review. A test runs all 64 combinations of constraints, amount, quality and trust against these rules.
+
+**Combinations the PRD table does not list** (team to confirm):
+
+- Good with trust `FAIL` or `UNAVAILABLE` → `MANUAL_REVIEW`, never auto-approved.
+- Fair with trust not `PASS` → `MANUAL_REVIEW`, with a reason that trust must pass before approval.
+- Trust `NOT_CHECKED` (KERNEL not configured) counts as "N/A", so Good can still auto-approve.
+- A user with no constraints saved → `MANUAL_REVIEW` (Poor quality still blocks).
+- A currency mismatch between the proposal and the constraints → `BLOCK` (fails both constraints and amount).
+
+Each decision has structured `reasons` (`code`, `source`: constraints, amount, quality, trust or decision, and a readable `message`) plus a one-line `reason` summary.
 
 ## Security posture
 

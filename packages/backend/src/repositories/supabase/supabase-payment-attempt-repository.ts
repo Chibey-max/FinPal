@@ -102,6 +102,23 @@ export function createSupabasePaymentAttemptRepository(
       return data ? toRecord(data) : null;
     },
 
+    async sumCommitted(userId, currency, from, to) {
+      const { data, error } = await table()
+        .select("amount")
+        .eq("user_id", userId)
+        .eq("currency", currency)
+        .in("status", ["AUTHORIZED", "CAPTURED"])
+        .gte("created_at", from.toISOString())
+        .lt("created_at", to.toISOString());
+      if (error) throw error;
+      // Sum in cents to avoid floating-point drift across many payments.
+      const cents = (data ?? []).reduce(
+        (total, row) => total + Math.round(Number(row.amount) * 100),
+        0,
+      );
+      return cents / 100;
+    },
+
     async insert(attempt) {
       const { data, error } = await table()
         .insert({

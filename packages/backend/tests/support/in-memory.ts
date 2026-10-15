@@ -40,6 +40,18 @@ export function createInMemoryPayments(): PaymentAttemptRepository & {
           row.decisionId === decisionId &&
           row.status !== "VOIDED",
       ),
+    async sumCommitted(userId, currency, from, to) {
+      return rows
+        .filter(
+          (row) =>
+            row.userId === userId &&
+            row.currency === currency &&
+            (row.status === "AUTHORIZED" || row.status === "CAPTURED") &&
+            new Date(row.createdAt) >= from &&
+            new Date(row.createdAt) < to,
+        )
+        .reduce((total, row) => total + row.amount, 0);
+    },
     async insert(attempt) {
       const duplicate = rows.some(
         (row) =>

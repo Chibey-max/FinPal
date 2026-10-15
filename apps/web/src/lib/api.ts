@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PaymentError } from "@finpal/backend";
+import { EvaluationError, PaymentError } from "@finpal/backend";
 import {
   paymentAttemptSchema,
   type PaymentAttempt,
@@ -51,6 +51,9 @@ const paymentErrorStatus: Record<PaymentErrorCode, number> = {
 };
 
 export function handleRouteError(error: unknown) {
+  if (error instanceof EvaluationError) {
+    return apiError(404, error.code, error.message);
+  }
   if (error instanceof PaymentError) {
     return apiError(
       paymentErrorStatus[error.code],

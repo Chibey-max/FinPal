@@ -16,7 +16,21 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
 
-Routes that still return `501 Not Implemented`: proposals, evaluations, and the PayPal webhook.
+Only the PayPal webhook still returns `501 Not Implemented`.
+
+## Proposal and decision flow
+
+```text
+POST /proposals   { productName, proposedPrice, currency, source: "MANUAL", proposedFor? }
+  -> 201 Proposal
+POST /evaluations { proposalId }
+  -> 201 { proposal, evaluation, decision }
+     decision.outcome: AUTO_APPROVE | MANUAL_REVIEW | BLOCK
+     decision.reasons: [{ code, source, message }]
+POST /payments    { decisionId, idempotencyKey }   (AUTO_APPROVE only)
+```
+
+`proposedFor` (ISO 8601 with offset) is the planned purchase time; time windows are checked at that time, otherwise at evaluation time. Evaluating the same proposal again records a new evaluation and decision; history is kept. `POST /evaluations` returns `404 PROPOSAL_NOT_FOUND` for another user's proposal.
 
 ## Payment flow
 

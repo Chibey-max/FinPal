@@ -47,6 +47,16 @@ export interface PaymentAttemptRepository {
     userId: string,
     decisionId: string,
   ): Promise<PaymentAttemptRecord | null>;
+  /**
+   * Money committed in [from, to): AUTHORIZED or CAPTURED attempts in the
+   * currency, used for daily and monthly caps.
+   */
+  sumCommitted(
+    userId: string,
+    currency: string,
+    from: Date,
+    to: Date,
+  ): Promise<number>;
   insert(attempt: NewPaymentAttempt): Promise<PaymentAttemptRecord>;
   /**
    * Compare-and-set: applies the patch only while the row is still in
