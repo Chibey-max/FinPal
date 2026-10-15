@@ -17,7 +17,9 @@ import {
   type PayPalClient,
 } from "../../src/integrations/paypal/paypal-client";
 
-export function createInMemoryPayments(): PaymentAttemptRepository & {
+export function createInMemoryPayments(
+  clock: () => Date = () => new Date(),
+): PaymentAttemptRepository & {
   rows: PaymentAttemptRecord[];
 } {
   const rows: PaymentAttemptRecord[] = [];
@@ -60,7 +62,7 @@ export function createInMemoryPayments(): PaymentAttemptRepository & {
       );
       if (duplicate) throw new DuplicatePaymentAttemptError();
       sequence += 1;
-      const now = new Date().toISOString();
+      const now = clock().toISOString();
       const record: PaymentAttemptRecord = {
         ...attempt,
         id: `00000000-0000-4000-8000-${String(sequence).padStart(12, "0")}`,
