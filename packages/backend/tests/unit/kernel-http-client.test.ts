@@ -4,19 +4,26 @@ import { createKernelHttpClient } from "../../src/integrations/kernel/kernel-htt
 
 describe("kernel http client", () => {
   it("returns PASS for a reachable merchant page and cleans up the browser", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/browsers") && init?.method === "POST") {
-        return Response.json({ session_id: "sess-1" });
-      }
-      if (url.includes("/browsers/sess-1/curl")) {
-        return Response.json({ status: 200, headers: {}, body: "ok", duration_ms: 120 });
-      }
-      if (url.endsWith("/browsers/sess-1") && init?.method === "DELETE") {
-        return new Response(null, { status: 204 });
-      }
-      return new Response("not found", { status: 404 });
-    });
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/browsers") && init?.method === "POST") {
+          return Response.json({ session_id: "sess-1" });
+        }
+        if (url.includes("/browsers/sess-1/curl")) {
+          return Response.json({
+            status: 200,
+            headers: {},
+            body: "ok",
+            duration_ms: 120,
+          });
+        }
+        if (url.endsWith("/browsers/sess-1") && init?.method === "DELETE") {
+          return new Response(null, { status: 204 });
+        }
+        return new Response("not found", { status: 404 });
+      },
+    );
 
     const client = createKernelHttpClient({
       apiKey: "key",
@@ -37,16 +44,23 @@ describe("kernel http client", () => {
   });
 
   it("returns FAIL for a 404 merchant page", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/browsers") && init?.method === "POST") {
-        return Response.json({ session_id: "sess-2" });
-      }
-      if (url.includes("/curl")) {
-        return Response.json({ status: 404, headers: {}, body: "", duration_ms: 40 });
-      }
-      return new Response(null, { status: 204 });
-    });
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/browsers") && init?.method === "POST") {
+          return Response.json({ session_id: "sess-2" });
+        }
+        if (url.includes("/curl")) {
+          return Response.json({
+            status: 404,
+            headers: {},
+            body: "",
+            duration_ms: 40,
+          });
+        }
+        return new Response(null, { status: 204 });
+      },
+    );
 
     const client = createKernelHttpClient({
       apiKey: "key",

@@ -31,12 +31,9 @@ export async function GET(request: Request) {
           : error.status === 401 || error.status === 403
             ? 502
             : 502;
-      return apiError(
-        status,
-        "CALENDAR_UNAVAILABLE",
-        error.message,
-        { httpStatus: error.status },
-      );
+      return apiError(status, "CALENDAR_UNAVAILABLE", error.message, {
+        httpStatus: error.status,
+      });
     }
     return handleRouteError(error);
   }

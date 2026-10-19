@@ -17,9 +17,8 @@ export function createCalendarEventsService(deps: CalendarEventsServiceDeps) {
       if (!deps.calendar) {
         return { events: [], configured: false };
       }
-      const events: CalendarEvent[] = await deps.calendar.listUpcomingEvents(
-        limit,
-      );
+      const events: CalendarEvent[] =
+        await deps.calendar.listUpcomingEvents(limit);
       return { events, configured: true };
     },
   };

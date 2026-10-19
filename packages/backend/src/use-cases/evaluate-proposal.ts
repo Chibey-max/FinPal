@@ -41,7 +41,9 @@ export const trustNotConfigured: MerchantTrustChecker = {
 };
 
 /** Builds a trust checker that visits the cheapest reference offer via KERNEL. */
-export function createKernelTrustChecker(kernel: KernelClient): MerchantTrustChecker {
+export function createKernelTrustChecker(
+  kernel: KernelClient,
+): MerchantTrustChecker {
   return {
     async check(proposal, references) {
       const offer = references[0];

@@ -6,9 +6,7 @@ import type { DecisionRepository } from "../repositories/decision-repository";
 export class ReviewError extends Error {
   constructor(
     readonly code:
-      | "DECISION_NOT_FOUND"
-      | "NOT_MANUAL_REVIEW"
-      | "ALREADY_REVIEWED",
+      "DECISION_NOT_FOUND" | "NOT_MANUAL_REVIEW" | "ALREADY_REVIEWED",
     message: string,
   ) {
     super(message);

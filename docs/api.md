@@ -68,15 +68,15 @@ POST /payments/:id/void     -> VOIDED
 
 Errors use `{ "error": { "code", "message", "details" } }`.
 
-| HTTP | Code                                                                                                                     |
-| ---- | ------------------------------------------------------------------------------------------------------------------------ |
-| 400  | `INVALID_REQUEST`                                                                                                        |
-| 401  | `UNAUTHORIZED`                                                                                                           |
-| 404  | `PAYMENT_NOT_FOUND`, `DECISION_NOT_FOUND`                                                                                |
+| HTTP | Code                                                                                                                                         |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `INVALID_REQUEST`                                                                                                                            |
+| 401  | `UNAUTHORIZED`                                                                                                                               |
+| 404  | `PAYMENT_NOT_FOUND`, `DECISION_NOT_FOUND`                                                                                                    |
 | 409  | `IDEMPOTENCY_KEY_REUSED`, `DECISION_ALREADY_PAID`, `ORDER_NOT_APPROVED`, `INVALID_TRANSITION`, `CONCURRENT_MODIFICATION`, `ALREADY_REVIEWED` |
-| 422  | `DECISION_NOT_PAYABLE`, `PAYPAL_DECLINED`, `NOT_MANUAL_REVIEW`                                                           |
-| 502  | `PAYPAL_AUTH_FAILED` (PayPal rejected FinPal's merchant credentials; fix configuration)                                  |
-| 503  | `PAYPAL_UNAVAILABLE` (timeouts, network, PayPal 5xx/429; safe to retry)                                                  |
+| 422  | `DECISION_NOT_PAYABLE`, `PAYPAL_DECLINED`, `NOT_MANUAL_REVIEW`                                                                               |
+| 502  | `PAYPAL_AUTH_FAILED` (PayPal rejected FinPal's merchant credentials; fix configuration)                                                      |
+| 503  | `PAYPAL_UNAVAILABLE` (timeouts, network, PayPal 5xx/429; safe to retry)                                                                      |
 
 PayPal failures are also written to `audit_events` as `PAYPAL_CALL_FAILED` with PayPal's `debug_id`.
 

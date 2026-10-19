@@ -55,7 +55,9 @@ const webhookEventSchema = z.object({
     .optional(),
 });
 
-export type PaypalWebhookService = ReturnType<typeof createPaypalWebhookService>;
+export type PaypalWebhookService = ReturnType<
+  typeof createPaypalWebhookService
+>;
 
 /**
  * Verifies PayPal webhook signatures and applies known payment state updates
@@ -119,7 +121,9 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
   ): Promise<void> {
     const orderId =
       event.resource?.supplementary_data?.related_ids?.order_id ??
-      (event.resource_type === "checkout-order" ? event.resource?.id : undefined);
+      (event.resource_type === "checkout-order"
+        ? event.resource?.id
+        : undefined);
     const authorizationId =
       event.resource?.supplementary_data?.related_ids?.authorization_id ??
       (event.event_type.startsWith("PAYMENT.AUTHORIZATION.")

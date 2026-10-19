@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import type {
-  CalendarClient,
-  CalendarEventSummary,
-} from "./calendar-client";
+import type { CalendarClient, CalendarEventSummary } from "./calendar-client";
 
 export interface GoogleCalendarHttpClientOptions {
   accessToken: string;

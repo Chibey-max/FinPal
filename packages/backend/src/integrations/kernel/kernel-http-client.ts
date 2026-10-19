@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import {
-  type KernelClient,
-  type MerchantTrustResult,
-} from "./kernel-client";
+import { type KernelClient, type MerchantTrustResult } from "./kernel-client";
 
 export interface KernelHttpClientOptions {
   apiKey: string;
