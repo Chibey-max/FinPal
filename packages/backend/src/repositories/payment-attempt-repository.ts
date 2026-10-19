@@ -42,6 +42,14 @@ export interface PaymentAttemptRepository {
     userId: string,
     paypalOrderId: string,
   ): Promise<PaymentAttemptRecord | null>;
+  /** Service-role webhook lookup: order id is globally unique. */
+  findAnyByPayPalOrderId(
+    paypalOrderId: string,
+  ): Promise<PaymentAttemptRecord | null>;
+  /** Service-role webhook lookup by authorization id. */
+  findAnyByPayPalAuthorizationId(
+    paypalAuthorizationId: string,
+  ): Promise<PaymentAttemptRecord | null>;
   /** The decision's payment that is not VOIDED, if any (at most one exists). */
   findActiveByDecisionId(
     userId: string,

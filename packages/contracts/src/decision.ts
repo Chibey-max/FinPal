@@ -26,6 +26,11 @@ export const trustSignalSchema = z.enum([
 
 export type TrustSignal = z.infer<typeof trustSignalSchema>;
 
+/** Reviewer action on a MANUAL_REVIEW decision (Day 14). */
+export const reviewStatusSchema = z.enum(["APPROVED", "REJECTED"]);
+
+export type ReviewStatus = z.infer<typeof reviewStatusSchema>;
+
 export const decisionReasonCodeSchema = z.enum([
   // Block reasons
   "CONSTRAINTS_FAILED",
@@ -61,6 +66,9 @@ export const decisionSchema = z.object({
   reason: z.string(),
   reasons: z.array(decisionReasonSchema),
   decidedAt: z.string(),
+  reviewerId: z.uuid().nullable(),
+  reviewStatus: reviewStatusSchema.nullable(),
+  reviewedAt: z.string().nullable(),
 });
 
 export type Decision = z.infer<typeof decisionSchema>;
@@ -71,6 +79,8 @@ export const evaluationSchema = z.object({
   quality: qualityScoreResultSchema,
   constraintCheck: constraintCheckSchema.nullable(),
   trustSignal: trustSignalSchema,
+  /** KERNEL check metadata (URL, status, session id); empty when not checked. */
+  trustEvidence: z.record(z.string(), z.unknown()),
   createdAt: z.string(),
 });
 
@@ -79,6 +89,12 @@ export type Evaluation = z.infer<typeof evaluationSchema>;
 export const evaluateProposalSchema = z.object({
   proposalId: z.uuid(),
 });
+
+export const reviewDecisionSchema = z.object({
+  action: reviewStatusSchema,
+});
+
+export type ReviewDecisionInput = z.infer<typeof reviewDecisionSchema>;
 
 export const proposalEvaluationSchema = z.object({
   proposal: proposalSchema,

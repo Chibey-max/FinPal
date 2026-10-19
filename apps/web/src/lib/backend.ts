@@ -2,22 +2,32 @@ import "server-only";
 
 import {
   createAuditLog,
+  createCalendarEventsService,
   createDecisionDetailService,
   createEvaluationService,
+  createGoogleCalendarHttpClient,
+  createKernelHttpClient,
+  createKernelTrustChecker,
   createPaymentService,
+  createPaypalWebhookService,
   createPayPalHttpClient,
   createQualityScoreService,
+  createReviewDecisionService,
   createSupabaseAuditEventRepository,
   createSupabaseConstraintsRepository,
   createSupabaseDashboardRepository,
   createSupabaseDecisionRepository,
   createSupabaseEvaluationRepository,
   createSupabasePaymentAttemptRepository,
+  createSupabasePaypalWebhookEventRepository,
   createSupabaseProposalRepository,
   type AuditLog,
+  type CalendarEventsService,
   type DashboardRepository,
   type EvaluationService,
   type PaymentService,
+  type PaypalWebhookService,
+  type ReviewDecisionService,
 } from "@finpal/backend";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -31,6 +41,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 let serviceDb: SupabaseClient | undefined;
 let paymentService: PaymentService | undefined;
 let evaluationService: EvaluationService | undefined;
+let reviewService: ReviewDecisionService | undefined;
+let calendarService: CalendarEventsService | undefined;
+let webhookService: PaypalWebhookService | undefined;
 
 function getServiceDb(): SupabaseClient {
   serviceDb ??= createClient(
@@ -41,9 +54,14 @@ function getServiceDb(): SupabaseClient {
   return serviceDb;
 }
 
+function getServiceAuditLog(): AuditLog {
+  return createAuditLog(createSupabaseAuditEventRepository(getServiceDb()));
+}
+
 export function getEvaluationService(): EvaluationService {
   if (evaluationService) return evaluationService;
   const db = getServiceDb();
+  const serverEnv = getServerEnv();
 
   evaluationService = createEvaluationService({
     proposals: createSupabaseProposalRepository(db),
@@ -53,8 +71,12 @@ export function getEvaluationService(): EvaluationService {
       offers: getComparableOffersService(),
     }),
     evaluations: createSupabaseEvaluationRepository(db),
-    audit: createAuditLog(createSupabaseAuditEventRepository(db)),
-    // Merchant trust (KERNEL) is not configured yet: every check is N/A.
+    audit: getServiceAuditLog(),
+    trust: serverEnv.KERNEL_API_KEY
+      ? createKernelTrustChecker(
+          createKernelHttpClient({ apiKey: serverEnv.KERNEL_API_KEY }),
+        )
+      : undefined,
   });
   return evaluationService;
 }
@@ -74,11 +96,58 @@ export function getPaymentService(): PaymentService {
     }),
     payments: createSupabasePaymentAttemptRepository(db),
     decisions: createSupabaseDecisionRepository(db),
-    audit: createAuditLog(createSupabaseAuditEventRepository(db)),
+    audit: getServiceAuditLog(),
     returnUrl: `${appUrl}/api/v1/payments/return`,
     cancelUrl: `${appUrl}/dashboard?payment=cancelled`,
   });
   return paymentService;
+}
+
+export function getReviewDecisionService(): ReviewDecisionService {
+  if (reviewService) return reviewService;
+  const db = getServiceDb();
+  reviewService = createReviewDecisionService({
+    decisions: createSupabaseDecisionRepository(db),
+    audit: getServiceAuditLog(),
+  });
+  return reviewService;
+}
+
+export function getCalendarEventsService(): CalendarEventsService {
+  if (calendarService) return calendarService;
+  const serverEnv = getServerEnv();
+  calendarService = createCalendarEventsService({
+    calendar: serverEnv.GOOGLE_CALENDAR_ACCESS_TOKEN
+      ? createGoogleCalendarHttpClient({
+          accessToken: serverEnv.GOOGLE_CALENDAR_ACCESS_TOKEN,
+          calendarId: serverEnv.GOOGLE_CALENDAR_ID,
+        })
+      : undefined,
+  });
+  return calendarService;
+}
+
+export function getPaypalWebhookService(): PaypalWebhookService {
+  if (webhookService) return webhookService;
+  const serverEnv = getServerEnv();
+  const db = getServiceDb();
+  webhookService = createPaypalWebhookService({
+    paypal: createPayPalHttpClient({
+      clientId: serverEnv.PAYPAL_CLIENT_ID,
+      clientSecret: serverEnv.PAYPAL_CLIENT_SECRET,
+      baseUrl: serverEnv.PAYPAL_API_BASE_URL,
+    }),
+    payments: createSupabasePaymentAttemptRepository(db),
+    events: createSupabasePaypalWebhookEventRepository(db),
+    audit: getServiceAuditLog(),
+    webhookId: serverEnv.PAYPAL_WEBHOOK_ID,
+  });
+  return webhookService;
+}
+
+/** Service-role audit writer for server actions that persist via the user client. */
+export function getServiceRoleAuditLog(): AuditLog {
+  return getServiceAuditLog();
 }
 
 /**

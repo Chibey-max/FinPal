@@ -87,6 +87,7 @@ function createEvaluations() {
           quality: input.quality,
           constraintCheck: input.constraintCheck,
           trustSignal: input.trustSignal,
+          trustEvidence: input.trustEvidence,
           createdAt: now.toISOString(),
         },
         decision: {
@@ -94,6 +95,9 @@ function createEvaluations() {
           evaluationId,
           ...input.decision,
           decidedAt: now.toISOString(),
+          reviewerId: null,
+          reviewStatus: null,
+          reviewedAt: null,
         },
       };
     },
@@ -142,7 +146,12 @@ describe("evaluation service", () => {
       quality: qualityReturning(score),
       evaluations: evaluations.repository,
       audit: audit.log,
-      trust: { check: async () => trust },
+      trust: {
+        check: async () => ({
+          signal: trust,
+          evidence: { reason: "test" },
+        }),
+      },
       now: () => now,
     });
   }

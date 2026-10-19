@@ -28,6 +28,16 @@ export interface PayPalCapture {
   captureStatus: string;
 }
 
+export interface VerifyWebhookSignatureInput {
+  authAlgo: string;
+  certUrl: string;
+  transmissionId: string;
+  transmissionSig: string;
+  transmissionTime: string;
+  webhookId: string;
+  webhookEvent: unknown;
+}
+
 export interface PayPalClient {
   createOrder(input: CreatePayPalOrderInput): Promise<PayPalOrder>;
   getOrder(orderId: string): Promise<PayPalOrder>;
@@ -43,6 +53,8 @@ export interface PayPalClient {
     authorizationId: string,
     requestId: string,
   ): Promise<{ authorizationStatus: string }>;
+  /** Returns true when PayPal confirms the webhook transmission. */
+  verifyWebhookSignature(input: VerifyWebhookSignatureInput): Promise<boolean>;
 }
 
 export class PayPalApiError extends Error {

@@ -27,6 +27,7 @@ export function createSupabaseEvaluationRepository(
           explanation: quality.explanation,
           channel3_refs: quality.references,
           trust_signal: input.trustSignal,
+          trust_evidence: input.trustEvidence,
           offer_count: quality.offerCount,
           median_price: quality.medianPrice,
           lowest_price: quality.lowestPrice,
@@ -35,7 +36,7 @@ export function createSupabaseEvaluationRepository(
           quality_result: quality,
         })
         .select(
-          "id, proposal_id, quality_result, constraint_check, trust_signal, created_at",
+          "id, proposal_id, quality_result, constraint_check, trust_signal, trust_evidence, created_at",
         )
         .single();
       if (evaluationError) throw evaluationError;
@@ -49,7 +50,9 @@ export function createSupabaseEvaluationRepository(
           reason: input.decision.reason,
           reasons: input.decision.reasons,
         })
-        .select("id, evaluation_id, outcome, reason, reasons, decided_at")
+        .select(
+          "id, evaluation_id, outcome, reason, reasons, decided_at, reviewer_id, review_status, reviewed_at",
+        )
         .single();
       if (decisionError) throw decisionError;
 
@@ -63,6 +66,7 @@ export function createSupabaseEvaluationRepository(
               ? null
               : constraintCheckSchema.parse(evaluationRow.constraint_check),
           trustSignal: evaluationRow.trust_signal,
+          trustEvidence: evaluationRow.trust_evidence ?? {},
           createdAt: evaluationRow.created_at,
         }),
         decision: decisionSchema.parse({
@@ -72,6 +76,9 @@ export function createSupabaseEvaluationRepository(
           reason: decisionRow.reason,
           reasons: decisionRow.reasons,
           decidedAt: decisionRow.decided_at,
+          reviewerId: decisionRow.reviewer_id ?? null,
+          reviewStatus: decisionRow.review_status ?? null,
+          reviewedAt: decisionRow.reviewed_at ?? null,
         }),
       };
     },

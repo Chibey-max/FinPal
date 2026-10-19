@@ -58,6 +58,10 @@ const captureResponseSchema = z.object({
 
 const voidResponseSchema = z.object({ status: z.string() });
 
+const verifyWebhookResponseSchema = z.object({
+  verification_status: z.string(),
+});
+
 const errorResponseSchema = z
   .object({
     name: z.string().optional(),
@@ -283,6 +287,29 @@ export function createPayPalHttpClient(
       );
       // PayPal may answer 204 No Content, which still means VOIDED.
       return { authorizationStatus: body?.status ?? "VOIDED" };
+    },
+
+    async verifyWebhookSignature(input) {
+      const body = await request(
+        verifyWebhookResponseSchema,
+        "/v1/notifications/verify-webhook-signature",
+        {
+          method: "POST",
+          body: {
+            auth_algo: input.authAlgo,
+            cert_url: input.certUrl,
+            transmission_id: input.transmissionId,
+            transmission_sig: input.transmissionSig,
+            transmission_time: input.transmissionTime,
+            webhook_id: input.webhookId,
+            webhook_event: input.webhookEvent,
+          },
+        },
+      );
+      return (
+        required(body, "verifyWebhookSignature").verification_status ===
+        "SUCCESS"
+      );
     },
   };
 }

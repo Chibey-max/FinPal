@@ -35,6 +35,10 @@ export function createInMemoryPayments(
       find((row) => row.userId === userId && row.idempotencyKey === key),
     findByPayPalOrderId: (userId, orderId) =>
       find((row) => row.userId === userId && row.paypalOrderId === orderId),
+    findAnyByPayPalOrderId: (orderId) =>
+      find((row) => row.paypalOrderId === orderId),
+    findAnyByPayPalAuthorizationId: (authorizationId) =>
+      find((row) => row.paypalAuthorizationId === authorizationId),
     findActiveByDecisionId: (userId, decisionId) =>
       find(
         (row) =>
@@ -156,6 +160,15 @@ export function createFakePayPal() {
       calls.push("voidAuthorization");
       return idempotent(requestId, () => ({ authorizationStatus: "VOIDED" }));
     },
+    verifyWebhookSignature: async () => {
+      calls.push("verifyWebhookSignature");
+      if (failNext) {
+        const error = failNext;
+        failNext = undefined;
+        throw error;
+      }
+      return true;
+    },
   };
 
   return {
@@ -209,6 +222,9 @@ export function createInMemoryAudit() {
 
 export function createInMemoryDecisions(decisions: PayableDecision[]) {
   return {
+    async findById() {
+      return null;
+    },
     async findForPayment(userId: string, decisionId: string) {
       return (
         decisions.find(
@@ -216,6 +232,9 @@ export function createInMemoryDecisions(decisions: PayableDecision[]) {
             decision.userId === userId && decision.decisionId === decisionId,
         ) ?? null
       );
+    },
+    async setReview() {
+      return null;
     },
   };
 }

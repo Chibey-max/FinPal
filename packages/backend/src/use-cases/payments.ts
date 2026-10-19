@@ -261,12 +261,25 @@ export function createPaymentService(deps: PaymentServiceDeps) {
       if (!decision) {
         throw new PaymentError("DECISION_NOT_FOUND", "Decision not found.");
       }
-      // MANUAL_REVIEW becomes payable once reviewer approval exists (Day 14).
-      if (decision.outcome !== "AUTO_APPROVE") {
+      // AUTO_APPROVE is always payable. MANUAL_REVIEW is payable only after
+      // Day 14 reviewer approval. BLOCK and rejected reviews never are.
+      const payable =
+        decision.outcome === "AUTO_APPROVE" ||
+        (decision.outcome === "MANUAL_REVIEW" &&
+          decision.reviewStatus === "APPROVED");
+      if (!payable) {
         throw new PaymentError(
           "DECISION_NOT_PAYABLE",
-          `A ${decision.outcome} decision cannot be paid.`,
-          { outcome: decision.outcome },
+          decision.outcome === "MANUAL_REVIEW" &&
+            decision.reviewStatus === "REJECTED"
+            ? "This decision was rejected and cannot be paid."
+            : decision.outcome === "MANUAL_REVIEW"
+              ? "This decision still needs reviewer approval before payment."
+              : `A ${decision.outcome} decision cannot be paid.`,
+          {
+            outcome: decision.outcome,
+            reviewStatus: decision.reviewStatus,
+          },
         );
       }
       if (await payments.findActiveByDecisionId(userId, decisionId)) {

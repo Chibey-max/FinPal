@@ -13,6 +13,7 @@ function rawRow(overrides: Record<string, unknown> = {}) {
     reason: "Approved: within your rules.",
     reasons: [{ code: "ALL_CHECKS_PASSED", source: "decision", message: "ok" }],
     decided_at: "2026-10-23T10:00:00+00:00",
+    review_status: null,
     evaluations: {
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       quality_score: "GOOD",
@@ -54,6 +55,7 @@ describe("toDecisionRow", () => {
       medianPrice: 50,
       offerCount: 3,
       trustSignal: "NOT_CHECKED",
+      reviewStatus: null,
       paymentId: null,
       paymentStatus: null,
       paymentUpdatedAt: null,
@@ -165,12 +167,16 @@ describe("toDecisionRecord", () => {
     reason: "Approved: ok",
     reasons: [{ code: "ALL_CHECKS_PASSED", source: "decision", message: "ok" }],
     decided_at: "2026-10-23T10:00:00+00:00",
+    reviewer_id: null,
+    review_status: null,
+    reviewed_at: null,
     evaluations: {
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       proposal_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       quality_result: quality,
       constraint_check: null,
       trust_signal: "NOT_CHECKED",
+      trust_evidence: {},
       created_at: "2026-10-23T10:00:00+00:00",
       proposals: {
         id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",

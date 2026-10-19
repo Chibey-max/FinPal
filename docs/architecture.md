@@ -78,9 +78,11 @@ Normalization rules:
 
 1. Loads the proposal (owned by the user) and the user's constraints.
 2. Sums money already committed (`AUTHORIZED` or `CAPTURED`) today and this month **in the user's timezone**, for the daily and monthly caps.
-3. Runs `checkConstraints()` at the planned purchase time, the Quality Score, and the merchant trust check in parallel.
+3. Runs `checkConstraints()` at the planned purchase time and the Quality Score in parallel, then the merchant trust check (KERNEL visits the cheapest Channel3 offer URL when `KERNEL_API_KEY` is set; otherwise `NOT_CHECKED`).
 4. Applies `decide()` (`packages/backend/src/domain/decision-table.ts`).
-5. Stores the evaluation and decision (service role; users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events.
+5. Stores the evaluation and decision (service role; users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events. Trust evidence is persisted on `evaluations.trust_evidence`.
+
+`MANUAL_REVIEW` decisions become payable after `POST /api/v1/decisions/:id/review` with `APPROVED` (Day 14). Rejection is audited and never payable.
 
 ### Decision table v1
 

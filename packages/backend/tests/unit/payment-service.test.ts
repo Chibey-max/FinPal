@@ -41,6 +41,7 @@ describe("payment service", () => {
           decisionId: approvedDecisionId,
           userId,
           outcome: "AUTO_APPROVE",
+          reviewStatus: null,
           productName: "Desk lamp",
           amount: 49.5,
           currency: "USD",
@@ -49,6 +50,7 @@ describe("payment service", () => {
           decisionId: blockedDecisionId,
           userId,
           outcome: "BLOCK",
+          reviewStatus: null,
           productName: "Overpriced lamp",
           amount: 500,
           currency: "USD",
@@ -124,6 +126,52 @@ describe("payment service", () => {
         }),
       ).rejects.toEqual(expectPaymentError("DECISION_NOT_PAYABLE"));
       expect(paypal.calls).toEqual([]);
+    });
+
+    it("allows MANUAL_REVIEW only after reviewer approval", async () => {
+      const manualId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+      const withReview = createPaymentService({
+        paypal: paypal.client,
+        payments,
+        audit: audit.log,
+        decisions: createInMemoryDecisions([
+          {
+            decisionId: manualId,
+            userId,
+            outcome: "MANUAL_REVIEW",
+            reviewStatus: null,
+            productName: "Fair lamp",
+            amount: 55,
+            currency: "USD",
+          },
+          {
+            decisionId: approvedDecisionId,
+            userId,
+            outcome: "MANUAL_REVIEW",
+            reviewStatus: "APPROVED",
+            productName: "Fair lamp approved",
+            amount: 55,
+            currency: "USD",
+          },
+        ]),
+        returnUrl: "http://localhost:3000/api/v1/payments/return",
+        cancelUrl: "http://localhost:3000/dashboard",
+      });
+
+      await expect(
+        withReview.createPaymentOrder({
+          userId,
+          decisionId: manualId,
+          idempotencyKey: "key-manual-1",
+        }),
+      ).rejects.toEqual(expectPaymentError("DECISION_NOT_PAYABLE"));
+
+      const payment = await withReview.createPaymentOrder({
+        userId,
+        decisionId: approvedDecisionId,
+        idempotencyKey: "key-manual-2",
+      });
+      expect(payment.status).toBe("CREATED");
     });
 
     it("hides other users' decisions", async () => {

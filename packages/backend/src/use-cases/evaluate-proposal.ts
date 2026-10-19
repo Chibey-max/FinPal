@@ -1,4 +1,5 @@
 import type {
+  ComparableOffer,
   CreateProposalInput,
   Proposal,
   ProposalEvaluation,
@@ -8,6 +9,7 @@ import type {
 import { checkConstraints } from "../domain/constraints";
 import { decide } from "../domain/decision-table";
 import { localDayRange, localMonthRange } from "../domain/zoned-time";
+import type { KernelClient } from "../integrations/kernel/kernel-client";
 import type { ConstraintsRepository } from "../repositories/constraints-repository";
 import type { EvaluationRepository } from "../repositories/evaluation-repository";
 import type { PaymentAttemptRepository } from "../repositories/payment-attempt-repository";
@@ -15,14 +17,56 @@ import type { ProposalRepository } from "../repositories/proposal-repository";
 import type { AuditLog } from "../services/audit-log";
 import type { QualityScoreService } from "../services/quality-score-service";
 
-/** Merchant trust (KERNEL). Until it is configured, every check is N/A. */
+export interface MerchantTrustCheckResult {
+  signal: TrustSignal;
+  evidence: Record<string, unknown>;
+}
+
+/**
+ * Merchant trust (KERNEL). Receives Channel3 reference offers so the check
+ * can visit a real merchant URL. Until KERNEL is configured, every check is N/A.
+ */
 export interface MerchantTrustChecker {
-  check(proposal: Proposal): Promise<TrustSignal>;
+  check(
+    proposal: Proposal,
+    references: ComparableOffer[],
+  ): Promise<MerchantTrustCheckResult>;
 }
 
 export const trustNotConfigured: MerchantTrustChecker = {
-  check: async () => "NOT_CHECKED",
+  check: async () => ({
+    signal: "NOT_CHECKED",
+    evidence: { reason: "kernel_not_configured" },
+  }),
 };
+
+/** Builds a trust checker that visits the cheapest reference offer via KERNEL. */
+export function createKernelTrustChecker(
+  kernel: KernelClient,
+): MerchantTrustChecker {
+  return {
+    async check(proposal, references) {
+      const offer = references[0];
+      if (!offer?.url) {
+        return {
+          signal: "UNAVAILABLE",
+          evidence: {
+            reason: "no_merchant_url",
+            productName: proposal.productName,
+          },
+        };
+      }
+      const result = await kernel.checkMerchant(offer.url);
+      return {
+        signal: result.signal,
+        evidence: {
+          merchant: offer.merchant,
+          ...result.evidence,
+        },
+      };
+    },
+  };
+}
 
 export class EvaluationError extends Error {
   constructor(
@@ -65,6 +109,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
           currency: proposal.currency,
           source: proposal.source,
           proposedFor: proposal.proposedFor,
+          sourceEventId: proposal.sourceEventId,
         },
       });
       return proposal;
@@ -88,7 +133,8 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
       const at = proposal.proposedFor ? new Date(proposal.proposedFor) : now();
       const constraints = await deps.constraints.get(userId);
 
-      const [constraintCheck, quality, trustSignal] = await Promise.all([
+      // Quality first so KERNEL can visit a Channel3 merchant URL.
+      const [constraintCheck, quality] = await Promise.all([
         constraints
           ? (async () => {
               const day = localDayRange(at, constraints.timezone);
@@ -126,8 +172,10 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
           proposedPrice: proposal.proposedPrice,
           currency: proposal.currency,
         }),
-        trust.check(proposal),
       ]);
+
+      const trustResult = await trust.check(proposal, quality.references);
+      const trustSignal = trustResult.signal;
 
       const decision = decide({ constraintCheck, quality, trust: trustSignal });
 
@@ -137,6 +185,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
         quality,
         constraintCheck,
         trustSignal,
+        trustEvidence: trustResult.evidence,
         decision,
       });
 
@@ -154,6 +203,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
           constraints: constraintCheck?.constraints ?? null,
           amountCheck: constraintCheck?.amount ?? null,
           trustSignal,
+          trustEvidence: trustResult.evidence,
         },
       });
       await deps.audit.record({
