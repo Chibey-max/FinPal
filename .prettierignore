@@ -6,3 +6,8 @@ node_modules
 pnpm-lock.yaml
 docs/*.pdf
 
+# Design hand-off references (generated prototypes and tokens), kept verbatim.
+.impeccable
+docs/design_handoff_finpal
+docs/FinPal landing and app prototype
+docs/FinPal Logo.dc.html

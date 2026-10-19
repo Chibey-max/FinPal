@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#07080A;color:#EDEEF0;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#EDEEF0;text-decoration:none}
+a:hover{color:#D4F56A}
+::selection{background:#D4F56A;color:#07080A}
+@keyframes fpPulse{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#07080A;overflow-x:hidden">
+
+<header style="position:absolute;top:0;left:0;right:0;z-index:5;padding:22px clamp(20px,4vw,48px);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+  <a href="#top" style="display:flex;align-items:center;gap:10px;font-weight:500;font-size:17px;letter-spacing:-0.01em">
+    <span style="width:22px;height:22px;border-radius:6px;border:1.5px solid #D4F56A;display:grid;place-items:center"><span style="width:8px;height:8px;border-radius:2px;background:#D4F56A"></span></span>
+    FinPal
+  </a>
+  <nav style="display:flex;align-items:center;gap:28px;font-size:14px;flex-wrap:wrap">
+    <a href="#loop" style="color:#9097A1">How it works</a>
+    <a href="#policy" style="color:#9097A1">Policy</a>
+    <a href="#payments" style="color:#9097A1">Payments</a>
+    <a href="#safety" style="color:#9097A1">Safety</a>
+    <a href="#stack" style="color:#9097A1">Stack</a>
+    <a href="FinPal App.dc.html" style="color:#07080A;background:#EDEEF0;padding:9px 16px;border-radius:999px;font-weight:500" style-hover="background:#D4F56A;color:#07080A">Open app</a>
+  </nav>
+</header>
+
+<sc-if value="{{ isCinematic }}" hint-placeholder-val="{{ true }}">
+<section id="top" data-screen-label="Hero A" style="position:relative;min-height:max(100vh,780px);display:flex;flex-direction:column;justify-content:flex-end;padding:140px clamp(20px,4vw,48px) 72px;overflow:hidden">
+  <div style="position:absolute;inset:0;background:#0B0D10">
+    <sc-if value="{{ hasVideo }}" hint-placeholder-val="{{ false }}">
+      {{ videoEl }}
+    </sc-if>
+    <sc-if value="{{ noVideo }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:64px 64px"></div>
+      <div style="position:absolute;right:-10%;top:-20%;width:80vw;height:80vw;border-radius:50%;background:radial-gradient(circle,rgba(212,245,106,0.10),transparent 60%)"></div>
+      <div style="position:absolute;top:110px;right:clamp(20px,4vw,48px);font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#5E6570;display:flex;align-items:center;gap:8px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#FF6B5E;animation:fpPulse 1.6s infinite"></span>Hero video placeholder · set URL in Tweaks
+      </div>
+    </sc-if>
+  </div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,10,0.55) 0%,rgba(7,8,10,0.1) 35%,rgba(7,8,10,0.95) 100%);pointer-events:none"></div>
+  <div style="position:relative;max-width:1240px;width:100%;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:56px;align-items:end">
+    <div style="display:flex;flex-direction:column;gap:28px">
+      <div style="display:flex;align-items:center;gap:10px;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#9097A1">
+        <span style="width:6px;height:6px;border-radius:50%;background:#D4F56A;box-shadow:0 0 12px #D4F56A"></span>Sandbox only · Agent-assisted purchasing
+      </div>
+      <h1 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(54px,7.6vw,116px);line-height:0.92;letter-spacing:-0.025em;text-wrap:balance">An agent that can pay, <em style="color:#D4F56A">and show why.</em></h1>
+      <p style="margin:0;max-width:520px;font-size:18px;line-height:1.55;color:#B4BAC3;text-wrap:pretty">FinPal places a policy and evidence layer between a purchase proposal and a payment. It evaluates first, decides second, and pays only when the decision permits it.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a href="FinPal App.dc.html" style="background:#D4F56A;color:#07080A;padding:14px 22px;border-radius:999px;font-weight:500;font-size:15px" style-hover="background:#E4FF8A;color:#07080A">Run a proposal →</a>
+        <a href="#policy" style="border:1px solid rgba(255,255,255,0.18);padding:14px 22px;border-radius:999px;font-size:15px;background:rgba(7,8,10,0.4)" style-hover="border-color:#D4F56A;color:#EDEEF0">Read the policy</a>
+      </div>
+    </div>
+    <div style="justify-self:end;width:100%;max-width:400px;border:1px solid rgba(255,255,255,0.1);border-radius:18px;background:rgba(14,16,19,0.72);backdrop-filter:blur(18px);padding:22px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-family:'Geist Mono',monospace;font-size:11px;color:#7C838D;letter-spacing:0.06em;text-transform:uppercase"><span>Decision · dec_8f21</span><span>14:32 PT</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:15px;color:#B4BAC3">Sony WH-1000XM5</div><div style="font-family:'Instrument Serif',serif;font-size:44px;line-height:1">$329.00</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden">
+        <div style="background:#0E1013;padding:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7C838D">Channel3 median</span><span style="font-family:'Geist Mono',monospace;font-size:14px">$339.99</span></div>
+        <div style="background:#0E1013;padding:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7C838D">Ratio</span><span style="font-family:'Geist Mono',monospace;font-size:14px">96.8% · GOOD</span></div>
+        <div style="background:#0E1013;padding:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7C838D">Constraints</span><span style="font-family:'Geist Mono',monospace;font-size:14px">PASS</span></div>
+        <div style="background:#0E1013;padding:12px;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7C838D">Trust · KERNEL</span><span style="font-family:'Geist Mono',monospace;font-size:14px">NOT_CHECKED</span></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:10px;background:rgba(212,245,106,0.1);border:1px solid rgba(212,245,106,0.3)">
+        <span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A;font-weight:500">AUTO_APPROVE</span>
+        <span style="font-size:12px;color:#B4BAC3">→ PayPal order CREATED</span>
+      </div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<sc-if value="{{ isSuite }}" hint-placeholder-val="{{ false }}">
+<section id="top" data-screen-label="Hero B" style="position:relative;padding:160px clamp(20px,4vw,48px) 0;overflow:hidden;text-align:center">
+  <div style="position:absolute;left:50%;top:-30%;width:120vw;height:90vw;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(212,245,106,0.08),transparent 55%);pointer-events:none"></div>
+  <div style="position:relative;max-width:980px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:26px">
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border:1px solid rgba(255,255,255,0.12);border-radius:999px;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#9097A1">
+      <span style="width:6px;height:6px;border-radius:50%;background:#D4F56A;box-shadow:0 0 12px #D4F56A"></span>Controlled financial delegation
+    </div>
+    <h1 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(50px,7vw,104px);line-height:0.95;letter-spacing:-0.025em;text-wrap:balance">Evaluate first. Decide second. <em style="color:#D4F56A">Pay only when allowed.</em></h1>
+    <p style="margin:0;max-width:600px;font-size:18px;line-height:1.55;color:#B4BAC3;text-wrap:pretty">FinPal checks every agent purchase against your spending rules, live market prices from Channel3 and merchant trust, then runs PayPal Sandbox authorization and capture with a permanent audit trail.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <a href="FinPal App.dc.html" style="background:#D4F56A;color:#07080A;padding:14px 22px;border-radius:999px;font-weight:500;font-size:15px" style-hover="background:#E4FF8A;color:#07080A">Open the app →</a>
+      <a href="#loop" style="border:1px solid rgba(255,255,255,0.18);padding:14px 22px;border-radius:999px;font-size:15px" style-hover="border-color:#D4F56A;color:#EDEEF0">See the loop</a>
+    </div>
+  </div>
+  <div style="position:relative;max-width:1180px;margin:72px auto 0;border:1px solid rgba(255,255,255,0.1);border-bottom:none;border-radius:20px 20px 0 0;background:#0B0D10;overflow:hidden;aspect-ratio:16/8.4">
+    <sc-if value="{{ hasVideo }}" hint-placeholder-val="{{ false }}">
+      {{ videoEl }}
+    </sc-if>
+    <sc-if value="{{ noVideo }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:48px 48px"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#5E6570">
+        <div style="width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,0.16);display:grid;place-items:center"><span style="width:0;height:0;border-left:16px solid #9097A1;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px"></span></div>
+        <div style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">Product walkthrough video · 16:8 · set URL in Tweaks</div>
+      </div>
+    </sc-if>
+    <div style="position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(180deg,transparent,#07080A);pointer-events:none"></div>
+  </div>
+</section>
+</sc-if>
+
+<section id="loop" data-screen-label="How it works" style="padding:120px clamp(20px,4vw,48px);border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:56px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:32px;align-items:end">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#D4F56A">01 · The core loop</span>
+        <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;letter-spacing:-0.02em">Five steps between an idea and a payment.</h2>
+      </div>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#9097A1;max-width:480px;text-wrap:pretty">A proposal is not a payment. Each step stores its evidence, so the same inputs always produce the same outcome.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:1px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.08);border-radius:18px;overflow:hidden">
+      <div style="background:#0B0D10;padding:28px 24px;display:flex;flex-direction:column;gap:14px;min-height:260px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5E6570">01</span>
+        <h3 style="margin:0;font-size:20px;font-weight:500">Constrain</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">Set allowed time windows, a timezone and daily or monthly caps. No constraints means no automatic approval.</p>
+      </div>
+      <div style="background:#0B0D10;padding:28px 24px;display:flex;flex-direction:column;gap:14px;min-height:260px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5E6570">02</span>
+        <h3 style="margin:0;font-size:20px;font-weight:500">Propose</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">Name a product, price and currency, by hand or prefilled from a calendar event.</p>
+      </div>
+      <div style="background:#0B0D10;padding:28px 24px;display:flex;flex-direction:column;gap:14px;min-height:260px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5E6570">03</span>
+        <h3 style="margin:0;font-size:20px;font-weight:500">Evaluate</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">Channel3 offers are cleaned and compared to the median. KERNEL adds a merchant trust signal.</p>
+      </div>
+      <div style="background:#0B0D10;padding:28px 24px;display:flex;flex-direction:column;gap:14px;min-height:260px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5E6570">04</span>
+        <h3 style="margin:0;font-size:20px;font-weight:500">Decide</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">Explicit rules return AUTO_APPROVE, MANUAL_REVIEW or BLOCK, with reason codes. No generative model.</p>
+      </div>
+      <div style="background:#0B0D10;padding:28px 24px;display:flex;flex-direction:column;gap:14px;min-height:260px">
+        <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#D4F56A">05</span>
+        <h3 style="margin:0;font-size:20px;font-weight:500">Pay and audit</h3>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">PayPal Sandbox order, authorize, then capture or void. Every step lands in an append-only log.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="policy" data-screen-label="Policy" style="padding:120px clamp(20px,4vw,48px);border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:56px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <span style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#D4F56A">02 · Decision policy</span>
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;letter-spacing:-0.02em">Rules you can read, outcomes you can predict.</h2>
+      <p style="margin:0;font-size:16px;line-height:1.6;color:#9097A1;text-wrap:pretty">The proposed price is compared with the median of at least three usable Channel3 offers. Money is handled in integer cents.</p>
+      <div style="display:flex;flex-direction:column;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A">GOOD</span><span style="font-size:14px;color:#B4BAC3">≤ 105% of median</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#F5C26B">FAIR</span><span style="font-size:14px;color:#B4BAC3">&gt; 105% and ≤ 120%</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06)"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#FF6B5E">POOR</span><span style="font-size:14px;color:#B4BAC3">&gt; 120% of median</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px;padding:14px 18px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#9097A1">INSUFFICIENT_DATA</span><span style="font-size:14px;color:#B4BAC3">&lt; 3 valid offers</span></div>
+      </div>
+    </div>
+    <div style="border:1px solid rgba(255,255,255,0.08);border-radius:18px;overflow:auto;background:#0B0D10">
+      <div style="min-width:620px;display:grid;grid-template-columns:1fr 1.2fr 1.3fr 1.1fr 1.3fr;font-size:14px">
+        <div style="padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#5E6570;border-bottom:1px solid rgba(255,255,255,0.08)">Constraints</div>
+        <div style="padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#5E6570;border-bottom:1px solid rgba(255,255,255,0.08)">Quality</div>
+        <div style="padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#5E6570;border-bottom:1px solid rgba(255,255,255,0.08)">Merchant trust</div>
+        <div style="padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#5E6570;border-bottom:1px solid rgba(255,255,255,0.08)">vs cap</div>
+        <div style="padding:16px 18px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#5E6570;border-bottom:1px solid rgba(255,255,255,0.08)">Result</div>
+        <sc-for list="{{ policyRows }}" as="r" hint-placeholder-count="6">
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.05);color:#B4BAC3">{{ r.c }}</div>
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.05);color:#B4BAC3">{{ r.q }}</div>
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.05);color:#B4BAC3">{{ r.t }}</div>
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.05);color:#B4BAC3">{{ r.a }}</div>
+          <div style="padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.05);font-family:'Geist Mono',monospace;font-size:12.5px;font-weight:500;color:{{ r.color }}">{{ r.r }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="payments" data-screen-label="Payments" style="padding:120px clamp(20px,4vw,48px);border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-direction:column;gap:18px;max-width:760px">
+      <span style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#D4F56A">03 · Payment state model</span>
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;letter-spacing:-0.02em">Reserve the money. Then decide to take it.</h2>
+      <p style="margin:0;font-size:16px;line-height:1.6;color:#9097A1;text-wrap:pretty">An authorization can be voided until it is captured. Capture and void compete through guarded transitions, so only one can ever succeed.</p>
+    </div>
+    <div style="border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:#0B0D10;padding:clamp(24px,4vw,56px);overflow:auto">
+      <div style="min-width:760px;display:grid;grid-template-columns:repeat(7,auto);align-items:center;justify-content:space-between;row-gap:28px">
+        <div style="padding:14px 18px;border:1px solid rgba(255,255,255,0.14);border-radius:12px;font-family:'Geist Mono',monospace;font-size:14px">CREATED</div>
+        <div style="height:1px;width:56px;background:rgba(255,255,255,0.25)"></div>
+        <div style="padding:14px 18px;border:1px solid rgba(255,255,255,0.14);border-radius:12px;font-family:'Geist Mono',monospace;font-size:14px">APPROVED</div>
+        <div style="height:1px;width:56px;background:rgba(255,255,255,0.25)"></div>
+        <div style="padding:14px 18px;border:1px solid rgba(212,245,106,0.5);border-radius:12px;font-family:'Geist Mono',monospace;font-size:14px;color:#D4F56A">AUTHORIZED</div>
+        <div style="height:1px;width:56px;background:rgba(255,255,255,0.25)"></div>
+        <div style="padding:14px 18px;border-radius:12px;font-family:'Geist Mono',monospace;font-size:14px;background:#D4F56A;color:#07080A;font-weight:500">CAPTURED</div>
+        <div style="grid-column:1 / 5;font-size:13px;color:#7C838D;line-height:1.5;max-width:320px">User approves in PayPal; FinPal authorizes the approved order.</div>
+        <div style="grid-column:5;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div style="width:1px;height:20px;background:rgba(255,107,94,0.5)"></div>
+          <div style="padding:12px 16px;border:1px solid rgba(255,107,94,0.5);border-radius:12px;font-family:'Geist Mono',monospace;font-size:13px;color:#FF6B5E;white-space:nowrap">VOIDED</div>
+        </div>
+        <div style="grid-column:6"></div>
+        <div style="grid-column:7;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div style="width:1px;height:20px;border-left:1px dashed rgba(255,255,255,0.3)"></div>
+          <div style="padding:12px 16px;border:1px dashed rgba(255,255,255,0.25);border-radius:12px;font-family:'Geist Mono',monospace;font-size:13px;color:#7C838D;white-space:nowrap">REFUNDED · future</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="safety" data-screen-label="Safety" style="padding:120px clamp(20px,4vw,48px);border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-direction:column;gap:18px;max-width:760px">
+      <span style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#D4F56A">04 · Safety invariants</span>
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;letter-spacing:-0.02em">It fails closed around money.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1px;background:rgba(255,255,255,0.08);border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.08)">
+      <sc-for list="{{ invariants }}" as="inv" hint-placeholder-count="8">
+        <div style="background:#07080A;padding:28px 24px 28px 0;display:flex;gap:16px;align-items:baseline">
+          <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5E6570;min-width:22px">{{ inv.n }}</span>
+          <span style="font-size:17px;line-height:1.45;color:#D5D9DE;text-wrap:pretty">{{ inv.text }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section id="stack" data-screen-label="Integrations + Architecture" style="padding:120px clamp(20px,4vw,48px);border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-direction:column;gap:18px;max-width:760px">
+      <span style="font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#D4F56A">05 · Integrations and architecture</span>
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,5vw,68px);line-height:1;letter-spacing:-0.02em">Sponsor tools, one backend in charge.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px">
+      <sc-for list="{{ integrations }}" as="it" hint-placeholder-count="6">
+        <div style="border:1px solid rgba(255,255,255,0.08);border-radius:16px;background:#0B0D10;padding:22px;display:flex;flex-direction:column;gap:14px;min-height:170px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <span style="font-size:18px;font-weight:500">{{ it.name }}</span>
+            <span style="font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;white-space:nowrap;flex:none;color:{{ it.tagColor }};border:1px solid {{ it.tagBorder }}">{{ it.tag }}</span>
+          </div>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:#9097A1">{{ it.desc }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px">
+      <pre style="margin:0;border:1px solid rgba(255,255,255,0.08);border-radius:16px;background:#0B0D10;padding:28px;font-family:'Geist Mono',monospace;font-size:13px;line-height:1.7;color:#B4BAC3;overflow:auto">Browser
+  │
+  ▼
+apps/web ── App Router · API route adapters
+  │
+  ▼
+packages/backend
+  ├─ Domain rules
+  ├─ Application use cases
+  ├─ Payment orchestration
+  ├─ Persistence adapters
+  └─ External-provider clients
+        ├─ Supabase Auth + Postgres
+        ├─ Channel3
+        ├─ PayPal Sandbox
+        ├─ KERNEL        (planned)
+        └─ Calendar      (planned)
+
+packages/contracts ── shared schemas
+packages/ui        ── shared components</pre>
+      <div style="display:flex;flex-direction:column;gap:1px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden">
+        <div style="background:#0B0D10;padding:22px 24px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A">apps/web</span><span style="font-size:14px;line-height:1.55;color:#9097A1">Screens, PayPal redirects, AG Grid tables. Never duplicates decision logic or holds secrets.</span></div>
+        <div style="background:#0B0D10;padding:22px 24px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A">API routes</span><span style="font-size:14px;line-height:1.55;color:#9097A1">Thin adapters: validate, resolve the session user, call a use case, map to HTTP.</span></div>
+        <div style="background:#0B0D10;padding:22px 24px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A">packages/backend</span><span style="font-size:14px;line-height:1.55;color:#9097A1">Constraints, scoring, policy, ownership, idempotency, payment transitions, audit events.</span></div>
+        <div style="background:#0B0D10;padding:22px 24px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#D4F56A">packages/contracts</span><span style="font-size:14px;line-height:1.55;color:#9097A1">One vocabulary for statuses, money formats and identifiers across UI, API and backend.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="CTA" style="padding:140px clamp(20px,4vw,48px) 60px;border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:96px">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:32px">
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(48px,8vw,128px);line-height:0.92;letter-spacing:-0.03em;max-width:1100px;text-wrap:balance">Delegate the purchase. <em style="color:#D4F56A">Keep the receipt for every decision.</em></h2>
+      <a href="FinPal App.dc.html" style="background:#D4F56A;color:#07080A;padding:16px 26px;border-radius:999px;font-weight:500;font-size:16px" style-hover="background:#E4FF8A;color:#07080A">Open the sandbox →</a>
+    </div>
+    <footer style="display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-top:28px;border-top:1px solid rgba(255,255,255,0.08);font-size:13px;color:#5E6570">
+      <span>FinPal · PayPal Sandbox only. Not financial, legal or investment advice.</span>
+      <span style="font-family:'Geist Mono',monospace">v1 · hackathon build</span>
+    </footer>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cinematic&quot;,&quot;Suite&quot;],&quot;default&quot;:&quot;Cinematic&quot;,&quot;tsType&quot;:&quot;'Cinematic'|'Suite'&quot;},&quot;heroVideoUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.heroVariant ?? 'Cinematic';
+    const url = (this.props.heroVideoUrl ?? '').trim();
+    const C = { AUTO_APPROVE: '#D4F56A', MANUAL_REVIEW: '#F5C26B', BLOCK: '#FF6B5E' };
+    const rows = [
+      ['Pass', 'Good', 'Pass or not checked', 'Under or equal', 'AUTO_APPROVE'],
+      ['Pass', 'Fair', 'Pass', 'Under or equal', 'MANUAL_REVIEW'],
+      ['Fail', 'Any', 'Any', 'Any', 'BLOCK'],
+      ['Any', 'Poor', 'Any', 'Any', 'BLOCK'],
+      ['Any', 'Any', 'Any', 'Over', 'BLOCK'],
+      ['Any', 'Insufficient data', 'Any', 'Any', 'MANUAL_REVIEW'],
+    ].map(([c, q, t, a, r]) => ({ c, q, t, a, r, color: C[r] }));
+    const invariants = [
+      'A proposal is not a payment.',
+      'An evaluation is based on stored evidence.',
+      'A blocked decision can never create a payment attempt.',
+      'Insufficient evidence can never cause automatic approval.',
+      'A currency mismatch never triggers silent conversion.',
+      'The same idempotency key never creates a second order.',
+      'Capture and void cannot both succeed for one authorization.',
+      'Audit records cannot be modified or deleted.',
+    ].map((text, i) => ({ text, n: String(i + 1).padStart(2, '0') }));
+    const tag = (t) => t === 'Must have' ? { tagColor: '#D4F56A', tagBorder: 'rgba(212,245,106,0.35)' } : t === 'Should have' ? { tagColor: '#F5C26B', tagBorder: 'rgba(245,194,107,0.35)' } : { tagColor: '#9097A1', tagBorder: 'rgba(255,255,255,0.15)' };
+    const integrations = [
+      ['PayPal Sandbox', 'Must have', 'Order, authorization, capture and void with stable request IDs and central merchant credentials.'],
+      ['Channel3', 'Must have', 'Comparable product offers, normalized and filtered before the median is taken.'],
+      ['AG Grid', 'Must have', 'Sortable decision and audit tables. Presents data, owns no rules.'],
+      ['KERNEL', 'Should have', 'Merchant trust signal: PASS, FAIL, UNAVAILABLE or NOT_CHECKED. Never assumed positive.'],
+      ['Bryntum Calendar', 'Should have', 'Manual “Create proposal from event” prefill. Never authorizes spending.'],
+      ['Supabase', 'Foundation', 'Auth, PostgreSQL and row-level security on every user-owned record.'],
+    ].map(([name, t, desc]) => ({ name, tag: t, desc, ...tag(t) }));
+    return {
+      isCinematic: v !== 'Suite', isSuite: v === 'Suite',
+      hasVideo: !!url, noVideo: !url, videoEl: url ? React.createElement('video', { src: url, autoPlay: true, muted: true, loop: true, playsInline: true, style: { width: '100%', height: '100%', objectFit: 'cover', opacity: v === 'Suite' ? 1 : 0.75 } }) : null,
+      policyRows: rows, invariants, integrations,
+    };
+  }
+}
+</script>
+</body>
+</html>
