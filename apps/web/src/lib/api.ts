@@ -9,6 +9,7 @@ import {
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { isMockMode, MOCK_USER, type AppUser } from "@/lib/data-source";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export function apiError(
@@ -20,11 +21,18 @@ export function apiError(
   return NextResponse.json({ error: { code, message, details } }, { status });
 }
 
-/** Verified user id for route handlers; the proxy check is only optimistic. */
-export async function getApiUserId(): Promise<string | null> {
+/** Verified user for route handlers; the proxy check is only optimistic. */
+export async function getApiUser(): Promise<AppUser | null> {
+  if (isMockMode()) return MOCK_USER;
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.getUser();
-  return error || !data.user ? null : data.user.id;
+  return error || !data.user
+    ? null
+    : { id: data.user.id, email: data.user.email ?? null };
+}
+
+export async function getApiUserId(): Promise<string | null> {
+  return (await getApiUser())?.id ?? null;
 }
 
 export const unauthorized = () =>

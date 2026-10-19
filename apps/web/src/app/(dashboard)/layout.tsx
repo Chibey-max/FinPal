@@ -1,43 +1,83 @@
-import { LogOut } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
-import { AppNav } from "@/components/app-nav";
-import { Button } from "@/components/ui/button";
+import { AppNav, DemoPath } from "@/components/app-nav";
+import { AutoHideHeader } from "@/components/auto-hide-header";
+import { LogoutIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
+import { SectionTransition } from "@/components/navigation-feedback";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ToastProvider } from "@/components/toast";
+import { isOpenPayment } from "@/features/app/present";
 import { signOut } from "@/features/auth/actions";
 import { requireUser } from "@/lib/auth";
+import { getUserDashboard } from "@/lib/backend";
+import { isMockMode } from "@/lib/data-source";
 
-export default async function DashboardLayout({
+import "./app.css";
+
+export default async function AppLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const user = await requireUser();
+  const rows = await getUserDashboard().then((d) =>
+    d.listDecisionRows(user.id, { limit: 200 }),
+  );
+  const badges = {
+    review: rows.filter(
+      (row) => row.outcome === "MANUAL_REVIEW" && row.reviewStatus === null,
+    ).length,
+    payments: rows.filter((row) => isOpenPayment(row.paymentStatus)).length,
+  };
+  const mock = isMockMode();
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="bg-sidebar flex flex-col gap-6 border-b p-4 md:w-60 md:border-r md:border-b-0">
-        <Link
-          href="/dashboard"
-          className="px-3 text-lg font-semibold tracking-tight"
-        >
-          FinPal
-        </Link>
-        <AppNav />
-        <div className="mt-auto grid gap-2 px-3">
-          <p className="text-muted-foreground truncate text-xs">{user.email}</p>
-          <form action={signOut}>
-            <Button type="submit" variant="ghost" size="sm" className="w-full">
-              <LogOut aria-hidden />
-              Sign out
-            </Button>
-          </form>
+    <ToastProvider>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <div className="app-frame">
+        <div className="app-main">
+          <AutoHideHeader className="app-topbar">
+            <div className="app-topbar__lead">
+              <Link href="/" className="app-brand" aria-label="FinPal home">
+                <Logo size={26} />
+              </Link>
+              <AppNav badges={badges} />
+            </div>
+            <div className="app-topbar__tools">
+              <Suspense fallback={<div className="demo-menu" />}>
+                <DemoPath />
+              </Suspense>
+              {mock ? (
+                <span
+                  className="data-chip"
+                  title="In-memory data and simulated PayPal Sandbox, Channel3 and KERNEL. Decisions still come from @finpal/backend."
+                >
+                  <i aria-hidden />
+                  <span className="data-chip__text">Mock</span>
+                </span>
+              ) : null}
+              <ThemeToggle />
+              {mock ? null : (
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="icon-button"
+                    aria-label={`Sign out ${user.email ?? ""}`.trim()}
+                    title={user.email ?? "Sign out"}
+                  >
+                    <LogoutIcon />
+                  </button>
+                </form>
+              )}
+            </div>
+          </AutoHideHeader>
+          <main id="main" className="app-content">
+            <SectionTransition>{children}</SectionTransition>
+          </main>
         </div>
-      </aside>
-      <div className="flex flex-1 flex-col">
-        <p className="border-b bg-amber-50 px-6 py-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          PayPal Sandbox mode — simulated funds only.
-        </p>
-        <div className="flex-1 p-6">{children}</div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

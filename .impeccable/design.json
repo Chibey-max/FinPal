@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T00:00:00+01:00",
+  "title": "Design System: FinPal",
+  "extensions": {
+    "colorMeta": {
+      "night-canvas": { "role": "neutral", "displayName": "Night Canvas", "canonical": "#040509", "tonalRamp": ["#05070c", "#0b0e16", "#171b27", "#2b303e", "#4d5360", "#777d87", "#aeb2b9", "#eef0f3"] },
+      "night-surface": { "role": "neutral", "displayName": "Night Surface", "canonical": "#080b12", "tonalRamp": ["#070a12", "#111725", "#202a3d", "#35435a", "#56657a", "#7e8b9d", "#b1bac6", "#edf1f6"] },
+      "control-surface": { "role": "neutral", "displayName": "Control Glass", "canonical": "rgba(14, 17, 26, 0.72)", "tonalRamp": ["#0e111a", "#191e2b", "#2a3040", "#414a5d", "#606b7d", "#8791a0", "#b9c0ca", "#f0f2f5"] },
+      "glass-surface": { "role": "neutral", "displayName": "Night Glass", "canonical": "rgba(20, 24, 34, 0.65)", "tonalRamp": ["#10141e", "#1d2432", "#30394a", "#495567", "#687588", "#8e99a8", "#bec5ce", "#f1f3f5"] },
+      "frost": { "role": "primary", "displayName": "Frost Signal", "canonical": "#f2f5fa", "tonalRamp": ["#1c2431", "#344257", "#526780", "#748ca7", "#9bafc4", "#becddc", "#dae5ef", "#f2f5fa"] },
+      "primary-text": { "role": "neutral", "displayName": "Primary Text", "canonical": "#edeef0", "tonalRamp": ["#242528", "#414246", "#626367", "#85868a", "#aaabae", "#cccdcf", "#e1e2e4", "#f5f5f6"] },
+      "secondary-text": { "role": "neutral", "displayName": "Secondary Text", "canonical": "#c9d0dc", "tonalRamp": ["#20252d", "#37414f", "#526174", "#708198", "#91a0b3", "#b2bdca", "#d0d7e0", "#f2f4f7"] },
+      "muted-text": { "role": "neutral", "displayName": "Muted Text", "canonical": "#9097a1", "tonalRamp": ["#25282c", "#3b4046", "#545a62", "#70767f", "#9097a1", "#b0b5bc", "#d1d4d8", "#f2f3f4"] },
+      "quiet-text": { "role": "neutral", "displayName": "Quiet Text", "canonical": "#7c838d", "tonalRamp": ["#222529", "#373b41", "#4d5259", "#656b73", "#818790", "#a4a9af", "#cacdd1", "#f2f3f4"] },
+      "ice-blue": { "role": "primary", "displayName": "Ice Evidence", "canonical": "#dce8ff", "tonalRamp": ["#18253b", "#294269", "#3f6397", "#6285bd", "#8fa9d6", "#b7c9e9", "#dce8ff", "#f4f8ff"] },
+      "focus-blue": { "role": "primary", "displayName": "Focus Blue", "canonical": "#c8daff", "tonalRamp": ["#17243e", "#293f6d", "#405f9d", "#6282c4", "#8da7dd", "#b4c8ef", "#d7e3ff", "#f3f7ff"] },
+      "review-amber": { "role": "secondary", "displayName": "Review Amber", "canonical": "#f2c879", "tonalRamp": ["#342510", "#584018", "#7e5d25", "#a77c36", "#cc9f50", "#e5bd70", "#f2d99d", "#fff4d8"] },
+      "blocked-coral": { "role": "secondary", "displayName": "Blocked Coral", "canonical": "#ff7a6b", "tonalRamp": ["#3b1715", "#68241f", "#96352e", "#c34a40", "#e55f53", "#ff7a6b", "#ffaea5", "#ffe1dd"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255, 255, 255, 0.08)", "tonalRamp": ["#17191d", "#303238", "#4b4e55", "#6a6d74", "#8d9096", "#b2b4b9", "#d6d7da", "#f5f5f6"] },
+      "field-stroke": { "role": "neutral", "displayName": "Field Stroke", "canonical": "rgba(255, 255, 255, 0.12)", "tonalRamp": ["#1c1e22", "#34363c", "#50535a", "#70737a", "#92959b", "#b6b8bc", "#d9dadd", "#f6f6f7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Short hero promises only." },
+      "headline": { "displayName": "Headline", "purpose": "Landing section declarations and major app page titles." },
+      "title": { "displayName": "Title", "purpose": "Step names and compact feature headings." },
+      "body": { "displayName": "Body", "purpose": "Explanations, evidence summaries, and interface copy." },
+      "label": { "displayName": "Operational Label", "purpose": "Statuses, indices, paths, data headings, and architecture notation." }
+    },
+    "shadows": [
+      { "name": "payment-halo", "value": "inset 0 0 0 1px rgba(255,255,255,.06), 0 0 30px rgba(175,200,255,.72), 0 0 95px rgba(120,160,255,.32)", "purpose": "Floating translucent hero payment card only." },
+      { "name": "wide-card-lift", "value": "0 30px 80px rgba(0,0,0,.6), 0 10px 60px rgba(100,140,230,.25)", "purpose": "Evaluated-first hero card." },
+      { "name": "authorized-glow", "value": "0 8px 30px rgba(140,180,255,.22)", "purpose": "Authorized payment state awaiting capture or void." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "250ms ease", "purpose": "Routine button and surface feedback." },
+      { "name": "scene-reveal", "value": "650ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Second-stage hero opacity reveal." },
+      { "name": "card-float", "value": "7s ease-in-out infinite", "purpose": "Slow ambient motion for the hero payment card; removed under reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "app-wide", "value": "1050px" },
+      { "name": "landing-tablet", "value": "900px" },
+      { "name": "app-mobile", "value": "780px" },
+      { "name": "landing-mobile", "value": "600px" },
+      { "name": "app-compact", "value": "560px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Pill Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The frost-filled primary action used on the landing surface and important empty states.",
+      "html": "<button class=\"ds-btn-primary\">RUN A PROPOSAL</button>",
+      "css": ".ds-btn-primary{min-height:44px;padding:11px 22px;border:0;border-radius:999px;background:#f2f5fa;color:#05070c;font:500 14px Geist,ui-sans-serif,system-ui,sans-serif;transition:transform .25s ease,background .25s ease}.ds-btn-primary:hover{background:#fff;transform:translateY(-2px)}.ds-btn-primary:focus-visible{outline:2px solid #c8daff;outline-offset:3px}.ds-btn-primary:active{transform:translateY(0)}"
+    },
+    {
+      "name": "Glass Button",
+      "kind": "button",
+      "refersTo": "button-glass",
+      "description": "Secondary action that recedes into the blue-black environment.",
+      "html": "<button class=\"ds-btn-glass\">HOW IT WORKS</button>",
+      "css": ".ds-btn-glass{min-height:44px;padding:11px 22px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(20,24,34,.65);color:#f2f5fa;backdrop-filter:blur(12px);font:500 14px Geist,ui-sans-serif,system-ui,sans-serif;transition:transform .25s ease,background .25s ease}.ds-btn-glass:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}.ds-btn-glass:focus-visible{outline:2px solid #c8daff;outline-offset:3px}.ds-btn-glass:active{transform:translateY(0)}"
+    },
+    {
+      "name": "Control Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Compact dark input for proposal and constraint data.",
+      "html": "<input class=\"ds-input\" placeholder=\"Product name\" />",
+      "css": ".ds-input{width:260px;height:36px;padding:4px 12px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(5,7,12,.62);color:#edeef0;font:400 14px Geist,ui-sans-serif,system-ui,sans-serif;outline:none;transition:border-color .2s ease,box-shadow .2s ease}.ds-input::placeholder{color:#9097a1}.ds-input:hover{border-color:rgba(255,255,255,.2)}.ds-input:focus-visible{border-color:#c8daff;box-shadow:0 0 0 3px rgba(200,218,255,.25)}"
+    },
+    {
+      "name": "Application Navigation",
+      "kind": "nav",
+      "description": "Muted glass-rail navigation with a subtly filled active row.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-active\" href=\"#\">Overview</a><a class=\"ds-nav-item\" href=\"#\">Calendar</a><a class=\"ds-nav-item\" href=\"#\">Review queue <span>1</span></a></nav>",
+      "css": ".ds-nav{width:210px;padding:8px;background:rgba(8,10,16,.56);border:1px solid rgba(255,255,255,.07);border-radius:10px;backdrop-filter:blur(24px);display:grid;gap:4px}.ds-nav-item{display:flex;justify-content:space-between;padding:8px 12px;border-radius:10px;color:rgba(237,238,240,.7);font:400 14px Geist,ui-sans-serif,system-ui,sans-serif;text-decoration:none;transition:background .2s ease,color .2s ease}.ds-nav-item:hover,.ds-nav-item.ds-active{background:rgba(255,255,255,.07);color:#f2f5fa}.ds-nav-item:focus-visible{outline:2px solid #c8daff;outline-offset:2px}.ds-nav-item span{color:#f2c879;font:400 11px 'Geist Mono',ui-monospace,monospace}"
+    },
+    {
+      "name": "Metric Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Glassy operational card with a mono label, light numeric value, and explicit measure bar.",
+      "html": "<article class=\"ds-metric\"><span>AUTO-APPROVED</span><strong>12</strong><i><b></b></i><p>policy passed without review</p></article>",
+      "css": ".ds-metric{width:240px;padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(14,17,26,.54);backdrop-filter:blur(24px) saturate(140%);color:#edeef0;font-family:Geist,ui-sans-serif,system-ui,sans-serif;display:grid;gap:11px}.ds-metric>span{color:#7c838d;font:400 11px 'Geist Mono',ui-monospace,monospace;letter-spacing:.06em}.ds-metric strong{font-size:38px;font-weight:300;line-height:1}.ds-metric i{height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden}.ds-metric i b{display:block;width:72%;height:100%;background:#f2f5fa}.ds-metric p{margin:0;color:#9097a1;font-size:13px}"
+    },
+    {
+      "name": "Payment State Branch",
+      "kind": "custom",
+      "refersTo": "state-chip",
+      "description": "Literal authorization branch showing that capture and void are distinct outcomes.",
+      "html": "<div class=\"ds-flow\"><span class=\"ds-authorized\">AUTHORIZED</span><i>→</i><span class=\"ds-captured\">CAPTURED</span><em>or</em><span class=\"ds-voided\">VOIDED</span></div>",
+      "css": ".ds-flow{display:flex;align-items:center;gap:12px;padding:18px;border-radius:20px;background:#070a12;color:#9097a1;font:400 12px 'Geist Mono',ui-monospace,monospace}.ds-flow span{padding:12px 18px;border:1px solid rgba(255,255,255,.14);border-radius:999px;white-space:nowrap}.ds-flow .ds-authorized{color:#dce8ff;border-color:rgba(200,220,255,.6);box-shadow:0 8px 30px rgba(140,180,255,.22)}.ds-flow .ds-captured{color:#05070c;background:#f2f5fa}.ds-flow .ds-voided{color:#ff7a6b;border-color:rgba(255,122,107,.45)}.ds-flow em{color:#7c838d;font-style:normal}.ds-flow span:hover{border-color:#c8daff}.ds-flow span:focus-visible{outline:2px solid #c8daff;outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Blue-Hour Control Room",
+    "overview": "FinPal is a calm financial operations environment suspended between a PayPal-adjacent night sky and a precise control console. Deep blue-black canvases, frosted glass, restrained light blooms, and a translucent payment card give the product atmosphere without making money movement feel theatrical or opaque. The marketing surface persuades through one exact scroll story: a long, sticky first scene resolves into an evaluated-first second scene. The application surface tightens the same world into a glassy shell, dense evidence panels, explicit decision branches, and monospace operational labels. Expression belongs in the environment; financial state and action remain literal, scannable, and calm.",
+    "keyCharacteristics": [
+      "Blue-black, full-bleed environments framed by large rounded containers.",
+      "Frost-white action surfaces and icy blue light used sparingly as operational emphasis.",
+      "Geist for clear hierarchy; Geist Mono for states, indices, paths, and machine-readable evidence.",
+      "Translucent panels, hairline borders, and ambient blur instead of heavy card chrome.",
+      "Explicit branches and diagrams for policy, architecture, and payment state.",
+      "Motion that is slow, spatial, and removable without loss of meaning."
+    ],
+    "rules": [
+      { "name": "The Sparse Signal Rule", "body": "Frost, amber, and coral are state-bearing colors, not decoration; the dark field must remain dominant.", "section": "colors" },
+      { "name": "The Explicit Status Rule", "body": "Never communicate a financial outcome by color alone. Pair every hue with a literal label such as AUTO_APPROVE, MANUAL_REVIEW, BLOCK, AUTHORIZED, or VOIDED.", "section": "colors" },
+      { "name": "The Two-Register Rule", "body": "Geist speaks to people; Geist Mono speaks for the system. Do not set general prose or large headings in mono.", "section": "typography" },
+      { "name": "The Quiet Weight Rule", "body": "Large type earns authority through scale and spacing, not bold weight; reserve 500–600 for compact controls and local emphasis.", "section": "typography" },
+      { "name": "The Ambient-Not-Decorative Rule", "body": "Blur and glow establish the night environment or clarify an active state; they never sit behind routine text merely for style.", "section": "elevation" },
+      { "name": "The Glass Needs an Edge Rule", "body": "Every translucent control surface needs a hairline border so its boundary remains legible over gradients and orbs.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do preserve the blue-hour control-room atmosphere across both persuasion and operation surfaces.",
+      "Do use exact monospace labels for machine states, evidence thresholds, architecture, and audit language.",
+      "Do show payment branches explicitly, including capture versus void, and pair every status color with text.",
+      "Do frame major landing sections as large rounded environments with narrow outer gutters.",
+      "Do keep app panels translucent, bordered, and readable over the ambient orb.",
+      "Do honor keyboard focus, horizontal overflow, mobile stacking, and reduced-motion fallbacks."
+    ],
+    "donts": [
+      "Don't imply live money movement; keep PayPal Sandbox or equivalent simulated-funds context visible where payment actions occur.",
+      "Don't turn frost, amber, or coral into decorative palette colors.",
+      "Don't replace explicit decision tables, state flows, or architecture layers with vague illustrations.",
+      "Don't use generic bright-blue SaaS gradients, solid white cards, or heavy drop shadows.",
+      "Don't put body copy in Geist Mono or make operational labels oversized.",
+      "Don't animate financial outcomes in a way that hides, delays, or changes their meaning."
+    ]
+  }
+}

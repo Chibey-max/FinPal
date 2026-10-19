@@ -6,10 +6,10 @@ import { getPaymentService } from "@/lib/backend";
 
 // PayPal redirects the buyer here after approval with ?token=<orderId>.
 // We confirm the approval with PayPal (never trusting the redirect alone),
-// authorize, and send the user back to the dashboard.
+// authorize, and send the user back to the payment.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
-  const dashboard = new URL("/dashboard", origin);
+  const dashboard = new URL("/app/payments", origin);
 
   const userId = await getApiUserId();
   if (!userId) {
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const payment = await getPaymentService().completeApproval(userId, orderId);
-    dashboard.searchParams.set("payment", payment.id);
+    dashboard.pathname = `/app/payments/${payment.id}`;
+    dashboard.searchParams.set("payment", "returned");
     dashboard.searchParams.set("status", payment.status);
   } catch (error) {
     if (!(error instanceof PaymentError)) {

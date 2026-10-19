@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPublicEnv } from "@/lib/env";
 
 const protectedPrefixes = [
+  "/app",
   "/dashboard",
   "/approvals",
   "/calendar",
@@ -70,7 +71,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isSignedIn && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/app";
     url.search = "";
     return NextResponse.redirect(url);
   }

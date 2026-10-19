@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@200;300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:var(--inset,rgba(5,7,12,0.6));color:var(--ink,#EDEEF0);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--ink,#EDEEF0);text-decoration:none}
+a:hover{color:var(--primary,#F2F5FA)}
+button{font:inherit;cursor:pointer}
+input,select{font:inherit}
+::selection{background:var(--primary,#F2F5FA);color:var(--onp,#05070C)}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+</style>
+<script src="./fluid-sphere.js"></script>
+</helmet>
+<div ref="{{ rootRef }}" style="position:relative;min-height:100vh;display:flex;background:var(--bg,#040509);color:var(--ink,#EDEEF0);color-scheme:dark">
+<sc-if value="{{ hasOrb }}" hint-placeholder-val="{{ true }}">
+  <div style="position:fixed;inset:0;z-index:0;pointer-events:none;transition:filter .6s ease,opacity .6s ease;filter:{{ orbFilter }};opacity:{{ orbOpacity }}">
+    <x-import component-from-global-scope="fluid-sphere" from="./fluid-sphere.js" radius="{{ orb.r }}" cx="{{ orb.x }}" cy="{{ orb.y }}" intensity="{{ orb.i }}" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 30% 60%,var(--veil,rgba(4,5,9,0.55)),transparent 75%)"></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isSidebar }}" hint-placeholder-val="{{ true }}">
+<aside style="position:sticky;z-index:2;background:var(--chrome,rgba(8,10,16,0.5));backdrop-filter:blur(24px);width:232px;flex:none;border-right:1px solid var(--w07,rgba(255,255,255,0.07));padding:22px 14px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh">
+  <a href="FinPal Landing v4.dc.html" style="display:flex;align-items:center;gap:10px;font-weight:500;font-size:16px;padding:0 8px">
+    <span style="width:20px;height:20px;border-radius:6px;border:1.5px solid var(--primary,#F2F5FA);display:grid;place-items:center"><span style="width:7px;height:7px;border-radius:2px;background:var(--primary,#F2F5FA)"></span></span>FinPal
+  </a>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="8">
+      <button onClick="{{ n.go }}" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;border:none;text-align:left;font-size:14px;background:{{ n.bg }};color:{{ n.fg }}" style-hover="color:var(--ink,#EDEEF0)">
+        <span>{{ n.label }}</span>
+        <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--warn,#F2C879)">{{ n.badge }}</span>
+      </button>
+    </sc-for>
+  </nav>
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--w07,rgba(255,255,255,0.07));border-radius:10px;font-size:12px;color:var(--ink4,#7C838D)">
+    <span style="display:flex;align-items:center;gap:8px;color:var(--ink2,#B4BAC3)"><span style="width:6px;height:6px;border-radius:50%;background:var(--primary,#F2F5FA)"></span>PayPal Sandbox</span>
+    <span>demo@finpal.dev · Supabase</span>
+  </div>
+</aside>
+</sc-if>
+
+<main style="position:relative;z-index:1;flex:1;min-width:0;display:flex;flex-direction:column">
+  <header style="position:sticky;top:0;z-index:10;background:var(--chrome,rgba(6,8,12,0.45));backdrop-filter:blur(20px);border-bottom:1px solid var(--w07,rgba(255,255,255,0.07));padding:14px clamp(16px,3vw,32px);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <sc-if value="{{ isTopbar }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:22px;min-width:0;flex:1 1 auto">
+        <a href="FinPal Landing v4.dc.html" style="flex:none;white-space:nowrap;display:flex;align-items:center;gap:10px;font-weight:500;font-size:13px;letter-spacing:0.14em">
+          <span style="width:20px;height:20px;border-radius:6px;border:1.5px solid var(--primary,#F2F5FA);display:grid;place-items:center"><span style="width:7px;height:7px;border-radius:2px;background:var(--primary,#F2F5FA)"></span></span>FinPal
+        </a>
+        <nav style="display:flex;gap:2px;flex-wrap:nowrap;min-width:0;overflow-x:auto;scrollbar-width:none;padding:3px;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:999px">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="8">
+            <button onClick="{{ n.go }}" style="display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none;padding:7px 12px;border-radius:999px;border:none;font-size:13px;background:{{ n.bg }};color:{{ n.fg }}" style-hover="color:var(--ink,#EDEEF0)">{{ n.label }}<span style="font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--warn,#F2C879)">{{ n.badge }}</span></button>
+          </sc-for>
+        </nav>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isSidebar }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink5,#5E6570)">FinPal / {{ routeLabel }}</span>
+        <span style="font-size:13px;color:var(--ink4,#7C838D)">{{ clockLabel }}</span>
+      </div>
+    </sc-if>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle light and dark theme" style="position:relative;flex:none;width:60px;height:32px;border-radius:999px;padding:0;border:1px solid var(--w12,rgba(255,255,255,0.12));background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(16px)">
+        <span style="position:absolute;left:9px;top:50%;translate:0 -50%;width:10px;height:10px;border-radius:50%;box-shadow:inset -3px -2px 0 0 var(--ink4,#7C838D)"></span>
+        <span style="position:absolute;right:9px;top:50%;translate:0 -50%;width:8px;height:8px;border-radius:50%;background:var(--ink4,#7C838D);box-shadow:0 0 0 2px var(--panel,rgba(14,17,26,0.5)),0 0 0 3px var(--ink5,#5E6570)"></span>
+        <span style="position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--primary,#F2F5FA);box-shadow:0 2px 8px rgba(0,0,0,0.25);transition:transform .5s cubic-bezier(.65,.05,.25,1);transform:translateX({{ knobX }})"></span>
+      </button>
+      <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink5,#5E6570);white-space:nowrap">Demo path</span>
+      <div style="display:flex;gap:2px;padding:3px;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:999px">
+        <sc-for list="{{ scenarios }}" as="s" hint-placeholder-count="3">
+          <button onClick="{{ s.go }}" style="white-space:nowrap;padding:6px 12px;border-radius:999px;border:none;font-size:13px;background:{{ s.bg }};color:{{ s.fg }}">{{ s.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </header>
+
+  <div style="flex:1;padding:clamp(20px,3vw,36px) clamp(16px,3vw,32px) 80px;max-width:1280px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+
+    <!-- OVERVIEW -->
+    <sc-if value="{{ r.overview }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Overview" style="display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Overview</h1>
+          <button onClick="{{ goPropose }}" style="background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:11px 18px;border-radius:999px;font-weight:500;font-size:14px" style-hover="background:var(--primaryh,#FFFFFF)">New proposal</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+            <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:18px;display:flex;flex-direction:column;gap:12px">
+              <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D)">{{ k.label }}</span>
+              <span style="font-weight:300;letter-spacing:-0.03em;font-size:38px;line-height:1">{{ k.value }}</span>
+              <div style="height:4px;border-radius:2px;background:var(--w07,rgba(255,255,255,0.07));overflow:hidden"><div style="height:100%;width:{{ k.pct }};background:{{ k.barColor }}"></div></div>
+              <span style="font-size:13px;color:var(--ink3,#9097A1)">{{ k.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;align-items:start">
+          <div style="grid-column:span 2;min-width:0;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);overflow:hidden">
+            <div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--w06,rgba(255,255,255,0.06))"><span style="font-weight:500">Recent decisions</span><button onClick="{{ goDecisions }}" style="background:none;border:none;color:var(--ink3,#9097A1);font-size:13px" style-hover="color:var(--primary,#F2F5FA)">View all →</button></div>
+            <sc-for list="{{ decisionRows }}" as="d" hint-placeholder-count="3">
+              <button onClick="{{ d.open }}" style="width:100%;display:grid;grid-template-columns:minmax(0,1.6fr) 0.8fr 0.8fr 1fr;gap:12px;align-items:center;padding:13px 18px;border:none;border-bottom:1px solid var(--w05,rgba(255,255,255,0.05));background:transparent;color:var(--ink,#EDEEF0);text-align:left;font-size:14px" style-hover="background:var(--w03,rgba(255,255,255,0.03))">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--ink2,#B4BAC3)">{{ d.amount }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:12px;color:{{ d.scoreFg }}">{{ d.score }}</span>
+                <span style="justify-self:start;font-family:'Geist Mono',monospace;font-size:11.5px;padding:4px 8px;border-radius:6px;color:{{ d.fg }};background:{{ d.bg }}">{{ d.outcome }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:18px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-weight:500">Needs your action</span>
+            <sc-for list="{{ nextActions }}" as="a" hint-placeholder-count="2">
+              <button onClick="{{ a.go }}" style="display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:10px;border:1px solid var(--w08,rgba(255,255,255,0.08));background:var(--inset,rgba(5,7,12,0.6));color:var(--ink,#EDEEF0);text-align:left" style-hover="border-color:var(--ok4,rgba(200,218,255,0.4))">
+                <span style="font-size:14px">{{ a.title }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:{{ a.fg }}">{{ a.sub }}</span>
+              </button>
+            </sc-for>
+            <sc-if value="{{ noActions }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:var(--ink4,#7C838D)">Nothing waiting. Payments and reviews are settled.</span></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- CALENDAR -->
+    <sc-if value="{{ r.calendar }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Calendar" style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Calendar</h1>
+          <span style="font-size:14px;color:var(--ink3,#9097A1)">Week of Oct 19, 2026. Events can prefill a proposal's context and time. They never create a product, price or payment.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start">
+          <div style="grid-column:span 2;min-width:0;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);overflow:auto">
+            <div style="min-width:640px;display:grid;grid-template-columns:repeat(7,1fr)">
+              <sc-for list="{{ calDays }}" as="day" hint-placeholder-count="7">
+                <div style="min-height:340px;border-right:1px solid var(--w05,rgba(255,255,255,0.05));display:flex;flex-direction:column">
+                  <div style="padding:12px;border-bottom:1px solid var(--w06,rgba(255,255,255,0.06));display:flex;flex-direction:column;gap:2px"><span style="font-family:'Geist Mono',monospace;font-size:11px;text-transform:uppercase;color:var(--ink5,#5E6570)">{{ day.dow }}</span><span style="font-size:18px">{{ day.num }}</span></div>
+                  <div style="padding:8px;display:flex;flex-direction:column;gap:6px">
+                    <sc-for list="{{ day.events }}" as="ev" hint-placeholder-count="0">
+                      <button onClick="{{ ev.select }}" style="display:flex;flex-direction:column;gap:3px;padding:8px;border-radius:8px;text-align:left;font-size:12.5px;line-height:1.3;color:var(--ink,#EDEEF0);background:{{ ev.bg }};border:1px solid {{ ev.bd }}">
+                        <span style="font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink3,#9097A1)">{{ ev.time }}</span>{{ ev.title }}
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D)">Selected event</span>
+            <sc-if value="{{ hasEvent }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:20px;line-height:1.3">{{ ev.title }}</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--ink2,#B4BAC3)">{{ ev.dateLabel }}</span>
+              <span style="font-size:13px;line-height:1.5;color:var(--ink4,#7C838D)">Prefills source, context and evaluation time. You still enter the product name and price.</span>
+              <button onClick="{{ fromEvent }}" style="background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:11px 16px;border-radius:999px;font-weight:500;font-size:14px" style-hover="background:var(--primaryh,#FFFFFF)">Create proposal from event</button>
+            </sc-if>
+            <sc-if value="{{ noEvent }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;color:var(--ink4,#7C838D)">Pick an event in the week.</span></sc-if>
+            <span style="font-size:11.5px;color:var(--ink5,#5E6570)">Bryntum Calendar · planned connection</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- PROPOSE -->
+    <sc-if value="{{ r.propose }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="New proposal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:24px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">New proposal</h1>
+            <span style="font-size:14px;color:var(--ink3,#9097A1)">Creating a proposal does not create a payment.</span>
+          </div>
+          <sc-if value="{{ hasCalCtx }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--info3,rgba(143,184,255,0.3));background:var(--info07,rgba(143,184,255,0.07));border-radius:10px;font-size:13px">
+              <span>From event: <strong style="font-weight:500">{{ calCtx.title }}</strong> · {{ calCtx.dateLabel }}</span>
+              <button onClick="{{ clearCal }}" style="background:none;border:none;color:var(--ink3,#9097A1);font-size:12px">Clear</button>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D)">Presets</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ presets }}" as="p" hint-placeholder-count="5">
+                <button onClick="{{ p.go }}" style="padding:6px 11px;border-radius:999px;border:1px solid var(--w12,rgba(255,255,255,0.12));background:transparent;color:var(--ink2,#B4BAC3);font-size:12.5px" style-hover="border-color:var(--primary,#F2F5FA);color:var(--ink,#EDEEF0)">{{ p.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Product name</span>
+            <input value="{{ f.name }}" onChange="{{ on.name }}" placeholder="e.g. Sony WH-1000XM5" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:12px;color:var(--ink,#EDEEF0);font-size:15px;outline:none" style-focus="border-color:var(--primary,#F2F5FA)">
+          </label>
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Proposed price</span>
+              <input value="{{ f.price }}" onChange="{{ on.price }}" inputmode="decimal" placeholder="0.00" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:12px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:15px;outline:none" style-focus="border-color:var(--primary,#F2F5FA)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Currency</span>
+              <select value="{{ f.currency }}" onChange="{{ on.currency }}" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:12px;color:var(--ink,#EDEEF0);font-size:15px;outline:none"><option>USD</option><option>EUR</option><option>GBP</option></select>
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Source</span>
+              <select value="{{ f.source }}" onChange="{{ on.source }}" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:12px;color:var(--ink,#EDEEF0);font-size:14px;outline:none"><option value="MANUAL">Manual</option><option value="CALENDAR">Calendar</option></select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Eval time</span>
+              <input type="time" value="{{ f.time }}" onChange="{{ on.time }}" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">KERNEL (sim.)</span>
+              <select value="{{ f.trust }}" onChange="{{ on.trust }}" style="background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:12px;color:var(--ink,#EDEEF0);font-size:13px;outline:none"><option>NOT_CHECKED</option><option>PASS</option><option>FAIL</option><option>UNAVAILABLE</option></select>
+            </label>
+          </div>
+          <sc-if value="{{ formError }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--bad,#FF7A6B)">{{ formError }}</span></sc-if>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <button onClick="{{ evaluate }}" style="background:{{ evalBg }};color:var(--onp,#05070C);border:none;padding:13px 22px;border-radius:999px;font-weight:500;font-size:15px">Evaluate proposal</button>
+            <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink5,#5E6570)">POST /api/v1/proposals → /api/v1/evaluations</span>
+          </div>
+        </div>
+        <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D)">Rules in force</span>
+          <sc-for list="{{ rulesSummary }}" as="rs" hint-placeholder-count="5">
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;padding-bottom:10px;border-bottom:1px solid var(--w05,rgba(255,255,255,0.05))"><span style="color:var(--ink3,#9097A1)">{{ rs.k }}</span><span style="font-family:'Geist Mono',monospace;font-size:13px">{{ rs.v }}</span></div>
+          </sc-for>
+          <button onClick="{{ goConstraints }}" style="align-self:flex-start;background:none;border:none;padding:0;color:var(--ink3,#9097A1);font-size:13px" style-hover="color:var(--primary,#F2F5FA)">Edit constraints →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- DECISIONS -->
+    <sc-if value="{{ r.decision }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Decision detail" style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Decisions</h1>
+            <span style="font-size:14px;color:var(--ink3,#9097A1)">Every evaluation, its evidence and the rule that decided it. Select a row to inspect.</span>
+          </div>
+          <button onClick="{{ goPropose }}" style="background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:11px 18px;border-radius:999px;font-weight:500;font-size:14px;white-space:nowrap">New proposal</button>
+        </div>
+        <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);overflow:auto">
+          <div style="min-width:560px">
+            <div style="display:grid;grid-template-columns:0.7fr minmax(0,1.6fr) 0.8fr 0.8fr 0.9fr 1fr;gap:12px;padding:10px 18px;border-bottom:1px solid var(--w08,rgba(255,255,255,0.08));font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink5,#5E6570)"><span>ID</span><span>Product</span><span>Amount</span><span>Quality</span><span>Source</span><span>Outcome</span></div>
+            <sc-for list="{{ decisionRows }}" as="d" hint-placeholder-count="3">
+              <button onClick="{{ d.open }}" style="width:100%;display:grid;grid-template-columns:0.7fr minmax(0,1.6fr) 0.8fr 0.8fr 0.9fr 1fr;gap:12px;align-items:center;padding:10px 18px;border:none;border-bottom:1px solid var(--w05,rgba(255,255,255,0.05));color:var(--ink,#EDEEF0);text-align:left;font-size:13.5px;background:{{ d.rowBg }}" style-hover="background:var(--w03,rgba(255,255,255,0.03))">
+                <span style="font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink4,#7C838D)">{{ d.id }}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:12.5px;color:var(--ink2,#B4BAC3)">{{ d.amount }}</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:12px;color:{{ d.scoreFg }}">{{ d.score }}</span>
+                <span style="font-size:12.5px;color:var(--ink3,#9097A1)">{{ d.source }}</span>
+                <span style="justify-self:start;font-family:'Geist Mono',monospace;font-size:11px;padding:4px 8px;border-radius:6px;color:{{ d.fg }};background:{{ d.bg }}">{{ d.outcome }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasD }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink4,#7C838D)">{{ d.id }} · {{ d.sourceLabel }} · evaluated {{ d.at }}</span>
+              <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(34px,4vw,52px);line-height:1;letter-spacing:-0.02em">{{ d.name }} <span style="color:var(--ink3,#9097A1)">{{ d.amount }}</span></h1>
+            </div>
+            <span style="font-family:'Geist Mono',monospace;font-size:15px;font-weight:500;padding:10px 16px;border-radius:10px;color:{{ d.fg }};background:{{ d.bg }};border:1px solid {{ d.bd }}">{{ d.outcome }}</span>
+          </div>
+          <p style="margin:0;font-size:16px;line-height:1.6;color:var(--ink,#EDEEF0);max-width:860px;text-wrap:pretty">{{ d.explanation }}</p>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px;align-items:start">
+            <div style="grid-column:span 2;min-width:0;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline">
+                <span style="font-weight:500">Price evidence · Channel3</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:12.5px;color:var(--ink2,#B4BAC3)">median {{ d.median }} · ratio {{ d.ratio }} · <span style="color:{{ d.scoreFg }}">{{ d.score }}</span></span>
+              </div>
+              <sc-if value="{{ d.hasMedian }}" hint-placeholder-val="{{ true }}">
+                <div style="position:relative;height:64px;margin:6px 0 18px">
+                  <div style="position:absolute;top:26px;height:12px;left:0;width:{{ d.band.goodW }};background:var(--ok16,rgba(200,218,255,0.16));border-radius:6px 0 0 6px"></div>
+                  <div style="position:absolute;top:26px;height:12px;left:{{ d.band.goodW }};width:{{ d.band.fairW }};background:var(--warn18,rgba(242,200,121,0.18))"></div>
+                  <div style="position:absolute;top:26px;height:12px;left:{{ d.band.poorL }};right:0;background:var(--bad16,rgba(255,122,107,0.16));border-radius:0 6px 6px 0"></div>
+                  <sc-for list="{{ d.dots }}" as="dot" hint-placeholder-count="5">
+                    <div style="position:absolute;top:28px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--ink,#EDEEF0);left:{{ dot.left }}"></div>
+                  </sc-for>
+                  <div style="position:absolute;top:14px;height:36px;width:1px;background:var(--ink3,#9097A1);left:{{ d.band.medianL }}"></div>
+                  <span style="position:absolute;top:54px;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:10.5px;color:var(--ink3,#9097A1);white-space:nowrap;left:{{ d.band.medianL }}">median</span>
+                  <div style="position:absolute;top:6px;height:52px;width:2px;margin-left:-1px;background:{{ d.scoreFg }};left:{{ d.band.propL }}"></div>
+                  <span style="position:absolute;top:-12px;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:10.5px;white-space:nowrap;color:{{ d.scoreFg }};left:{{ d.band.propL }}">proposed</span>
+                </div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ d.offers }}" as="o" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 0.8fr 1.2fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--w05,rgba(255,255,255,0.05));font-size:13.5px;opacity:{{ o.op }}">
+                    <span>{{ o.merchant }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:12.5px">{{ o.price }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:{{ o.fg }}">{{ o.status }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ d.noOffers }}" hint-placeholder-val="{{ false }}"><span style="font-size:13.5px;color:var(--ink4,#7C838D);padding:8px 0">Channel3 returned no comparable offers.</span></sc-if>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:12px">
+                <span style="font-weight:500">Constraints and caps</span>
+                <sc-for list="{{ d.checks }}" as="c" hint-placeholder-count="5">
+                  <div style="display:flex;gap:12px;align-items:baseline">
+                    <span style="font-family:'Geist Mono',monospace;font-size:11px;min-width:40px;color:{{ c.fg }}">{{ c.mark }}</span>
+                    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px">{{ c.label }}</span><span style="font-size:12.5px;color:var(--ink4,#7C838D)">{{ c.detail }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-weight:500">Merchant trust · KERNEL</span>
+                <span style="font-family:'Geist Mono',monospace;font-size:13px;color:{{ d.trustFg }}">{{ d.trust }}</span>
+                <span style="font-size:12.5px;color:var(--ink4,#7C838D)">{{ d.trustDetail }}</span>
+              </div>
+              <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-weight:500">Reason codes</span>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ d.reasons }}" as="rc" hint-placeholder-count="3">
+                    <span style="font-family:'Geist Mono',monospace;font-size:11px;padding:4px 7px;border-radius:6px;background:var(--w05,rgba(255,255,255,0.05));color:var(--ink2,#B4BAC3)">{{ rc }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:18px 20px;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%)">
+            <sc-if value="{{ d.canPay }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ createPayment }}" style="background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:12px 20px;border-radius:999px;font-weight:500;font-size:14px" style-hover="background:var(--primaryh,#FFFFFF)">Create PayPal order</button>
+              <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink5,#5E6570)">POST /api/v1/payments · idempotency {{ d.idem }}</span>
+            </sc-if>
+            <sc-if value="{{ d.hasPayment }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ openPayment }}" style="background:transparent;color:var(--ink,#EDEEF0);border:1px solid var(--w18,rgba(255,255,255,0.18));padding:12px 20px;border-radius:999px;font-size:14px" style-hover="border-color:var(--primary,#F2F5FA)">View payment · {{ d.payStatus }}</button>
+            </sc-if>
+            <sc-if value="{{ d.needsReview }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px;color:var(--warn,#F2C879)">A person must approve or reject this proposal before any payment.</span>
+              <button onClick="{{ goReview }}" style="background:transparent;color:var(--ink,#EDEEF0);border:1px solid var(--w18,rgba(255,255,255,0.18));padding:10px 16px;border-radius:999px;font-size:13px" style-hover="border-color:var(--warn,#F2C879)">Open review queue</button>
+            </sc-if>
+            <sc-if value="{{ d.blocked }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px;color:var(--bad,#FF7A6B)">Blocked. No payment attempt can be created for this decision.</span>
+            </sc-if>
+            <sc-if value="{{ d.rejected }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px;color:var(--bad,#FF7A6B)">Rejected in review. No payment will be created.</span>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- REVIEW -->
+    <sc-if value="{{ r.review }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Review queue" style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Review queue</h1>
+          <span style="font-size:14px;color:var(--ink3,#9097A1)">Fair prices, missing evidence, or unavailable trust data land here. Interface preview: the backend approve/reject transition is planned.</span>
+        </div>
+        <sc-for list="{{ reviewRows }}" as="rv" hint-placeholder-count="1">
+          <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:18px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink4,#7C838D)">{{ rv.id }} · {{ rv.at }}</span>
+              <span style="font-size:18px">{{ rv.name }}</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:13px;color:var(--ink2,#B4BAC3)">{{ rv.amount }} · <span style="color:{{ rv.scoreFg }}">{{ rv.score }}</span> · median {{ rv.median }}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ rv.reasons }}" as="rc" hint-placeholder-count="2">
+                <span style="font-family:'Geist Mono',monospace;font-size:11px;padding:4px 7px;border-radius:6px;background:var(--w05,rgba(255,255,255,0.05));color:var(--ink2,#B4BAC3)">{{ rc }}</span>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+              <button onClick="{{ rv.view }}" style="background:transparent;color:var(--ink3,#9097A1);border:none;padding:10px 8px;font-size:13px" style-hover="color:var(--ink,#EDEEF0)">Evidence</button>
+              <button onClick="{{ rv.reject }}" style="background:transparent;color:var(--bad,#FF7A6B);border:1px solid var(--bad4,rgba(255,122,107,0.4));padding:10px 16px;border-radius:999px;font-size:13px">Reject</button>
+              <button onClick="{{ rv.approve }}" style="background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:10px 16px;border-radius:999px;font-weight:500;font-size:13px">Approve</button>
+            </div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noReviews }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed var(--w12,rgba(255,255,255,0.12));border-radius:20px;padding:40px;text-align:center;color:var(--ink4,#7C838D);font-size:14px">The queue is empty. Try the Manual review demo path.</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- PAYMENTS -->
+    <sc-if value="{{ r.payments }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Payments" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h1 style="margin:0 0 8px;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Payments</h1>
+          <sc-for list="{{ paymentRows }}" as="pr" hint-placeholder-count="2">
+            <button onClick="{{ pr.open }}" style="display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:12px;text-align:left;color:var(--ink,#EDEEF0);background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);border:1px solid {{ pr.bd }}">
+              <span style="display:flex;justify-content:space-between;gap:10px;font-size:14px"><span>{{ pr.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:13px">{{ pr.amount }}</span></span>
+              <span style="display:flex;justify-content:space-between;gap:10px;font-family:'Geist Mono',monospace;font-size:11.5px"><span style="color:var(--ink4,#7C838D)">{{ pr.orderId }}</span><span style="color:{{ pr.fg }}">{{ pr.status }}</span></span>
+            </button>
+          </sc-for>
+          <sc-if value="{{ noPayments }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:var(--ink4,#7C838D)">No payment attempts yet.</span></sc-if>
+        </div>
+        <sc-if value="{{ hasP }}" hint-placeholder-val="{{ true }}">
+          <div style="grid-column:span 2;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:clamp(18px,3vw,28px);display:flex;flex-direction:column;gap:26px">
+              <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:var(--ink4,#7C838D)">{{ p.id }} · PayPal order {{ p.orderId }}</span>
+                  <span style="font-weight:300;letter-spacing:-0.03em;font-size:40px;line-height:1">{{ p.amount }}</span>
+                  <span style="font-size:14px;color:var(--ink3,#9097A1)">{{ p.name }}</span>
+                </div>
+                <span style="font-family:'Geist Mono',monospace;font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;color:{{ p.fg }};background:{{ p.bg }}">{{ p.status }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{ p.steps }}" as="st" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-family:'Geist Mono',monospace;font-size:12px;padding:8px 12px;border-radius:8px;color:{{ st.fg }};background:{{ st.bg }};border:1px solid {{ st.bd }}">{{ st.label }}</span>
+                    <span style="width:22px;height:1px;background:var(--w2,rgba(255,255,255,0.2));display:{{ st.arrow }}"></span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px">
+                <sc-for list="{{ p.actions }}" as="ac" hint-placeholder-count="5">
+                  <button onClick="{{ ac.run }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:12px;text-align:left;background:{{ ac.bg }};color:{{ ac.fg }};border:1px solid {{ ac.bd }};opacity:{{ ac.op }}">
+                    <span style="font-size:14px;font-weight:500">{{ ac.label }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:10.5px;opacity:0.75">{{ ac.endpoint }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <span style="font-size:12.5px;color:var(--ink4,#7C838D)">Dimmed actions are invalid from the current state. Trying one shows the guarded transition rejecting it.</span>
+            </div>
+            <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:20px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-weight:500">State history</span>
+              <sc-for list="{{ p.history }}" as="h" hint-placeholder-count="2">
+                <div style="display:flex;gap:16px;font-family:'Geist Mono',monospace;font-size:12.5px"><span style="color:var(--ink4,#7C838D)">{{ h.at }}</span><span style="color:{{ h.fg }}">{{ h.s }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ACTIVITY -->
+    <sc-if value="{{ r.activity }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Activity" style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Activity</h1>
+            <span style="font-size:14px;color:var(--ink3,#9097A1)">Append-only audit events. {{ auditCount }} recorded.</span>
+          </div>
+          <div style="display:flex;gap:2px;padding:3px;border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:999px">
+            <sc-for list="{{ filters }}" as="fl" hint-placeholder-count="4">
+              <button onClick="{{ fl.go }}" style="padding:6px 12px;border-radius:999px;border:none;font-size:12.5px;background:{{ fl.bg }};color:{{ fl.fg }}">{{ fl.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:12px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);overflow:auto">
+          <div style="min-width:720px">
+            <div style="display:grid;grid-template-columns:110px 230px 130px minmax(0,1fr);border-bottom:1px solid var(--w1,rgba(255,255,255,0.1));background:var(--panels,#0E1013)">
+              <sc-for list="{{ cols }}" as="col" hint-placeholder-count="4">
+                <button onClick="{{ col.sort }}" style="padding:10px 14px;border:none;border-right:1px solid var(--w06,rgba(255,255,255,0.06));background:transparent;text-align:left;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3,#9097A1)" style-hover="color:var(--ink,#EDEEF0)">{{ col.label }} {{ col.arrow }}</button>
+              </sc-for>
+            </div>
+            <sc-for list="{{ activityRows }}" as="ar" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:110px 230px 130px minmax(0,1fr);border-bottom:1px solid var(--w05,rgba(255,255,255,0.05));font-size:13px" style-hover="background:var(--w02,rgba(255,255,255,0.02))">
+                <span style="padding:9px 14px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink4,#7C838D)">{{ ar.at }}</span>
+                <span style="padding:9px 14px;font-family:'Geist Mono',monospace;font-size:11.5px;color:{{ ar.fg }}">{{ ar.type }}</span>
+                <span style="padding:9px 14px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink2,#B4BAC3)">{{ ar.entity }}</span>
+                <span style="padding:9px 14px;color:var(--ink,#EDEEF0)">{{ ar.detail }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- CONSTRAINTS -->
+    <sc-if value="{{ r.constraints }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Constraints" style="display:flex;flex-direction:column;gap:22px;max-width:820px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <h1 style="margin:0;font-weight:300;letter-spacing:-0.035em;font-size:clamp(36px,4vw,52px);line-height:1">Constraints</h1>
+            <span style="font-size:14px;color:var(--ink3,#9097A1)">When and how much FinPal may spend. Applied to every new proposal.</span>
+          </div>
+          <button onClick="{{ toggleEnabled }}" style="display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;border:1px solid var(--w12,rgba(255,255,255,0.12));background:transparent;color:var(--ink,#EDEEF0);font-size:13px">
+            <span style="width:34px;height:20px;border-radius:999px;padding:2px;display:flex;background:{{ en.track }};justify-content:{{ en.justify }}"><span style="width:16px;height:16px;border-radius:50%;background:var(--inset,rgba(5,7,12,0.6))"></span></span>{{ en.label }}
+          </button>
+        </div>
+        <sc-if value="{{ cDisabled }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:12px 14px;border-radius:10px;border:1px solid var(--warn35,rgba(242,200,121,0.35));background:var(--warn07,rgba(242,200,121,0.07));font-size:13.5px;color:var(--warn,#F2C879)">No constraints configured. This is not unrestricted permission: every proposal goes to manual review.</div>
+        </sc-if>
+        <div style="border:1px solid var(--w08,rgba(255,255,255,0.08));border-radius:20px;background:var(--panel,rgba(14,17,26,0.5));backdrop-filter:blur(24px) saturate(140%);padding:22px;display:flex;flex-direction:column;gap:20px;opacity:{{ en.op }}">
+          <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D)">Allowed time window</span>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Timezone</span>
+              <select value="{{ c.tz }}" onChange="{{ onC.tz }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-size:14px;outline:none"><option>America/Los_Angeles</option><option>America/New_York</option><option>Europe/London</option><option>Asia/Singapore</option></select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Start (inclusive)</span>
+              <input type="time" value="{{ c.start }}" onChange="{{ onC.start }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:10px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">End (exclusive)</span>
+              <input type="time" value="{{ c.end }}" onChange="{{ onC.end }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:10px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none">
+            </label>
+          </div>
+          <span style="font-size:13px;color:var(--ink4,#7C838D)">{{ windowNote }}</span>
+          <span style="font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4,#7C838D);padding-top:6px;border-top:1px solid var(--w06,rgba(255,255,255,0.06))">Amount caps (inclusive)</span>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Per transaction</span>
+              <input value="{{ c.perTx }}" onChange="{{ onC.perTx }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none" style-focus="border-color:var(--primary,#F2F5FA)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Daily</span>
+              <input value="{{ c.daily }}" onChange="{{ onC.daily }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none" style-focus="border-color:var(--primary,#F2F5FA)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Monthly</span>
+              <input value="{{ c.monthly }}" onChange="{{ onC.monthly }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-family:'Geist Mono',monospace;font-size:14px;outline:none" style-focus="border-color:var(--primary,#F2F5FA)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink3,#9097A1)">Currency</span>
+              <select value="{{ c.currency }}" onChange="{{ onC.currency }}" style="background:var(--inset,rgba(5,7,12,0.6));border:1px solid var(--w12,rgba(255,255,255,0.12));border-radius:10px;padding:11px;color:var(--ink,#EDEEF0);font-size:14px;outline:none"><option>USD</option><option>EUR</option><option>GBP</option></select>
+            </label>
+          </div>
+          <span style="font-size:13px;color:var(--ink4,#7C838D)">Counted so far: {{ spentToday }} today, {{ spentMonth }} this month. Currency mismatches fail closed; FinPal never converts.</span>
+        </div>
+        <button onClick="{{ saveC }}" style="align-self:flex-start;background:var(--primary,#F2F5FA);color:var(--onp,#05070C);border:none;padding:12px 22px;border-radius:999px;font-weight:500;font-size:14px" style-hover="background:var(--primaryh,#FFFFFF)">Save constraints</button>
+      </div>
+    </sc-if>
+
+  </div>
+</main>
+
+<sc-if value="{{ hasModal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px">
+    <div style="width:100%;max-width:380px;border-radius:16px;background:#F4F5F7;color:#111418;padding:24px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:17px">PayPal</span><span style="font-family:'Geist Mono',monospace;font-size:10.5px;padding:3px 7px;border-radius:5px;background:#111418;color:#F4F5F7">SANDBOX</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;color:var(--ink5,#5E6570)">Pay FinPal Sandbox Merchant</span><span style="font-size:34px;font-weight:500;letter-spacing:-0.02em">{{ modal.amount }}</span><span style="font-size:13px;color:var(--ink5,#5E6570)">{{ modal.name }} · order {{ modal.orderId }}</span></div>
+      <div style="padding:12px;border-radius:10px;background:#fff;border:1px solid #E1E3E7;font-size:13px;display:flex;justify-content:space-between"><span>sb-buyer@personal.example.com</span><span style="color:var(--ink5,#5E6570)">Visa ••42</span></div>
+      <div style="display:flex;gap:8px">
+        <button onClick="{{ modalCancel }}" style="flex:1;padding:12px;border-radius:999px;border:1px solid #C9CDD3;background:transparent;color:#111418;font-size:14px">Cancel</button>
+        <button onClick="{{ modalApprove }}" style="flex:2;padding:12px;border-radius:999px;border:none;background:#111418;color:#F4F5F7;font-weight:500;font-size:14px">Approve payment</button>
+      </div>
+      <span style="font-size:11.5px;color:var(--ink5,#5E6570)">Approval reserves nothing yet. FinPal authorizes after you return.</span>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;right:20px;bottom:20px;z-index:60;max-width:380px;padding:13px 16px;border-radius:12px;background:var(--toast,#15181C);border:1px solid {{ toast.bd }};font-size:13.5px;line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,0.5);color:var(--ink,#EDEEF0)">{{ toast.msg }}</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Sidebar&quot;,&quot;Top bar&quot;],&quot;default&quot;:&quot;Top bar&quot;,&quot;tsType&quot;:&quot;'Sidebar'|'Top bar'&quot;},&quot;fluid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Right orb&quot;,&quot;Centered orb&quot;,&quot;Off&quot;],&quot;default&quot;:&quot;Right orb&quot;,&quot;tsType&quot;:&quot;'Right orb'|'Centered orb'|'Off'&quot;}}">
+class Component extends DCLogic {
+  TOK = {"onp":["#05070C","#FFFFFF"],"inset":["rgba(5,7,12,0.6)","rgba(255,255,255,0.75)"],"ink":["#EDEEF0","#0C111C"],"primary":["#F2F5FA","#0C111C"],"bg":["#040509","#EDF0F5"],"warn":["#F2C879","#A5650A"],"ink4":["#7C838D","#667084"],"ink2":["#B4BAC3","#384050"],"ink5":["#5E6570","#8790A2"],"primaryh":["#FFFFFF","#262D3D"],"ink3":["#9097A1","#566072"],"bad":["#FF7A6B","#C23A28"],"panels":["#0E1013","#F5F7FA"],"toast":["#15181C","#FFFFFF"],"info":["#8FB8FF","#2C5EC4"],"mutedfill":["#3A404C","#C6CCD6"],"veil":["rgba(4,5,9,0.55)","rgba(237,240,245,0.45)"],"chrome":["rgba(6,8,12,0.45)","rgba(250,251,253,0.55)"],"w07":["rgba(255,255,255,0.07)","rgba(14,20,36,0.088)"],"w08":["rgba(255,255,255,0.08)","rgba(14,20,36,0.100)"],"panel":["rgba(14,17,26,0.5)","rgba(255,255,255,0.58)"],"w06":["rgba(255,255,255,0.06)","rgba(14,20,36,0.075)"],"w05":["rgba(255,255,255,0.05)","rgba(14,20,36,0.063)"],"w03":["rgba(255,255,255,0.03)","rgba(14,20,36,0.037)"],"ok4":["rgba(200,218,255,0.4)","rgba(40,72,150,0.4)"],"info3":["rgba(143,184,255,0.3)","rgba(47,98,200,0.3)"],"info07":["rgba(143,184,255,0.07)","rgba(47,98,200,0.07)"],"w12":["rgba(255,255,255,0.12)","rgba(14,20,36,0.150)"],"ok16":["rgba(200,218,255,0.16)","rgba(40,72,150,0.16)"],"warn18":["rgba(242,200,121,0.18)","rgba(196,128,18,0.18)"],"bad16":["rgba(255,122,107,0.16)","rgba(206,58,38,0.16)"],"w18":["rgba(255,255,255,0.18)","rgba(14,20,36,0.160)"],"bad4":["rgba(255,122,107,0.4)","rgba(206,58,38,0.4)"],"w2":["rgba(255,255,255,0.2)","rgba(14,20,36,0.160)"],"w1":["rgba(255,255,255,0.1)","rgba(14,20,36,0.125)"],"w02":["rgba(255,255,255,0.02)","rgba(14,20,36,0.025)"],"warn35":["rgba(242,200,121,0.35)","rgba(196,128,18,0.35)"],"warn07":["rgba(242,200,121,0.07)","rgba(196,128,18,0.07)"],"ok12":["rgba(200,218,255,0.12)","rgba(40,72,150,0.12)"],"ok35":["rgba(200,218,255,0.35)","rgba(40,72,150,0.35)"],"warn12":["rgba(242,200,121,0.12)","rgba(196,128,18,0.12)"],"bad12":["rgba(255,122,107,0.12)","rgba(206,58,38,0.12)"],"bad35":["rgba(255,122,107,0.35)","rgba(206,58,38,0.35)"],"w04":["rgba(255,255,255,0.04)","rgba(14,20,36,0.050)"],"w14":["rgba(255,255,255,0.14)","rgba(14,20,36,0.160)"],"info16":["rgba(143,184,255,0.16)","rgba(47,98,200,0.16)"],"info06":["rgba(143,184,255,0.06)","rgba(47,98,200,0.06)"],"info6":["rgba(143,184,255,0.6)","rgba(47,98,200,0.6)"],"info2":["rgba(143,184,255,0.2)","rgba(47,98,200,0.2)"],"bad5":["rgba(255,122,107,0.5)","rgba(206,58,38,0.5)"]};
+  rootRef = React.createRef();
+  applyTheme(t) {
+    const el = this.rootRef.current; if (!el) return;
+    const i = t === 'light' ? 1 : 0;
+    for (const k in this.TOK) el.style.setProperty('--' + k, this.TOK[k][i]);
+    el.style.colorScheme = t;
+    document.body.style.background = this.TOK.bg[i];
+  }
+  componentDidMount() { let t = 'dark'; try { t = localStorage.getItem('finpal-theme') || 'dark'; } catch (e) {} if (t !== this.state.theme) this.setState({ theme: t }); this.applyTheme(t); }
+  componentDidUpdate() { this.applyTheme(this.state.theme); }
+  toggleTheme(e) {
+    const next = this.state.theme === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('finpal-theme', next); } catch (er) {}
+    const run = () => { this.setState({ theme: next }); this.applyTheme(next); };
+    const x = e ? e.clientX : innerWidth - 80, y = e ? e.clientY : 30;
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return run();
+    const vt = document.startViewTransition(() => { run(); });
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    vt.ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] }, { duration: 650, easing: 'cubic-bezier(.65,.05,.25,1)', pseudoElement: '::view-transition-new(root)' })).catch(() => {});
+  }
+  CAT = [
+    { k: ['sony', 'xm5'], o: [['Best Buy', 34999], ['Amazon', 32800], ['Target', 33999], ['Crutchfield', 34999], ['B&H Photo', 32999], ['eBay', 21900, 'u'], ['Amazon UK', 27900, 'g'], ['Walmart', 31999, 'o'], ['Amazon', 32800, 'd']] },
+    { k: ['sayl', 'herman'], o: [['Design Within Reach', 47900], ['Herman Miller Store', 48500], ['Office Depot', 45900], ['Wayfair', 49500], ['Staples', 46900], ['Facebook Marketplace', 22000, 'u'], ['ChairShop', 39900, 'x']] },
+    { k: ['dyson', 'v15'], o: [['Dyson', 64999], ['Best Buy', 62900], ['Target', 66999], ['Amazon', 64900], ['Costco', 69999], ['Walmart', 59999, 'o']] },
+    { k: ['leica', 'strap'], o: [['Leica Store', 18900], ['Etsy', 9500, 'u'], ['B&H Photo', 17900], ['B&H Photo', 17900, 'd'], ['Leica UK', 15900, 'g']] },
+    { k: ['anker', '737'], o: [['Anker', 11999], ['Amazon', 10999], ['Best Buy', 12499], ['Target', 11499], ['Walmart', 12999]] },
+    { k: ['switch', 'nintendo'], o: [['Nintendo', 34999], ['GameStop', 34900], ['Amazon', 32999], ['Target', 34999], ['Walmart', 33499]] },
+  ];
+  PRESETS = {
+    'Auto-approve': { name: 'Sony WH-1000XM5', price: '329.00', currency: 'USD', source: 'MANUAL', time: '14:30', trust: 'NOT_CHECKED' },
+    'Manual review': { name: 'Herman Miller Sayl chair', price: '545.00', currency: 'USD', source: 'MANUAL', time: '14:30', trust: 'PASS' },
+    'Blocked': { name: 'Dyson V15 Detect', price: '899.00', currency: 'USD', source: 'MANUAL', time: '14:30', trust: 'NOT_CHECKED' },
+    'Insufficient data': { name: 'Leica M6 leather strap', price: '185.00', currency: 'USD', source: 'MANUAL', time: '14:30', trust: 'NOT_CHECKED' },
+    'Outside window': { name: 'Nintendo Switch OLED', price: '349.99', currency: 'USD', source: 'MANUAL', time: '23:40', trust: 'NOT_CHECKED' },
+    'Currency mismatch': { name: 'Sony WH-1000XM5', price: '299.00', currency: 'EUR', source: 'MANUAL', time: '14:30', trust: 'NOT_CHECKED' },
+  };
+  EVENTS = [
+    { id: 'e1', day: 0, time: '10:00', title: 'Home office setup' },
+    { id: 'e2', day: 2, time: '18:30', title: "Dad's birthday dinner" },
+    { id: 'e3', day: 3, time: '09:00', title: 'Team offsite prep' },
+    { id: 'e4', day: 5, time: '11:00', title: 'Flight to NYC' },
+  ];
+  T = { AUTO_APPROVE: ['var(--primary,#F2F5FA)', 'var(--ok12,rgba(200,218,255,0.12))', 'var(--ok35,rgba(200,218,255,0.35))'], MANUAL_REVIEW: ['var(--warn,#F2C879)', 'var(--warn12,rgba(242,200,121,0.12))', 'var(--warn35,rgba(242,200,121,0.35))'], BLOCK: ['var(--bad,#FF7A6B)', 'var(--bad12,rgba(255,122,107,0.12))', 'var(--bad35,rgba(255,122,107,0.35))'] };
+  SC = { GOOD: 'var(--primary,#F2F5FA)', FAIR: 'var(--warn,#F2C879)', POOR: 'var(--bad,#FF7A6B)', INSUFFICIENT_DATA: 'var(--ink3,#9097A1)' };
+  PS = { CREATED: 'var(--ink2,#B4BAC3)', APPROVED: 'var(--info,#8FB8FF)', AUTHORIZED: 'var(--warn,#F2C879)', CAPTURED: 'var(--primary,#F2F5FA)', VOIDED: 'var(--bad,#FF7A6B)' };
+  clock = 14 * 3600 + 30 * 60;
+  seq = 0;
+  state = { ...this.init(), theme: 'dark' };
+
+  cents(s) { const m = String(s ?? '').trim().match(/^(\d+)(?:\.(\d{0,2}))?$/); if (!m) return null; return parseInt(m[1], 10) * 100 + parseInt(((m[2] || '') + '00').slice(0, 2), 10); }
+  fmt(c, cur = 'USD') { if (c == null) return '—'; const sym = { USD: '$', EUR: '€', GBP: '£' }[cur] || ''; return sym + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  mins(t) { const [h, m] = String(t || '0:0').split(':').map(Number); return h * 60 + m; }
+  hms(sec) { const p = (n) => String(n).padStart(2, '0'); return `${p(Math.floor(sec / 3600) % 24)}:${p(Math.floor(sec / 60) % 60)}:${p(sec % 60)}`; }
+  now() { this.clock += 9 + ((this.seq * 13) % 37); return this.hms(this.clock); }
+  hash(s) { let h = 7; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+  ev(type, entity, detail, at) { this.seq++; return { n: this.seq, at: at || this.now(), type, entity, detail }; }
+
+  offersFor(name, amount) {
+    const key = (name || '').toLowerCase();
+    if (!key.trim()) return [];
+    const hit = this.CAT.find((c) => c.k.some((k) => key.includes(k)));
+    let rows;
+    if (hit) rows = hit.o;
+    else {
+      const h = this.hash(key), base = Math.round((amount || 10000) * (0.82 + (h % 35) / 100));
+      rows = [['Amazon', -4], ['Best Buy', 2], ['Target', -1], ['Walmart', 5], ['eBay', -35, 'u'], ['Newegg', 3]].map(([m, d, f]) => [m, Math.round(base * (100 + d) / 100), f]);
+    }
+    return rows.map(([m, p, f]) => ({ m, p, cur: f === 'g' ? 'GBP' : 'USD', flag: f }));
+  }
+
+  evaluate(f, c, spentToday, spentMonth, id, at) {
+    const amount = this.cents(f.price), cur = f.currency;
+    const seen = new Set();
+    const offers = this.offersFor(f.name, amount).map((o) => {
+      let ex = null;
+      if (o.cur !== cur) ex = 'Excluded · ' + o.cur; else if (o.flag === 'o') ex = 'Excluded · out of stock'; else if (o.flag === 'u') ex = 'Excluded · used'; else if (o.flag === 'x') ex = 'Excluded · invalid link'; else if (o.flag === 'd' || seen.has(o.m + o.p)) ex = 'Excluded · duplicate';
+      if (!ex) seen.add(o.m + o.p);
+      return { ...o, ex };
+    });
+    const usable = offers.filter((o) => !o.ex).map((o) => o.p).sort((a, b) => a - b);
+    let median = null, ratioBp = null, score = 'INSUFFICIENT_DATA';
+    if (usable.length >= 3) {
+      const n = usable.length; median = n % 2 ? usable[(n - 1) / 2] : Math.floor((usable[n / 2 - 1] + usable[n / 2]) / 2);
+      ratioBp = Math.round(amount * 10000 / median);
+      score = amount * 100 <= median * 105 ? 'GOOD' : amount * 100 <= median * 120 ? 'FAIR' : 'POOR';
+    }
+    const checks = [], reasons = [], why = [];
+    let cFail = false, over = false;
+    if (!c.enabled) { checks.push({ k: 'none', label: 'Constraints configured', detail: 'None configured. Automatic approval is disabled.', st: 'NONE' }); reasons.push('NO_CONSTRAINTS'); }
+    else {
+      const t = this.mins(f.time), s = this.mins(c.start), e = this.mins(c.end);
+      const inWin = s === e ? true : s < e ? t >= s && t < e : t >= s || t < e;
+      checks.push({ label: 'Time window', detail: `${f.time} is ${inWin ? 'inside' : 'outside'} ${c.start}–${c.end} ${c.tz}`, st: inWin ? 'PASS' : 'FAIL' });
+      const curOk = cur === c.currency;
+      checks.push({ label: 'Currency', detail: curOk ? `${cur} matches constraints` : `${cur} ≠ ${c.currency}. No conversion is performed.`, st: curOk ? 'PASS' : 'FAIL' });
+      const tx = this.cents(c.perTx) ?? 0, dy = this.cents(c.daily) ?? 0, mo = this.cents(c.monthly) ?? 0;
+      const txOk = amount <= tx, dyOk = spentToday + amount <= dy, moOk = spentMonth + amount <= mo;
+      checks.push({ label: 'Per-transaction cap', detail: `${this.fmt(amount, cur)} vs ${this.fmt(tx, c.currency)}`, st: txOk ? 'PASS' : 'OVER' });
+      checks.push({ label: 'Daily cap', detail: `${this.fmt(spentToday)} counted + ${this.fmt(amount, cur)} vs ${this.fmt(dy, c.currency)}`, st: dyOk ? 'PASS' : 'OVER' });
+      checks.push({ label: 'Monthly cap', detail: `${this.fmt(spentMonth)} counted + ${this.fmt(amount, cur)} vs ${this.fmt(mo, c.currency)}`, st: moOk ? 'PASS' : 'OVER' });
+      if (!inWin) { reasons.push('TIME_WINDOW_FAIL'); why.push('the evaluation time is outside the allowed window'); }
+      if (!curOk) { reasons.push('CURRENCY_MISMATCH'); why.push(`${cur} does not match the ${c.currency} constraints`); }
+      if (!txOk) { reasons.push('CAP_EXCEEDED_PER_TX'); why.push(`the amount exceeds the ${this.fmt(tx)} per-transaction cap`); }
+      if (!dyOk) { reasons.push('CAP_EXCEEDED_DAILY'); why.push('it would exceed the daily cap'); }
+      if (!moOk) { reasons.push('CAP_EXCEEDED_MONTHLY'); why.push('it would exceed the monthly cap'); }
+      cFail = !inWin || !curOk; over = !txOk || !dyOk || !moOk;
+      if (!cFail) reasons.unshift('CONSTRAINTS_PASS');
+    }
+    reasons.push(score === 'INSUFFICIENT_DATA' ? 'INSUFFICIENT_DATA' : 'QUALITY_' + score);
+    reasons.push('TRUST_' + f.trust);
+    if (score === 'POOR') why.push('the price is above 120% of the market median');
+    let outcome;
+    if (cFail || over || score === 'POOR') outcome = 'BLOCK';
+    else if (!c.enabled || score === 'INSUFFICIENT_DATA' || f.trust === 'FAIL' || f.trust === 'UNAVAILABLE') outcome = 'MANUAL_REVIEW';
+    else if (score === 'GOOD') outcome = 'AUTO_APPROVE';
+    else outcome = 'MANUAL_REVIEW';
+    const pct = ratioBp != null ? (ratioBp / 100).toFixed(1) + '%' : null;
+    const q = median != null ? `${this.fmt(amount, cur)} is ${pct} of the ${this.fmt(median, cur)} median across ${usable.length} usable Channel3 offers (${score}).` : `Only ${usable.length} usable Channel3 offer${usable.length === 1 ? '' : 's'} in ${cur}; at least 3 are required, so no price score was produced.`;
+    const tr = { PASS: 'KERNEL reports the merchant as trusted.', NOT_CHECKED: 'Merchant trust was not checked.', FAIL: 'KERNEL flagged the merchant.', UNAVAILABLE: 'KERNEL was unavailable.' }[f.trust];
+    let lead;
+    if (outcome === 'BLOCK') lead = `Blocked because ${why.join(', and ')}. No payment attempt can be created.`;
+    else if (outcome === 'AUTO_APPROVE') lead = 'Approved automatically. All constraints pass and the amount is within caps.';
+    else lead = !c.enabled ? 'Sent to manual review because no constraints are configured.' : score === 'INSUFFICIENT_DATA' ? 'Sent to manual review because market evidence is insufficient.' : score === 'FAIR' ? 'Sent to manual review because the price is fair but not good.' : 'Sent to manual review because the trust signal is not conclusive.';
+    return { id, at, f: { ...f }, amount, cur, offers, usable, median, ratioBp, score, checks, reasons, outcome, explanation: `${lead} ${q} ${tr}`, review: outcome === 'MANUAL_REVIEW' ? 'PENDING' : null };
+  }
+
+  init() {
+    const c = { enabled: true, tz: 'America/Los_Angeles', start: '08:00', end: '22:00', perTx: '500.00', daily: '800.00', monthly: '2500.00', currency: 'USD' };
+    const audit = [];
+    const d1 = this.evaluate({ name: 'Anker 737 charger', price: '119.99', currency: 'USD', source: 'MANUAL', time: '09:12', trust: 'NOT_CHECKED' }, c, 0, 98000, 'dec_1a07', '09:12:14');
+    audit.push(this.ev('PROPOSAL_CREATED', 'prp_1a07', 'Anker 737 charger · $119.99', '09:12:10'), this.ev('EVALUATION_COMPLETED', 'evl_1a07', 'GOOD · median $119.99', '09:12:13'), this.ev('DECISION_CREATED', 'dec_1a07', 'AUTO_APPROVE', '09:12:14'));
+    const p1 = { id: 'pay_1a07', decisionId: 'dec_1a07', orderId: '5O190127TN364715T', amount: 11999, cur: 'USD', name: 'Anker 737 charger', status: 'CAPTURED', idem: 'idem_dec_1a07', history: [{ s: 'CREATED', at: '09:12:20' }, { s: 'APPROVED', at: '09:13:02' }, { s: 'AUTHORIZED', at: '09:13:04' }, { s: 'CAPTURED', at: '09:13:06' }] };
+    audit.push(this.ev('PAYMENT_ORDER_CREATED', 'pay_1a07', 'Order 5O190127TN364715T · $119.99', '09:12:20'), this.ev('PAYPAL_APPROVAL_RETURNED', 'pay_1a07', 'Buyer approved in PayPal', '09:13:02'), this.ev('PAYMENT_AUTHORIZED', 'pay_1a07', 'Authorization held · $119.99', '09:13:04'), this.ev('PAYMENT_CAPTURED', 'pay_1a07', 'Captured $119.99', '09:13:06'));
+    const d2 = this.evaluate({ name: 'Nintendo Switch OLED', price: '349.99', currency: 'USD', source: 'MANUAL', time: '07:05', trust: 'NOT_CHECKED' }, c, 11999, 98000 + 11999, 'dec_2c41', '07:05:31');
+    audit.push(this.ev('PROPOSAL_CREATED', 'prp_2c41', 'Nintendo Switch OLED · $349.99', '07:05:28'), this.ev('DECISION_CREATED', 'dec_2c41', 'BLOCK · TIME_WINDOW_FAIL', '07:05:31'));
+    const d3 = this.evaluate({ name: 'Leica M6 leather strap', price: '185.00', currency: 'USD', source: 'CALENDAR', time: '11:40', trust: 'NOT_CHECKED' }, c, 11999, 98000 + 11999, 'dec_3e9b', '11:40:52');
+    audit.push(this.ev('PROPOSAL_CREATED', 'prp_3e9b', 'Leica M6 leather strap · $185.00 · from calendar', '11:40:47'), this.ev('EVALUATION_COMPLETED', 'evl_3e9b', 'INSUFFICIENT_DATA · 2 usable offers', '11:40:51'), this.ev('DECISION_CREATED', 'dec_3e9b', 'MANUAL_REVIEW', '11:40:52'));
+    audit.sort((a, b) => a.at.localeCompare(b.at));
+    return { route: 'overview', scenario: null, c, form: { ...this.PRESETS['Auto-approve'] }, calCtx: null, decisions: [d3, d1, d2], payments: [p1], audit, monthPrior: 98000, selD: 'dec_3e9b', selP: 'pay_1a07', selEvent: null, modal: null, toast: null, sortKey: 'at', sortDir: -1, filter: 'All', formError: null };
+  }
+
+  spent(s = this.state) { return s.payments.filter((p) => p.status === 'CAPTURED').reduce((a, p) => a + p.amount, 0); }
+  toast(msg, tone = 'ok') { clearTimeout(this.tt); this.setState({ toast: { msg, tone } }); this.tt = setTimeout(() => this.setState({ toast: null }), 3600); }
+  go(route, extra = {}) { this.setState({ route, ...extra }); window.scrollTo(0, 0); }
+
+  runEval() {
+    const s = this.state, f = s.form;
+    if (!f.name.trim()) return this.setState({ formError: 'Product name is required.' });
+    const amt = this.cents(f.price);
+    if (!amt) return this.setState({ formError: 'Enter a price like 329.00.' });
+    const n = (this.hash(f.name + this.seq) % 0xfff).toString(16).padStart(3, '0');
+    const id = 'dec_' + (s.decisions.length + 1) + n;
+    const today = this.spent();
+    const at = this.now();
+    const d = this.evaluate(f, s.c, today, s.monthPrior + today, id, at);
+    const ctx = s.calCtx ? ` · from event “${s.calCtx.title}”` : '';
+    const ev = [
+      this.ev('PROPOSAL_CREATED', 'prp_' + id.slice(4), `${f.name} · ${this.fmt(amt, f.currency)}${ctx}`),
+      this.ev('EVALUATION_COMPLETED', 'evl_' + id.slice(4), d.median ? `${d.score} · median ${this.fmt(d.median, d.cur)}` : `INSUFFICIENT_DATA · ${d.usable.length} usable offers`),
+      this.ev('DECISION_CREATED', id, d.outcome + (d.outcome === 'BLOCK' ? ' · ' + d.reasons.filter((r) => /FAIL|MISMATCH|EXCEEDED|POOR/.test(r)).join(', ') : '')),
+    ];
+    this.setState({ decisions: [d, ...s.decisions], audit: [...s.audit, ...ev], selD: id, formError: null, calCtx: null });
+    this.go('decision');
+  }
+
+  createPayment(dId) {
+    const s = this.state, d = s.decisions.find((x) => x.id === dId);
+    if (!d) return;
+    const payable = d.outcome === 'AUTO_APPROVE' || d.review === 'APPROVED';
+    if (!payable) { this.setState({ audit: [...s.audit, this.ev('TRANSITION_REJECTED', dId, 'Payment creation refused: decision not payable')] }); return this.toast('Refused: this decision is not payable.', 'err'); }
+    const existing = s.payments.find((p) => p.decisionId === dId);
+    if (existing) { this.setState({ audit: [...s.audit, this.ev('PAYMENT_CREATE_DEDUPED', existing.id, `Same idempotency key ${existing.idem}; returned ${existing.orderId}`)], selP: existing.id }); this.go('payments'); return this.toast(`Idempotent replay: returned existing order ${existing.orderId}. No new order created.`); }
+    const at = this.now();
+    const orderId = '5O' + String(this.hash(dId) % 1e9).padStart(9, '0') + 'TN' + String(this.seq).padStart(4, '0');
+    const p = { id: 'pay_' + dId.slice(4), decisionId: dId, orderId, amount: d.amount, cur: d.cur, name: d.f.name, status: 'CREATED', idem: 'idem_' + dId, history: [{ s: 'CREATED', at }] };
+    this.setState({ payments: [p, ...s.payments], selP: p.id, audit: [...s.audit, this.ev('PAYMENT_ORDER_CREATED', p.id, `Order ${orderId} · ${this.fmt(p.amount, p.cur)}`, at)] });
+    this.go('payments');
+  }
+
+  transition(pid, from, to, type, detail) {
+    const s = this.state, p = s.payments.find((x) => x.id === pid);
+    if (!p) return;
+    if (!from.includes(p.status)) {
+      const msg = to === 'VOIDED' && p.status === 'CAPTURED' ? 'Captured payments cannot be voided; a refund would be required.' : `Cannot move ${p.status} → ${to}.`;
+      this.setState({ audit: [...s.audit, this.ev('TRANSITION_REJECTED', pid, `${p.status} → ${to} refused`)] });
+      return this.toast('Guarded transition rejected. ' + msg, 'err');
+    }
+    const at = this.now();
+    const np = { ...p, status: to, history: [...p.history, { s: to, at }] };
+    this.setState({ payments: s.payments.map((x) => (x.id === pid ? np : x)), audit: [...s.audit, this.ev(type, pid, detail(p), at)], modal: null });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const layout = this.props.layout ?? 'Top bar';
+    const today = this.spent(), month = s.monthPrior + today;
+    const pending = s.decisions.filter((d) => d.review === 'PENDING');
+    const openPays = s.payments.filter((p) => !['CAPTURED', 'VOIDED'].includes(p.status));
+    const labels = { overview: 'Overview', calendar: 'Calendar', propose: 'New proposal', decision: 'Decisions', review: 'Review queue', payments: 'Payments', activity: 'Activity', constraints: 'Constraints' };
+    const badges = { review: pending.length || '', payments: openPays.length || '' };
+    const nav = Object.keys(labels).map((k) => ({ label: labels[k], badge: badges[k] ?? '', go: () => this.go(k), bg: s.route === k ? 'var(--w07,rgba(255,255,255,0.07))' : 'transparent', fg: s.route === k ? 'var(--ink,#EDEEF0)' : 'var(--ink3,#9097A1)' }));
+    const scenarios = ['Auto-approve', 'Manual review', 'Blocked'].map((label) => ({ label, go: () => { this.setState({ scenario: label, form: { ...this.PRESETS[label] }, calCtx: null, formError: null }); this.go('propose'); }, bg: s.scenario === label ? this.T[{ 'Auto-approve': 'AUTO_APPROVE', 'Manual review': 'MANUAL_REVIEW', Blocked: 'BLOCK' }[label]][0] : 'transparent', fg: s.scenario === label ? 'var(--onp,#05070C)' : 'var(--ink3,#9097A1)' }));
+    const r = Object.fromEntries(Object.keys(labels).map((k) => [k, s.route === k]));
+    const c = s.c;
+    const pct = (a, b) => Math.min(100, b ? Math.round(a * 100 / b) : 0) + '%';
+    const dy = this.cents(c.daily) || 0, mo = this.cents(c.monthly) || 0;
+    const cnt = (o) => s.decisions.filter((d) => d.outcome === o).length;
+    const kpis = [
+      { label: 'Spent today', value: this.fmt(today), sub: `of ${this.fmt(dy)} daily cap`, pct: pct(today, dy), barColor: 'var(--primary,#F2F5FA)' },
+      { label: 'This month', value: this.fmt(month), sub: `of ${this.fmt(mo)} monthly cap`, pct: pct(month, mo), barColor: 'var(--primary,#F2F5FA)' },
+      { label: 'Decisions', value: String(s.decisions.length), sub: `${cnt('AUTO_APPROVE')} auto · ${cnt('MANUAL_REVIEW')} review · ${cnt('BLOCK')} blocked`, pct: pct(cnt('AUTO_APPROVE'), s.decisions.length), barColor: 'var(--ink3,#9097A1)' },
+      { label: 'Open payments', value: String(openPays.length), sub: openPays.length ? 'awaiting PayPal steps' : 'all settled', pct: '0%', barColor: 'var(--warn,#F2C879)' },
+    ];
+    const tone = (o) => this.T[o];
+    const decisionRows = s.decisions.map((d) => ({ id: d.id, name: d.f.name, amount: this.fmt(d.amount, d.cur), score: d.score === 'INSUFFICIENT_DATA' ? 'INSUFFICIENT' : d.score, scoreFg: this.SC[d.score], source: d.f.source === 'CALENDAR' ? 'Calendar' : 'Manual', outcome: d.review === 'APPROVED' ? 'REVIEW · APPROVED' : d.review === 'REJECTED' ? 'REVIEW · REJECTED' : d.outcome, fg: tone(d.outcome)[0], bg: tone(d.outcome)[1], rowBg: s.selD === d.id ? 'var(--w04,rgba(255,255,255,0.04))' : 'transparent', open: () => this.go('decision', { selD: d.id }) }));
+    const nextActions = [
+      ...pending.map((d) => ({ title: d.f.name, sub: 'MANUAL_REVIEW · awaiting a person', fg: 'var(--warn,#F2C879)', go: () => this.go('review') })),
+      ...openPays.map((p) => ({ title: p.name, sub: `${p.status} · next: ${{ CREATED: 'approve in PayPal', APPROVED: 'authorize', AUTHORIZED: 'capture or void' }[p.status]}`, fg: this.PS[p.status], go: () => this.go('payments', { selP: p.id }) })),
+    ];
+
+    // decision detail
+    const D = s.decisions.find((x) => x.id === s.selD) || s.decisions[0];
+    let d = null;
+    if (D) {
+      const pay = s.payments.find((p) => p.decisionId === D.id);
+      const prices = [...D.offers.filter((o) => !o.ex).map((o) => o.p), D.amount];
+      let band = {}, dots = [];
+      if (D.median) {
+        const lo = Math.min(...prices, D.median) * 0.9, hi = Math.max(...prices, D.median * 1.3) * 1.04;
+        const pos = (x) => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
+        band = { goodW: pos(D.median * 1.05) + '%', fairW: (pos(D.median * 1.2) - pos(D.median * 1.05)) + '%', poorL: pos(D.median * 1.2) + '%', medianL: pos(D.median) + '%', propL: pos(D.amount) + '%' };
+        dots = D.offers.filter((o) => !o.ex).map((o) => ({ left: pos(o.p) + '%' }));
+      }
+      const stc = { PASS: 'var(--primary,#F2F5FA)', FAIL: 'var(--bad,#FF7A6B)', OVER: 'var(--bad,#FF7A6B)', NONE: 'var(--warn,#F2C879)' };
+      d = {
+        id: D.id, name: D.f.name, amount: this.fmt(D.amount, D.cur), at: D.at, sourceLabel: D.f.source === 'CALENDAR' ? 'calendar-assisted' : 'manual entry',
+        outcome: D.outcome, fg: tone(D.outcome)[0], bg: tone(D.outcome)[1], bd: tone(D.outcome)[2], explanation: D.explanation,
+        median: this.fmt(D.median, D.cur), ratio: D.ratioBp != null ? (D.ratioBp / 100).toFixed(1) + '%' : '—', score: D.score, scoreFg: this.SC[D.score], hasMedian: !!D.median, band, dots,
+        offers: D.offers.map((o) => ({ merchant: o.m, price: this.fmt(o.p, o.cur), status: o.ex || 'Usable', fg: o.ex ? 'var(--ink4,#7C838D)' : 'var(--primary,#F2F5FA)', op: o.ex ? 0.6 : 1 })), noOffers: D.offers.length === 0,
+        checks: D.checks.map((x) => ({ label: x.label, detail: x.detail, mark: x.st, fg: stc[x.st] })),
+        trust: D.f.trust, trustFg: { PASS: 'var(--primary,#F2F5FA)', FAIL: 'var(--bad,#FF7A6B)', UNAVAILABLE: 'var(--warn,#F2C879)', NOT_CHECKED: 'var(--ink3,#9097A1)' }[D.f.trust], trustDetail: D.f.trust === 'NOT_CHECKED' ? 'KERNEL integration is planned. No positive result is assumed.' : 'Simulated KERNEL result for this demo.',
+        reasons: D.reasons,
+        canPay: (D.outcome === 'AUTO_APPROVE' || D.review === 'APPROVED') && !pay, hasPayment: !!pay, payStatus: pay ? pay.status : '', idem: 'idem_' + D.id,
+        needsReview: D.review === 'PENDING', blocked: D.outcome === 'BLOCK', rejected: D.review === 'REJECTED',
+      };
+    }
+
+    const reviewRows = pending.map((x) => ({
+      id: x.id, at: x.at, name: x.f.name, amount: this.fmt(x.amount, x.cur), score: x.score, scoreFg: this.SC[x.score], median: this.fmt(x.median, x.cur), reasons: x.reasons,
+      view: () => this.go('decision', { selD: x.id }),
+      approve: () => { this.setState((st) => ({ decisions: st.decisions.map((y) => (y.id === x.id ? { ...y, review: 'APPROVED' } : y)), audit: [...st.audit, this.ev('REVIEW_APPROVED', x.id, 'Approved by demo@finpal.dev')], selD: x.id })); this.go('decision'); this.toast('Approved. The decision is now payable.'); },
+      reject: () => { this.setState((st) => ({ decisions: st.decisions.map((y) => (y.id === x.id ? { ...y, review: 'REJECTED' } : y)), audit: [...st.audit, this.ev('REVIEW_REJECTED', x.id, 'Rejected by demo@finpal.dev')] })); this.toast('Rejected. No payment will be created.', 'err'); },
+    }));
+
+    // payments
+    const P = s.payments.find((x) => x.id === s.selP) || s.payments[0];
+    let p = null;
+    if (P) {
+      const order = ['CREATED', 'APPROVED', 'AUTHORIZED', P.status === 'VOIDED' ? 'VOIDED' : 'CAPTURED'];
+      const idx = order.indexOf(P.status);
+      const steps = order.map((label, i) => {
+        const done = i <= idx, col = this.PS[label];
+        return { label, fg: done ? (i === idx ? 'var(--onp,#05070C)' : col) : 'var(--ink5,#5E6570)', bg: i === idx ? col : 'transparent', bd: done ? col : 'var(--w1,rgba(255,255,255,0.1))', arrow: i < order.length - 1 ? 'block' : 'none' };
+      });
+      const A = (label, endpoint, valid, run, primary) => ({ label, endpoint, run, op: valid ? 1 : 0.38, bg: valid && primary ? 'var(--primary,#F2F5FA)' : 'transparent', fg: valid && primary ? 'var(--onp,#05070C)' : 'var(--ink,#EDEEF0)', bd: valid && primary ? 'var(--primary,#F2F5FA)' : 'var(--w14,rgba(255,255,255,0.14))' });
+      const st = P.status;
+      p = {
+        id: P.id, orderId: P.orderId, amount: this.fmt(P.amount, P.cur), name: P.name, status: st, fg: this.PS[st], bg: this.PS[st].replace(')', ',0.12)').replace('#', '') && 'var(--w06,rgba(255,255,255,0.06))', steps,
+        history: P.history.map((h) => ({ ...h, fg: this.PS[h.s] })),
+        actions: [
+          A('Approve in PayPal', 'PayPal → GET /payments/return', st === 'CREATED', () => (st === 'CREATED' ? this.setState({ modal: P.id }) : this.transition(P.id, ['CREATED'], 'APPROVED')), true),
+          A('Authorize', 'POST /payments/:id/authorize', st === 'APPROVED', () => this.transition(P.id, ['APPROVED'], 'AUTHORIZED', 'PAYMENT_AUTHORIZED', (x) => `Authorization held · ${this.fmt(x.amount, x.cur)}`), true),
+          A('Capture', 'POST /payments/:id/capture', st === 'AUTHORIZED', () => this.transition(P.id, ['AUTHORIZED'], 'CAPTURED', 'PAYMENT_CAPTURED', (x) => `Captured ${this.fmt(x.amount, x.cur)}`), true),
+          A('Void', 'POST /payments/:id/void', st === 'AUTHORIZED', () => this.transition(P.id, ['AUTHORIZED'], 'VOIDED', 'PAYMENT_VOIDED', () => 'Authorization voided before capture'), false),
+          A('Retry create', 'POST /payments · same key', true, () => this.createPayment(P.decisionId), false),
+        ],
+      };
+    }
+    const paymentRows = s.payments.map((x) => ({ name: x.name, amount: this.fmt(x.amount, x.cur), orderId: x.orderId, status: x.status, fg: this.PS[x.status], bd: P && P.id === x.id ? 'var(--ok4,rgba(200,218,255,0.4))' : 'var(--w08,rgba(255,255,255,0.08))', open: () => this.setState({ selP: x.id }) }));
+    const M = s.modal && s.payments.find((x) => x.id === s.modal);
+
+    // activity
+    const groups = { 'All': null, 'Decisions': /PROPOSAL|EVALUATION|DECISION|REVIEW/, 'Payments': /PAYMENT|PAYPAL|TRANSITION/, 'Config': /CONSTRAINTS/ };
+    const re = groups[s.filter];
+    const keyOf = { at: (e) => e.n, type: (e) => e.type, entity: (e) => e.entity };
+    const typeFg = (t) => /REJECTED|VOIDED|BLOCK/.test(t) ? 'var(--bad,#FF7A6B)' : /CAPTURED|APPROVED$/.test(t) ? 'var(--primary,#F2F5FA)' : /PAYMENT|PAYPAL/.test(t) ? 'var(--info,#8FB8FF)' : 'var(--ink2,#B4BAC3)';
+    const activityRows = s.audit.filter((e) => !re || re.test(e.type)).sort((a, b) => { const ka = keyOf[s.sortKey](a), kb = keyOf[s.sortKey](b); return (ka > kb ? 1 : ka < kb ? -1 : 0) * s.sortDir; }).map((e) => ({ at: e.at, type: e.type, entity: e.entity, detail: e.detail, fg: typeFg(e.type) }));
+    const cols = [['at', 'Time'], ['type', 'Event'], ['entity', 'Entity'], [null, 'Detail']].map(([k, label]) => ({ label, arrow: k && s.sortKey === k ? (s.sortDir > 0 ? '↑' : '↓') : '', sort: () => k && this.setState((st) => ({ sortKey: k, sortDir: st.sortKey === k ? -st.sortDir : -1 })) }));
+    const filters = Object.keys(groups).map((label) => ({ label, go: () => this.setState({ filter: label }), bg: s.filter === label ? 'var(--w08,rgba(255,255,255,0.08))' : 'transparent', fg: s.filter === label ? 'var(--ink,#EDEEF0)' : 'var(--ink3,#9097A1)' }));
+
+    // calendar
+    const dows = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const calDays = dows.map((dow, i) => ({ dow, num: String(19 + i), events: this.EVENTS.filter((e) => e.day === i).map((e) => ({ ...e, select: () => this.setState({ selEvent: e.id }), bg: s.selEvent === e.id ? 'var(--info16,rgba(143,184,255,0.16))' : 'var(--info06,rgba(143,184,255,0.06))', bd: s.selEvent === e.id ? 'var(--info6,rgba(143,184,255,0.6))' : 'var(--info2,rgba(143,184,255,0.2))' })) }));
+    const E = this.EVENTS.find((e) => e.id === s.selEvent);
+    const evv = E ? { ...E, dateLabel: `${dows[E.day]} Oct ${19 + E.day} · ${E.time}` } : null;
+
+    const setF = (k) => (e) => this.setState({ form: { ...this.state.form, [k]: e.target.value }, formError: null, scenario: null });
+    const setC = (k) => (e) => this.setState({ c: { ...this.state.c, [k]: e.target.value } });
+    const crosses = this.mins(c.end) < this.mins(c.start);
+    const fOk = s.form.name.trim() && this.cents(s.form.price);
+
+    return {
+      isSidebar: layout !== 'Top bar', isTopbar: layout === 'Top bar',
+      rootRef: this.rootRef, toggleTheme: (e) => this.toggleTheme(e), knobX: s.theme === 'light' ? '28px' : '0px',
+      orbFilter: s.theme === 'light' ? 'invert(1) hue-rotate(180deg) saturate(1.3) brightness(1.04)' : 'none', orbOpacity: s.theme === 'light' ? '0.7' : '1',
+      hasOrb: (this.props.fluid ?? 'Right orb') !== 'Off', orb: (this.props.fluid ?? 'Right orb') === 'Centered orb' ? { r: '0.46', x: '0', y: '-0.02', i: '0.85' } : { r: '0.62', x: '0.62', y: '0.18', i: '1' },
+      nav, scenarios, r, routeLabel: labels[s.route], clockLabel: `Sun Oct 18 · ${this.hms(this.clock)} PT`,
+      kpis, decisionRows, nextActions, noActions: nextActions.length === 0,
+      goPropose: () => this.go('propose'), goDecisions: () => this.go('decision'), goConstraints: () => this.go('constraints'), goReview: () => this.go('review'),
+      calDays, hasEvent: !!evv, noEvent: !evv, ev: evv || {},
+      fromEvent: () => { if (!E) return; this.setState({ form: { name: '', price: '', currency: c.currency, source: 'CALENDAR', time: E.time, trust: 'NOT_CHECKED' }, calCtx: { title: E.title, dateLabel: evv.dateLabel }, scenario: null, formError: null }); this.go('propose'); this.toast('Prefilled from event. Product name and price are still required.'); },
+      hasCalCtx: !!s.calCtx, calCtx: s.calCtx || {}, clearCal: () => this.setState({ calCtx: null }),
+      presets: Object.keys(this.PRESETS).map((label) => ({ label, go: () => this.setState({ form: { ...this.PRESETS[label] }, formError: null, calCtx: null, scenario: ['Auto-approve', 'Manual review', 'Blocked'].includes(label) ? label : null }) })),
+      f: s.form, on: { name: setF('name'), price: setF('price'), currency: setF('currency'), source: setF('source'), time: setF('time'), trust: setF('trust') },
+      formError: s.formError, evaluate: () => this.runEval(), evalBg: fOk ? 'var(--primary,#F2F5FA)' : 'var(--mutedfill,#3A404C)',
+      rulesSummary: c.enabled ? [{ k: 'Window', v: `${c.start}–${c.end}` }, { k: 'Timezone', v: c.tz }, { k: 'Per transaction', v: this.fmt(this.cents(c.perTx), c.currency) }, { k: 'Daily left', v: this.fmt(Math.max(0, dy - today), c.currency) }, { k: 'Monthly left', v: this.fmt(Math.max(0, mo - month), c.currency) }, { k: 'Currency', v: c.currency }] : [{ k: 'Constraints', v: 'None · review only' }],
+      hasD: !!d, d: d || {}, createPayment: () => D && this.createPayment(D.id), openPayment: () => { const pay = D && s.payments.find((x) => x.decisionId === D.id); if (pay) this.go('payments', { selP: pay.id }); },
+      reviewRows, noReviews: reviewRows.length === 0,
+      paymentRows, noPayments: paymentRows.length === 0, hasP: !!p, p: p || {},
+      hasModal: !!M, modal: M ? { amount: this.fmt(M.amount, M.cur), name: M.name, orderId: M.orderId } : {},
+      modalCancel: () => this.setState({ modal: null }),
+      modalApprove: () => this.transition(M.id, ['CREATED'], 'APPROVED', 'PAYPAL_APPROVAL_RETURNED', () => 'Buyer approved in PayPal · return handled'),
+      activityRows, cols, filters, auditCount: s.audit.length,
+      c, onC: { tz: setC('tz'), start: setC('start'), end: setC('end'), perTx: setC('perTx'), daily: setC('daily'), monthly: setC('monthly'), currency: setC('currency') },
+      cDisabled: !c.enabled, en: { label: c.enabled ? 'Enforced' : 'Not configured', track: c.enabled ? 'var(--primary,#F2F5FA)' : 'var(--mutedfill,#3A404C)', justify: c.enabled ? 'flex-end' : 'flex-start', op: c.enabled ? 1 : 0.45 },
+      toggleEnabled: () => this.setState({ c: { ...c, enabled: !c.enabled } }),
+      windowNote: crosses ? `Window crosses midnight: allowed from ${c.start} until ${c.end} the next day.` : `Allowed from ${c.start} up to, not including, ${c.end}.`,
+      spentToday: this.fmt(today), spentMonth: this.fmt(month),
+      saveC: () => { this.setState({ audit: [...s.audit, this.ev('CONSTRAINTS_UPDATED', 'cst_main', c.enabled ? `${c.start}–${c.end} ${c.tz} · caps ${c.perTx}/${c.daily}/${c.monthly} ${c.currency}` : 'Constraints cleared')] }); this.toast('Constraints saved. They apply to new proposals.'); },
+      hasToast: !!s.toast, toast: s.toast ? { msg: s.toast.msg, bd: s.toast.tone === 'err' ? 'var(--bad5,rgba(255,122,107,0.5))' : 'var(--ok4,rgba(200,218,255,0.4))' } : {},
+    };
+  }
+}
+</script>
+</body>
+</html>
