@@ -27,6 +27,7 @@ function row(overrides: Partial<DecisionRow>): DecisionRow {
     medianPrice: 50,
     offerCount: 3,
     trustSignal: "NOT_CHECKED",
+    reviewStatus: null,
     paymentId: null,
     paymentStatus: null,
     paymentUpdatedAt: null,

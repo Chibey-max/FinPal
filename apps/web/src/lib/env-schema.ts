@@ -29,6 +29,9 @@ export const serverEnvSchema = z.object({
   PAYPAL_WEBHOOK_ID: z.string().min(1).optional(),
   CHANNEL3_API_KEY: z.string().min(1),
   KERNEL_API_KEY: z.string().min(1).optional(),
+  /** OAuth access token for one Google Calendar used to prefill proposals. */
+  GOOGLE_CALENDAR_ACCESS_TOKEN: z.string().min(1).optional(),
+  GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 });
 

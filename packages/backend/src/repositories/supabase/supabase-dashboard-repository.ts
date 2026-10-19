@@ -11,6 +11,7 @@ import {
   proposalSchema,
   proposalSourceSchema,
   qualityScoreSchema,
+  reviewStatusSchema,
   trustSignalSchema,
   type DecisionRow,
 } from "@finpal/contracts";
@@ -43,6 +44,7 @@ const rowSchema = z.object({
   reason: z.string(),
   reasons: z.array(z.object({ code: z.string() }).loose()).default([]),
   decided_at: z.string(),
+  review_status: reviewStatusSchema.nullable(),
   evaluations: one(
     z.object({
       id: z.string(),
@@ -68,7 +70,7 @@ const rowSchema = z.object({
 });
 
 export const decisionRowSelect = `
-  id, outcome, reason, reasons, decided_at,
+  id, outcome, reason, reasons, decided_at, review_status,
   evaluations!inner (
     id, quality_score, explanation, median_price, offer_count, trust_signal,
     proposals!inner ( id, product_name, proposed_price, currency, source, created_at )
@@ -104,6 +106,7 @@ export function toDecisionRow(raw: unknown): DecisionRow {
     medianPrice: evaluation.median_price,
     offerCount: evaluation.offer_count,
     trustSignal: evaluation.trust_signal,
+    reviewStatus: row.review_status,
     paymentId: payment?.id ?? null,
     paymentStatus: payment?.status ?? null,
     paymentUpdatedAt: payment?.updated_at ?? null,
@@ -117,6 +120,9 @@ const detailRowSchema = z.object({
   reason: z.string(),
   reasons: z.unknown(),
   decided_at: z.string(),
+  reviewer_id: z.string().nullable(),
+  review_status: reviewStatusSchema.nullable(),
+  reviewed_at: z.string().nullable(),
   evaluations: one(
     z.object({
       id: z.string(),
@@ -124,6 +130,7 @@ const detailRowSchema = z.object({
       quality_result: z.unknown(),
       constraint_check: z.unknown(),
       trust_signal: trustSignalSchema,
+      trust_evidence: z.record(z.string(), z.unknown()).default({}),
       created_at: z.string(),
       proposals: one(
         z.object({
@@ -146,8 +153,10 @@ const detailRowSchema = z.object({
 
 export const decisionDetailSelect = `
   id, evaluation_id, outcome, reason, reasons, decided_at,
+  reviewer_id, review_status, reviewed_at,
   evaluations!inner (
-    id, proposal_id, quality_result, constraint_check, trust_signal, created_at,
+    id, proposal_id, quality_result, constraint_check, trust_signal,
+    trust_evidence, created_at,
     proposals!inner (
       id, product_name, proposed_price, currency, source, source_event_id,
       proposed_for, created_at
@@ -182,6 +191,7 @@ export function toDecisionRecord(raw: unknown): DecisionRecord {
       quality: evaluation.quality_result,
       constraintCheck: evaluation.constraint_check ?? null,
       trustSignal: evaluation.trust_signal,
+      trustEvidence: evaluation.trust_evidence ?? {},
       createdAt: evaluation.created_at,
     }),
     decision: decisionSchema.parse({
@@ -191,6 +201,9 @@ export function toDecisionRecord(raw: unknown): DecisionRecord {
       reason: row.reason,
       reasons: row.reasons,
       decidedAt: row.decided_at,
+      reviewerId: row.reviewer_id,
+      reviewStatus: row.review_status,
+      reviewedAt: row.reviewed_at,
     }),
     // paymentAttemptSchema drops internal fields (user id, idempotency key).
     payment: latestPayment

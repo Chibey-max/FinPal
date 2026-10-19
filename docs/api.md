@@ -16,9 +16,9 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
 | `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment    |
 | `GET`  | `/api/v1/decisions/:decisionId`         | Full detail for one decision, with its audit trail       |
+| `POST` | `/api/v1/decisions/:decisionId/review`  | Approve or reject a `MANUAL_REVIEW` decision             |
+| `GET`  | `/api/v1/calendar/events`               | Upcoming Google Calendar events for proposal prefill     |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
-
-Only the PayPal webhook still returns `501 Not Implemented`.
 
 ## Proposal and decision flow
 
@@ -29,10 +29,19 @@ POST /evaluations { proposalId }
   -> 201 { proposal, evaluation, decision }
      decision.outcome: AUTO_APPROVE | MANUAL_REVIEW | BLOCK
      decision.reasons: [{ code, source, message }]
-POST /payments    { decisionId, idempotencyKey }   (AUTO_APPROVE only)
+POST /payments    { decisionId, idempotencyKey }   (AUTO_APPROVE, or MANUAL_REVIEW after approval)
+POST /decisions/:id/review  { action: "APPROVED" | "REJECTED" }
 ```
 
 `proposedFor` (ISO 8601 with offset) is the planned purchase time; time windows are checked at that time, otherwise at evaluation time. Evaluating the same proposal again records a new evaluation and decision; history is kept. `POST /evaluations` returns `404 PROPOSAL_NOT_FOUND` for another user's proposal.
+
+### Manual review
+
+`POST /api/v1/decisions/:decisionId/review` with `{ "action": "APPROVED" }` or `{ "action": "REJECTED" }` records the reviewer, audits `DECISION_APPROVED` / `DECISION_REJECTED`, and (on approve) makes the decision payable. Only `MANUAL_REVIEW` decisions that have not already been reviewed are accepted (`422 NOT_MANUAL_REVIEW`, `409 ALREADY_REVIEWED`).
+
+### Calendar prefill
+
+`GET /api/v1/calendar/events?limit=20` returns `{ events, configured }`. When `GOOGLE_CALENDAR_ACCESS_TOKEN` is unset, `configured` is `false` and `events` is empty. Events expose `id`, `title`, and `startsAt` only — create a proposal with `source: "CALENDAR"` and `sourceEventId` / `proposedFor` yourself; FinPal never infers a product from the title.
 
 ## Payment flow
 
@@ -51,6 +60,10 @@ POST /payments/:id/void     -> VOIDED
 - **Statuses.** `status` is FinPal's state machine. `paypalOrderStatus`, `paypalAuthorizationStatus` and `paypalCaptureStatus` are PayPal's own values, stored exactly as returned.
 - **Void vs refund.** Void is only valid from `AUTHORIZED`. A captured payment can never be voided; reversing it would be a refund, which is out of scope.
 
+### PayPal webhooks
+
+`POST /api/webhooks/paypal` verifies the transmission with PayPal (`PAYPAL_WEBHOOK_ID` required), stores the event id for idempotency, and may advance a matching payment (`CHECKOUT.ORDER.APPROVED` → `APPROVED`, `PAYMENT.AUTHORIZATION.VOIDED` → `VOIDED`). Duplicate deliveries return `{ "status": "duplicate" }`. Without `PAYPAL_WEBHOOK_ID` the route responds `503 NOT_CONFIGURED`.
+
 ## Errors
 
 Errors use `{ "error": { "code", "message", "details" } }`.
@@ -60,8 +73,8 @@ Errors use `{ "error": { "code", "message", "details" } }`.
 | 400  | `INVALID_REQUEST`                                                                                                        |
 | 401  | `UNAUTHORIZED`                                                                                                           |
 | 404  | `PAYMENT_NOT_FOUND`, `DECISION_NOT_FOUND`                                                                                |
-| 409  | `IDEMPOTENCY_KEY_REUSED`, `DECISION_ALREADY_PAID`, `ORDER_NOT_APPROVED`, `INVALID_TRANSITION`, `CONCURRENT_MODIFICATION` |
-| 422  | `DECISION_NOT_PAYABLE`, `PAYPAL_DECLINED`                                                                                |
+| 409  | `IDEMPOTENCY_KEY_REUSED`, `DECISION_ALREADY_PAID`, `ORDER_NOT_APPROVED`, `INVALID_TRANSITION`, `CONCURRENT_MODIFICATION`, `ALREADY_REVIEWED` |
+| 422  | `DECISION_NOT_PAYABLE`, `PAYPAL_DECLINED`, `NOT_MANUAL_REVIEW`                                                           |
 | 502  | `PAYPAL_AUTH_FAILED` (PayPal rejected FinPal's merchant credentials; fix configuration)                                  |
 | 503  | `PAYPAL_UNAVAILABLE` (timeouts, network, PayPal 5xx/429; safe to retry)                                                  |
 

@@ -5,6 +5,7 @@ import {
   decisionOutcomeSchema,
   decisionSchema,
   evaluationSchema,
+  reviewStatusSchema,
   trustSignalSchema,
 } from "./decision";
 import { paymentAttemptSchema, paymentStatusSchema } from "./payment";
@@ -36,6 +37,8 @@ export const decisionRowSchema = z.object({
   medianPrice: z.number().nullable(),
   offerCount: z.number().int().nonnegative(),
   trustSignal: trustSignalSchema,
+  /** Present after a reviewer acts on MANUAL_REVIEW. */
+  reviewStatus: reviewStatusSchema.nullable(),
 
   /** Exact uppercase payment state, or null if no payment was started. */
   paymentId: z.uuid().nullable(),

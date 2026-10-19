@@ -91,6 +91,24 @@ export function createSupabasePaymentAttemptRepository(
     findByPayPalOrderId: (userId, orderId) =>
       findOne(userId, "paypal_order_id", orderId),
 
+    async findAnyByPayPalOrderId(paypalOrderId) {
+      const { data, error } = await table()
+        .select("*")
+        .eq("paypal_order_id", paypalOrderId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? toPaymentAttemptRecord(data) : null;
+    },
+
+    async findAnyByPayPalAuthorizationId(paypalAuthorizationId) {
+      const { data, error } = await table()
+        .select("*")
+        .eq("paypal_authorization_id", paypalAuthorizationId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? toPaymentAttemptRecord(data) : null;
+    },
+
     async findActiveByDecisionId(userId, decisionId) {
       const { data, error } = await table()
         .select("*")

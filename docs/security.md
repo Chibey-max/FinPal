@@ -26,6 +26,7 @@ RLS is enabled on every table. Every user-facing table has a direct `user_id` co
 | `decisions`        | read own           | backend, service role               |
 | `payment_attempts` | read own           | backend, service role               |
 | `audit_events`     | read own           | backend, service role (insert only) |
+| `paypal_webhook_events` | none          | backend, service role only          |
 
 Users can never insert evaluations, decisions, or payment attempts directly; those come only from the orchestrator, so a client cannot forge an `AUTO_APPROVE`. The service role bypasses RLS, so backend code must always scope queries by the authenticated user's id.
 

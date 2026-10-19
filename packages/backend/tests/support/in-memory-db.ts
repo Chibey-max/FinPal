@@ -66,6 +66,7 @@ export function createInMemoryDb(clock: () => Date) {
         quality: input.quality,
         constraintCheck: input.constraintCheck,
         trustSignal: input.trustSignal,
+        trustEvidence: input.trustEvidence,
         createdAt: at,
       };
       const decision: Owned<Decision> = {
@@ -74,6 +75,9 @@ export function createInMemoryDb(clock: () => Date) {
         evaluationId: evaluation.id,
         ...input.decision,
         decidedAt: at,
+        reviewerId: null,
+        reviewStatus: null,
+        reviewedAt: null,
       };
       evaluationRows.push(evaluation);
       decisionRows.push(decision);
@@ -82,6 +86,12 @@ export function createInMemoryDb(clock: () => Date) {
   };
 
   const decisions: DecisionRepository = {
+    async findById(userId, decisionId) {
+      const decision = decisionRows.find(
+        (d) => d.userId === userId && d.id === decisionId,
+      );
+      return decision ? strip(decision) : null;
+    },
     async findForPayment(userId, decisionId) {
       const decision = decisionRows.find(
         (d) => d.userId === userId && d.id === decisionId,
@@ -97,10 +107,28 @@ export function createInMemoryDb(clock: () => Date) {
         decisionId: decision.id,
         userId,
         outcome: decision.outcome,
+        reviewStatus: decision.reviewStatus,
         productName: proposal.productName,
         amount: proposal.proposedPrice,
         currency: proposal.currency,
       };
+    },
+    async setReview(userId, decisionId, patch) {
+      const index = decisionRows.findIndex(
+        (d) =>
+          d.userId === userId &&
+          d.id === decisionId &&
+          d.outcome === "MANUAL_REVIEW" &&
+          d.reviewStatus === null,
+      );
+      if (index === -1) return null;
+      decisionRows[index] = {
+        ...decisionRows[index]!,
+        reviewerId: patch.reviewerId,
+        reviewStatus: patch.reviewStatus,
+        reviewedAt: patch.reviewedAt,
+      };
+      return strip(decisionRows[index]!);
     },
   };
 

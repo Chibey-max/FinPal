@@ -14,6 +14,7 @@ export interface NewEvaluation {
   quality: QualityScoreResult;
   constraintCheck: ConstraintCheck | null;
   trustSignal: TrustSignal;
+  trustEvidence: Record<string, unknown>;
   decision: {
     outcome: DecisionOutcome;
     reason: string;

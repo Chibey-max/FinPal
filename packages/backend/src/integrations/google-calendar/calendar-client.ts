@@ -5,5 +5,5 @@ export interface CalendarEventSummary {
 }
 
 export interface CalendarClient {
-  listUpcomingEvents(): Promise<CalendarEventSummary[]>;
+  listUpcomingEvents(limit?: number): Promise<CalendarEventSummary[]>;
 }
