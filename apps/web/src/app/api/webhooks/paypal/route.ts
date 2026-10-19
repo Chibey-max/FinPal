@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { apiError } from "@/lib/api";
 import { getPaypalWebhookService } from "@/lib/backend";
+import { isMockMode } from "@/lib/data-source";
 
 function header(request: Request, name: string): string {
   return request.headers.get(name) ?? "";
@@ -11,6 +12,14 @@ function header(request: Request, name: string): string {
 // POST /api/webhooks/paypal
 // Verified, idempotent PayPal Sandbox webhook receiver.
 export async function POST(request: Request) {
+  // Mock mode has no PayPal account to send or verify webhooks.
+  if (isMockMode()) {
+    return apiError(
+      503,
+      "NOT_CONFIGURED",
+      "PayPal webhooks are not available with mock data.",
+    );
+  }
   try {
     const rawBody: unknown = await request.json();
     const result = await getPaypalWebhookService().handle(

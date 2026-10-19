@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { safeNextPath } from "@/lib/auth";
+import { isMockMode } from "@/lib/data-source";
 import { getPublicEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -76,6 +77,7 @@ export async function signUp(
 }
 
 export async function signOut() {
+  if (isMockMode()) redirect("/");
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
   redirect("/login");
