@@ -2,7 +2,7 @@ import type { AuditEvent } from "@finpal/contracts";
 import { auditEventTypeSchema } from "@finpal/contracts";
 import { describe, expect, it } from "vitest";
 
-import { describeEvent } from "./describe-event";
+import { describeEvent, eventTypeTone, summarizeEvent } from "./describe-event";
 
 function event(
   type: AuditEvent["type"],
@@ -73,5 +73,59 @@ describe("describeEvent", () => {
       tone: "success",
       detail: undefined,
     });
+  });
+});
+
+describe("summarizeEvent", () => {
+  const event = (
+    type: AuditEvent["type"],
+    payload: Record<string, unknown>,
+  ): AuditEvent => ({
+    id: 1,
+    entityType: "payment_attempt",
+    entityId: "x",
+    type,
+    payload,
+    createdAt: "2026-10-18T10:00:00Z",
+  });
+
+  it("writes short, payload-based details", () => {
+    expect(
+      summarizeEvent(
+        event("PAYMENT_CREATED", {
+          paypalOrderId: "5O19",
+          amount: 119.99,
+          currency: "USD",
+        }),
+      ),
+    ).toBe("Order 5O19 · $119.99");
+    expect(
+      summarizeEvent(
+        event("EVALUATION_COMPLETED", {
+          qualityScore: "GOOD",
+          medianPrice: 339.99,
+        }),
+      ),
+    ).toBe("GOOD · median 339.99");
+    expect(
+      summarizeEvent(
+        event("DECISION_RECORDED", {
+          outcome: "BLOCK",
+          reasonCodes: ["CONSTRAINTS_FAILED"],
+        }),
+      ),
+    ).toBe("BLOCK · CONSTRAINTS_FAILED");
+    expect(
+      summarizeEvent(event("CONSTRAINTS_UPDATED", { cleared: true })),
+    ).toBe("Constraints cleared");
+  });
+
+  it("colours failures and blocks as bad, payments as info", () => {
+    expect(eventTypeTone(event("PAYMENT_VOIDED", {}))).toBe("bad");
+    expect(
+      eventTypeTone(event("DECISION_RECORDED", { outcome: "BLOCK" })),
+    ).toBe("bad");
+    expect(eventTypeTone(event("PAYMENT_CAPTURED", {}))).toBe("ok");
+    expect(eventTypeTone(event("PAYMENT_AUTHORIZED", {}))).toBe("info");
   });
 });
