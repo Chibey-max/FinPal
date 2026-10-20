@@ -16,3 +16,10 @@ export function getChannel3ApiKey(): string {
   return serverEnvSchema.pick({ CHANNEL3_API_KEY: true }).parse(process.env)
     .CHANNEL3_API_KEY;
 }
+
+/** Groq settings alone, so the assistant works in mock mode without PayPal. */
+export function getGroqEnv() {
+  return serverEnvSchema
+    .pick({ GROQ_API_KEY: true, GROQ_MODEL: true })
+    .parse(process.env);
+}

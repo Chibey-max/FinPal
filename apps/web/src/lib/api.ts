@@ -79,3 +79,24 @@ export function handleRouteError(error: unknown) {
   console.error("Unhandled API error", error);
   return apiError(500, "INTERNAL_ERROR", "Something went wrong.");
 }
+
+const hits = new Map<string, number[]>();
+
+/**
+ * Fixed-window limiter per key, in process memory. Enough to stop one user
+ * draining the Groq quota from a single server; not shared across instances.
+ */
+export function isRateLimited(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const recent = (hits.get(key) ?? []).filter((at) => now - at < windowMs);
+  if (recent.length >= limit) {
+    hits.set(key, recent);
+    return true;
+  }
+  recent.push(now);
+  hits.set(key, recent);
+  return false;
+}
+
+export const rateLimited = () =>
+  apiError(429, "RATE_LIMITED", "Too many requests. Wait a minute and retry.");

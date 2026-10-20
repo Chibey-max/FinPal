@@ -1,11 +1,13 @@
 import "server-only";
 
 import {
+  createAssistantService,
   createAuditLog,
   createCalendarEventsService,
   createDecisionDetailService,
   createEvaluationService,
   createGoogleCalendarHttpClient,
+  createGroqHttpClient,
   createKernelHttpClient,
   createKernelTrustChecker,
   createPaymentService,
@@ -23,6 +25,7 @@ import {
   createSupabaseProposalRepository,
   localDayRange,
   localMonthRange,
+  type AssistantService,
   type AuditLog,
   type CalendarEventsService,
   type DashboardRepository,
@@ -41,7 +44,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getComparableOffersService } from "@/lib/channel3";
 import { isMockMode } from "@/lib/data-source";
 import { getPublicEnv } from "@/lib/env";
-import { getServerEnv } from "@/lib/env.server";
+import { getGroqEnv, getServerEnv } from "@/lib/env.server";
 import {
   describeConstraints,
   ensureSeeded,
@@ -60,6 +63,7 @@ let evaluationService: EvaluationService | undefined;
 let reviewService: ReviewDecisionService | undefined;
 let calendarService: CalendarEventsService | undefined;
 let webhookService: PaypalWebhookService | undefined;
+let assistantService: AssistantService | undefined;
 
 function getServiceDb(): SupabaseClient {
   serviceDb ??= createClient(
@@ -148,6 +152,26 @@ export function getCalendarEventsService(): CalendarEventsService {
       : undefined,
   });
   return calendarService;
+}
+
+/**
+ * Plain-language explanations and proposal drafts. Same in mock and live:
+ * Groq when GROQ_API_KEY is set, rule-based text otherwise. Only decision
+ * facts and the user's typed request are sent, never ids or emails.
+ */
+export function getAssistantService(): AssistantService {
+  if (assistantService) return assistantService;
+  const env = getGroqEnv();
+  assistantService = createAssistantService({
+    llm: env.GROQ_API_KEY
+      ? createGroqHttpClient({
+          apiKey: env.GROQ_API_KEY,
+          model: env.GROQ_MODEL,
+        })
+      : undefined,
+    onError: (error) => console.error("Groq request failed", error),
+  });
+  return assistantService;
 }
 
 /** Verified PayPal webhooks. Live only: mock mode has no PayPal to call back. */

@@ -11,6 +11,7 @@ import {
 } from "@/features/proposals/presets";
 import { requireUser } from "@/lib/auth";
 import {
+  getAssistantService,
   getCalendarEvents,
   getSpendSummary,
   getUserConstraints,
@@ -20,6 +21,8 @@ import { CATALOG } from "@/lib/mock/integrations";
 import { localDate, localTimeOfDay } from "@/lib/zoned";
 
 const BASE_CURRENCIES = ["USD", "EUR", "GBP"];
+
+const getAssistantModel = () => getAssistantService().model;
 
 export default async function NewProposalPage({
   searchParams,
@@ -116,6 +119,7 @@ export default async function NewProposalPage({
             simulateTrust={mock}
             catalog={mock ? CATALOG.map((item) => item.title) : []}
             presetActive={Boolean(preset)}
+            assistantModel={getAssistantModel()}
           />
         </div>
         <aside

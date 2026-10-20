@@ -32,6 +32,9 @@ export const serverEnvSchema = z.object({
   /** OAuth access token for one Google Calendar used to prefill proposals. */
   GOOGLE_CALENDAR_ACCESS_TOKEN: z.string().min(1).optional(),
   GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
+  /** Groq key for plain-language explanations and proposal drafts. */
+  GROQ_API_KEY: z.string().min(1).optional(),
+  GROQ_MODEL: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 });
 
