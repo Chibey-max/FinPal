@@ -27,7 +27,8 @@ const completionSchema = z.object({
 export function createGroqHttpClient(
   options: GroqHttpClientOptions,
 ): LlmClient {
-  const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  let baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
   const doFetch = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const model = options.model ?? DEFAULT_GROQ_MODEL;

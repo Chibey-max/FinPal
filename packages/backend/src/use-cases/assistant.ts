@@ -335,23 +335,83 @@ export function parseProposalText(text: string): ProposalDraftFields {
     proposedPrice = null;
   }
 
-  const productName =
-    rest
-      .replace(
-        /^\s*(?:please\s+|can you\s+|i want to\s+|i'd like to\s+)?(?:buy|get|order|purchase|grab|pick up)\b\s*(?:me\s+|us\s+)?/i,
-        " ",
-      )
-      .replace(/^\s*(?:a|an|the|some|one)\s+/i, " ")
-      .replace(
-        /\s+(?:for|at|under|around|about|max|on|by|today|tomorrow|tonight|this \w+|next \w+)(?=\s*$)/gi,
-        " ",
-      )
-      .replace(/\s+(?:for|at|under|around|about|max|on|by)\s*$/i, " ")
-      .replace(/[\s,.;:!?-]+$/g, "")
-      .replace(/^[\s,.;:!?-]+/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 200) || null;
+  const productName = productWords(rest);
 
   return { productName, proposedPrice, currency, time };
+}
+
+const LEAD_INS = [
+  "please",
+  "can you",
+  "i want to",
+  "i'd like to",
+  "buy",
+  "get",
+  "order",
+  "purchase",
+  "grab",
+  "pick up",
+  "me",
+  "us",
+  "a",
+  "an",
+  "the",
+  "some",
+  "one",
+];
+const TRAILERS = new Set([
+  "for",
+  "at",
+  "under",
+  "around",
+  "about",
+  "max",
+  "on",
+  "by",
+  "today",
+  "tomorrow",
+  "tonight",
+]);
+const EDGE_PUNCTUATION = ",.;:!?-";
+
+/**
+ * What is left of the sentence once price and time are taken out, minus
+ * lead-ins ("buy me a") and trailing fillers ("for", "tomorrow"). Word by
+ * word rather than with regexes, so long inputs stay linear.
+ */
+function productWords(rest: string): string | null {
+  const words = rest.split(" ").filter(Boolean);
+  const startsWith = (phrase: string) => {
+    const parts = phrase.split(" ");
+    return parts.every((part, i) => words[i]?.toLowerCase() === part);
+  };
+  let stripped = true;
+  while (stripped && words.length) {
+    stripped = false;
+    for (const phrase of LEAD_INS) {
+      if (startsWith(phrase)) {
+        words.splice(0, phrase.split(" ").length);
+        stripped = true;
+        break;
+      }
+    }
+  }
+  while (words.length) {
+    const last = trimEdges(words[words.length - 1]!).toLowerCase();
+    const previous = words[words.length - 2]?.toLowerCase();
+    if (!last) words.pop();
+    else if (TRAILERS.has(last)) words.pop();
+    else if (previous === "this" || previous === "next") words.splice(-2, 2);
+    else break;
+  }
+  const name = trimEdges(words.join(" ")).slice(0, 200);
+  return name || null;
+}
+
+function trimEdges(value: string) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && EDGE_PUNCTUATION.includes(value[start]!)) start++;
+  while (end > start && EDGE_PUNCTUATION.includes(value[end - 1]!)) end--;
+  return value.slice(start, end);
 }

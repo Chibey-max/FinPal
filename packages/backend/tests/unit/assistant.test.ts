@@ -125,6 +125,28 @@ describe("parseProposalText", () => {
   });
 });
 
+describe("parseProposalText edge cases", () => {
+  it("trims punctuation and trailing fillers", () => {
+    expect(
+      parseProposalText(
+        "please buy me the Kindle Paperwhite, for $139 next week",
+      ),
+    ).toEqual({
+      productName: "Kindle Paperwhite",
+      proposedPrice: 139,
+      currency: "USD",
+      time: null,
+    });
+  });
+
+  it("stays fast on long adversarial input", () => {
+    const text = `a${" ".repeat(400)}for${"-".repeat(90)}`;
+    const started = performance.now();
+    parseProposalText(text);
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+});
+
 describe("assistant explanations", () => {
   it("uses the rules when no model is configured", async () => {
     const service = createAssistantService();
