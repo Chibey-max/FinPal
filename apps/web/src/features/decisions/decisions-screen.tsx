@@ -1,13 +1,9 @@
-import type { DecisionDetail, DecisionRow } from "@finpal/contracts";
-import Link from "next/link";
-
-import { LinkPending } from "@/components/navigation-feedback";
+import type { DecisionDetail } from "@finpal/contracts";
 
 import {
   formatMoney,
   formatWhen,
   outcomeTone,
-  scoreLabel,
   scoreTone,
   shortId,
   trustTone,
@@ -22,70 +18,6 @@ import {
   reasonCodes,
   trustDetail,
 } from "./evidence";
-
-export function DecisionsTable({
-  rows,
-  selectedId,
-  page,
-}: {
-  rows: DecisionRow[];
-  selectedId: string | null;
-  page: number;
-}) {
-  return (
-    <section className="card table-card" aria-label="Decisions">
-      <div className="table-scroll">
-        <div className="data-table decisions-table" role="table">
-          <div className="data-table__head" role="row">
-            {["ID", "Product", "Amount", "Quality", "Source", "Outcome"].map(
-              (h) => (
-                <span key={h} role="columnheader">
-                  {h}
-                </span>
-              ),
-            )}
-          </div>
-          {rows.map((row) => {
-            const review = row.reviewStatus;
-            return (
-              <Link
-                key={row.decisionId}
-                role="row"
-                href={`/app/decisions/${row.decisionId}${page > 1 ? `?page=${page}` : ""}`}
-                scroll={false}
-                className="data-table__row"
-                aria-current={
-                  row.decisionId === selectedId ? "true" : undefined
-                }
-              >
-                <span className="mono small ink4">
-                  {shortId("decision", row.decisionId)}
-                  <LinkPending />
-                </span>
-                <span className="truncate">{row.productName}</span>
-                <span className="mono ink2">
-                  {formatMoney(row.amount, row.currency)}
-                </span>
-                <span
-                  className="mono small"
-                  data-tone={scoreTone[row.qualityScore]}
-                >
-                  {scoreLabel(row.qualityScore)}
-                </span>
-                <span className="small ink3">
-                  {row.source === "CALENDAR" ? "Calendar" : "Manual"}
-                </span>
-                <span className="chip" data-tone={outcomeTone[row.outcome]}>
-                  {review ? `REVIEW · ${review}` : row.outcome}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function actionState(detail: DecisionDetail): DecisionActionState {
   const { decision, payment } = detail;

@@ -29,6 +29,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@bryntum/calendar':
+        specifier: npm:@bryntum/calendar-trial@7.3.7
+        version: '@bryntum/calendar-trial@7.3.7'
       '@finpal/backend':
         specifier: workspace:*
         version: link:../../packages/backend
@@ -284,6 +287,13 @@ packages:
   '@bramus/specificity@2.4.3':
     resolution: {integrity: sha512-0GEz8qJWokkUVYQYRukmkSHIFNoBH8QTreeHrAFbvz1XFYc3Y+puhMs8PQ5x8GNugiC2l5jvDBXKLbBIByeSBw==}
     hasBin: true
+
+  '@bryntum/calendar-trial-lib@1.0.1':
+    resolution: {integrity: sha512-OJa56mAf2r8X//toJ+u8pp8QgIfNIBb0E4jyeCoZY0inu4RJlgl3aLb9M2u7Mn79qF6wTICh/iaI9Xet4r4K7w==}
+
+  '@bryntum/calendar-trial@7.3.7':
+    resolution: {integrity: sha512-dNpncm1TwD23LEwdZNJ2e/4SuIbhuHQMPYMy8osIPFIHOKY/votZpoNufznN18mPIPeInRxzFpoGupocDw8vQw==}
+    engines: {node: '>=0.10.0'}
 
   '@csstools/color-helpers@6.1.2':
     resolution: {integrity: sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==}
@@ -3062,6 +3072,12 @@ snapshots:
   '@bramus/specificity@2.4.3':
     dependencies:
       css-tree: 3.2.1
+
+  '@bryntum/calendar-trial-lib@1.0.1': {}
+
+  '@bryntum/calendar-trial@7.3.7':
+    dependencies:
+      '@bryntum/calendar-trial-lib': 1.0.1
 
   '@csstools/color-helpers@6.1.2': {}
 

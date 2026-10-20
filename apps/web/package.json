@@ -14,6 +14,7 @@
     "clean": "rm -rf .next coverage"
   },
   "dependencies": {
+    "@bryntum/calendar": "npm:@bryntum/calendar-trial@7.3.7",
     "@finpal/backend": "workspace:*",
     "@finpal/contracts": "workspace:*",
     "@finpal/ui": "workspace:*",

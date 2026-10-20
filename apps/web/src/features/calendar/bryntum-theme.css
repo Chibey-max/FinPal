@@ -1,0 +1,88 @@
+/*
+ * Bridges Bryntum's palette (svalbard-light base) to the FinPal tokens so
+ * the calendar follows the app's theme toggle. Bryntum's --b-neutral-N is
+ * lightness: 100 = surfaces, 0 = text. Dark inverts it on the FinPal navy.
+ * Set on html (not the calendar box) so Bryntum's floating popups match.
+ * Selectors outrank Bryntum's `:root:not(.b-nothing)` (0,2,0).
+ */
+html:root:not(.fp-x) {
+  --b-primary: var(--brand);
+  --b-widget-border-radius: 10px;
+}
+
+html:root[data-theme="dark"]:not(.fp-x) {
+  --b-widget-color-scheme: dark;
+  --b-mix: hsl(224 24% 9%);
+  --b-opposite: #fff;
+  --b-neutral-100: hsl(224 24% 7%);
+  --b-neutral-99: hsl(224 22% 8%);
+  --b-neutral-98: hsl(224 21% 9%);
+  --b-neutral-97: hsl(224 20% 10%);
+  --b-neutral-96: hsl(224 19% 11%);
+  --b-neutral-95: hsl(224 18% 12%);
+  --b-neutral-94: hsl(224 17% 13%);
+  --b-neutral-93: hsl(224 16% 14%);
+  --b-neutral-92: hsl(224 15% 15%);
+  --b-neutral-91: hsl(224 14% 16%);
+  --b-neutral-90: hsl(224 13% 17%);
+  --b-neutral-85: hsl(224 12% 22%);
+  --b-neutral-80: hsl(224 11% 27%);
+  --b-neutral-75: hsl(224 10% 32%);
+  --b-neutral-70: hsl(224 9% 37%);
+  --b-neutral-65: hsl(224 8% 42%);
+  --b-neutral-60: hsl(224 8% 47%);
+  --b-neutral-55: hsl(224 8% 52%);
+  --b-neutral-50: hsl(224 8% 57%);
+  --b-neutral-45: hsl(224 8% 61%);
+  --b-neutral-40: hsl(224 9% 65%);
+  --b-neutral-35: hsl(224 10% 69%);
+  --b-neutral-30: hsl(224 11% 73%);
+  --b-neutral-25: hsl(224 12% 77%);
+  --b-neutral-20: hsl(224 13% 81%);
+  --b-neutral-15: hsl(224 14% 85%);
+  --b-neutral-10: hsl(224 15% 89%);
+  --b-neutral-5: hsl(224 16% 93%);
+  --b-neutral-2: hsl(224 18% 95%);
+  --b-neutral-1: hsl(224 20% 96%);
+  --b-neutral-0: hsl(0 0% 100%);
+}
+
+/* The calendar sits inside a FinPal card: let the card's glass show through. */
+.fp-calendar {
+  position: relative;
+  height: 600px;
+  font-family: var(--font-ui);
+  --b-calendar-background: transparent;
+  --b-panel-background: transparent;
+}
+.fp-calendar .b-calendar,
+.fp-calendar .b-panel-body-wrap,
+.fp-calendar .b-toolbar {
+  background: transparent;
+}
+
+/* Allowed spending windows: a soft brand wash behind the day columns. */
+.fp-calendar .fp-spend-window .b-cal-time-range-body {
+  opacity: 0.16;
+}
+
+/* The event picked for "Create proposal from event". */
+.fp-calendar .fp-event-selected .b-cal-event {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.fp-calendar__host {
+  height: 100%;
+}
+.fp-calendar .fp-calendar-skeleton,
+.fp-calendar__error {
+  position: absolute;
+  inset: 0;
+}
+.fp-calendar__error {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+}

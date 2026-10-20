@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FlashToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import {
   formatMoney,
@@ -19,8 +20,13 @@ import {
   getUserDashboard,
 } from "@/lib/backend";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ password?: string }>;
+}) {
   const user = await requireUser();
+  const { password } = await searchParams;
   const constraints = await getUserConstraints(user.id);
   const [rows, spend] = await Promise.all([
     getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
@@ -99,6 +105,9 @@ export default async function OverviewPage() {
 
   return (
     <div className="app-page">
+      {password === "updated" ? (
+        <FlashToast message="Password updated. You're signed in." />
+      ) : null}
       <div className="page-head">
         <h1>Overview</h1>
         <LiquidButton asChild size="lg" className="rounded-full">

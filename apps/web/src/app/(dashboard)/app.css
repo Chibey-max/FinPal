@@ -887,41 +887,27 @@ p[data-tone] {
 
 /* ------------------------------------------------------------ calendar */
 
-.week-scroll {
-  overflow: auto;
+/* Bryntum Calendar lives in this card (features/calendar/bryntum-week.tsx). */
+.calendar-card {
+  overflow: hidden;
+  padding: 6px;
 }
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  min-width: 640px;
+.fp-calendar-skeleton {
+  height: 600px;
+  border-radius: 16px;
 }
-.week-day {
-  display: flex;
-  flex-direction: column;
-  min-height: 340px;
-  border-right: 1px solid var(--w05);
+.calendar-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
-.week-day:last-child {
-  border-right: none;
-}
-.week-day__head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px;
-  border-bottom: 1px solid var(--w06);
-}
-.week-day__head .eyebrow {
-  color: var(--ink5);
-}
-.week-day__num {
-  font-size: 18px;
-}
-.week-day__events {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px;
+.calendar-legend i {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--brand) 22%, transparent);
+  border: 1px solid var(--brand-ring);
 }
 .event-chip {
   display: flex;
@@ -1136,50 +1122,41 @@ select.input option {
 
 /* ----------------------------------------------------------- decisions */
 
-.table-card {
-  overflow: hidden;
-}
-.table-scroll {
-  overflow-x: auto;
-}
-.data-table {
-  min-width: 560px;
-}
-.decisions-table .data-table__head,
-.decisions-table .data-table__row {
-  display: grid;
-  grid-template-columns: 0.7fr minmax(0, 1.6fr) 0.8fr 0.8fr 0.9fr 1fr;
-  gap: 12px;
+.grid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  padding: 10px 18px;
-}
-.data-table__head {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--w08);
-  font-family: var(--font-code);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink5);
 }
-.data-table__row {
-  border-bottom: 1px solid var(--w05);
+.grid-card .grid-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+  padding-block: 9px;
   font-size: 13.5px;
-  transition: background-color 0.15s ease;
 }
-.data-table__row:last-child {
-  border-bottom: none;
+.grid-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--w08);
 }
-.data-table__row:hover {
-  background: var(--w03);
+.grid-footer:empty {
+  display: none;
 }
-.data-table__row[aria-current="true"] {
-  background: var(--w04);
+.grid-inner--decisions {
+  min-width: 940px;
 }
-.data-table__row .mono {
-  font-size: 12.5px;
+.grid-card .ag-cell .chip {
+  align-self: center;
+  line-height: 1.4;
 }
-.data-table__row .mono.small {
-  font-size: 12px;
+.grid-card .grid-row-link {
+  cursor: pointer;
+}
+.grid-card .grid-row-selected {
+  background: var(--w06);
+  box-shadow: inset 2px 0 0 var(--brand);
 }
 
 .decision-detail {
