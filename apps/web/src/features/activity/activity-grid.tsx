@@ -1,51 +1,17 @@
 "use client";
 
 import type { ActivityPage, AuditEvent } from "@finpal/contracts";
-import {
-  AllCommunityModule,
-  ModuleRegistry,
-  themeQuartz,
-  type ColDef,
-  type ICellRendererParams,
-} from "ag-grid-community";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef, useState } from "react";
 
 import { Pagination } from "@/components/pagination";
 import { useToast } from "@/components/toast";
+import { gridTheme } from "@/features/app/grid-theme";
 import { formatWhen, shortId } from "@/features/app/present";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
 import { eventTypeTone, summarizeEvent } from "./describe-event";
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-// AG Grid themed with the FinPal tokens, so it follows light/dark live.
-const theme = themeQuartz.withParams({
-  backgroundColor: "transparent",
-  foregroundColor: "var(--ink)",
-  textColor: "var(--ink)",
-  accentColor: "var(--primary)",
-  borderColor: "var(--w05)",
-  wrapperBorder: false,
-  wrapperBorderRadius: 0,
-  headerBackgroundColor: "var(--panels)",
-  headerTextColor: "var(--ink3)",
-  headerFontFamily: "'Geist Mono', ui-monospace, monospace",
-  headerFontSize: 10.5,
-  headerFontWeight: 400,
-  headerHeight: 38,
-  headerColumnBorder: { color: "var(--w06)" },
-  headerRowBorder: { color: "var(--w1)" },
-  rowBorder: { color: "var(--w05)" },
-  rowHoverColor: "var(--w02)",
-  rowHeight: 38,
-  columnBorder: false,
-  fontFamily: "Geist, system-ui, sans-serif",
-  fontSize: 13,
-  cellHorizontalPadding: 14,
-  iconSize: 12,
-});
 
 const FILTERS = {
   All: null,
@@ -187,7 +153,7 @@ export function ActivityGrid({
           <div className="grid-inner">
             <AgGridReact<Row>
               ref={gridRef}
-              theme={theme}
+              theme={gridTheme}
               pagination
               paginationPageSize={PAGE_SIZE}
               // Our own <Pagination> renders the controls.

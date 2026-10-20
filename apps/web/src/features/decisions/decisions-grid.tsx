@@ -1,0 +1,282 @@
+"use client";
+
+import type { DecisionOutcome, DecisionRow } from "@finpal/contracts";
+import type {
+  ColDef,
+  GridApi,
+  ICellRendererParams,
+  IRowNode,
+} from "ag-grid-community";
+import { AgGridReact } from "ag-grid-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+import { Pagination } from "@/components/pagination";
+import { gridTheme } from "@/features/app/grid-theme";
+import {
+  formatMoney,
+  formatWhen,
+  outcomeTone,
+  paymentTone,
+  scoreLabel,
+  scoreTone,
+  shortId,
+} from "@/features/app/present";
+
+const PAGE_SIZE = 10;
+
+const OUTCOMES: { key: DecisionOutcome | "ALL"; label: string }[] = [
+  { key: "ALL", label: "All" },
+  { key: "AUTO_APPROVE", label: "Auto-approve" },
+  { key: "MANUAL_REVIEW", label: "Review" },
+  { key: "BLOCK", label: "Blocked" },
+];
+
+type Cell<K extends keyof DecisionRow> = ICellRendererParams<
+  DecisionRow,
+  DecisionRow[K]
+>;
+
+function QualityCell({ data }: Cell<"qualityScore">) {
+  if (!data) return null;
+  return (
+    <span className="mono small" data-tone={scoreTone[data.qualityScore]}>
+      {scoreLabel(data.qualityScore)}
+    </span>
+  );
+}
+
+function OutcomeCell({ data }: Cell<"outcome">) {
+  if (!data) return null;
+  return (
+    <span className="chip" data-tone={outcomeTone[data.outcome]}>
+      {data.reviewStatus ? `REVIEW · ${data.reviewStatus}` : data.outcome}
+    </span>
+  );
+}
+
+function PaymentCell({ data }: Cell<"paymentStatus">) {
+  if (!data?.paymentStatus) return <span className="ink4">—</span>;
+  return (
+    <span className="mono small" data-tone={paymentTone[data.paymentStatus]}>
+      {data.paymentStatus}
+    </span>
+  );
+}
+
+/**
+ * Decisions dashboard on AG Grid: quick search, outcome filter, sortable and
+ * filterable columns, paged with the shared pagination control. Selecting a
+ * row opens its evidence below via the URL.
+ */
+export function DecisionsGrid({
+  rows,
+  selectedId,
+  timeZone,
+}: {
+  rows: DecisionRow[];
+  selectedId: string | null;
+  timeZone: string;
+}) {
+  const router = useRouter();
+  const apiRef = useRef<GridApi<DecisionRow> | null>(null);
+  const [search, setSearch] = useState("");
+  const [outcome, setOutcome] = useState<DecisionOutcome | "ALL">("ALL");
+  const [paging, setPaging] = useState({
+    page: 1,
+    pageCount: 1,
+    total: rows.length,
+  });
+
+  const open = useCallback(
+    (row: DecisionRow | undefined) => {
+      if (row)
+        router.push(`/app/decisions/${row.decisionId}`, { scroll: false });
+    },
+    [router],
+  );
+
+  const columns = useMemo<ColDef<DecisionRow>[]>(
+    () => [
+      {
+        headerName: "ID",
+        field: "decisionId",
+        width: 104,
+        valueFormatter: (p) => (p.value ? shortId("decision", p.value) : ""),
+        getQuickFilterText: (p) => shortId("decision", p.value),
+        cellClass: "mono grid-muted",
+      },
+      {
+        headerName: "Decided",
+        field: "decidedAt",
+        width: 130,
+        sort: "desc",
+        valueFormatter: (p) => formatWhen(p.value, timeZone),
+        cellClass: "mono grid-muted",
+      },
+      {
+        headerName: "Product",
+        field: "productName",
+        flex: 1,
+        minWidth: 200,
+        filter: "agTextColumnFilter",
+        tooltipField: "productName",
+      },
+      {
+        headerName: "Amount",
+        field: "amount",
+        width: 124,
+        type: "rightAligned",
+        filter: "agNumberColumnFilter",
+        valueFormatter: (p) => formatMoney(p.value, p.data?.currency ?? "USD"),
+        cellClass: "mono",
+      },
+      {
+        headerName: "Quality",
+        field: "qualityScore",
+        width: 130,
+        cellRenderer: QualityCell,
+      },
+      {
+        headerName: "Source",
+        field: "source",
+        width: 110,
+        valueFormatter: (p) => (p.value === "CALENDAR" ? "Calendar" : "Manual"),
+        cellClass: "grid-muted",
+      },
+      {
+        headerName: "Outcome",
+        field: "outcome",
+        width: 190,
+        cellRenderer: OutcomeCell,
+        getQuickFilterText: (p) =>
+          `${p.value} ${p.data?.reviewStatus ?? ""}`.trim(),
+      },
+      {
+        headerName: "Payment",
+        field: "paymentStatus",
+        width: 130,
+        cellRenderer: PaymentCell,
+      },
+    ],
+    [timeZone],
+  );
+
+  const syncPaging = useCallback((api: GridApi<DecisionRow>) => {
+    setPaging({
+      page: api.paginationGetCurrentPage() + 1,
+      pageCount: Math.max(1, api.paginationGetTotalPages()),
+      total: api.getDisplayedRowCount(),
+    });
+  }, []);
+
+  // Open on the page that holds the selected decision.
+  const showSelected = useCallback(
+    (api: GridApi<DecisionRow>) => {
+      if (!selectedId) return;
+      const node = api.getRowNode(selectedId);
+      if (node?.rowIndex != null) {
+        api.paginationGoToPage(Math.floor(node.rowIndex / PAGE_SIZE));
+      }
+    },
+    [selectedId],
+  );
+
+  const isExternalFilterPresent = useCallback(
+    () => outcome !== "ALL",
+    [outcome],
+  );
+  const doesExternalFilterPass = useCallback(
+    (node: IRowNode<DecisionRow>) => node.data?.outcome === outcome,
+    [outcome],
+  );
+
+  return (
+    <section className="card grid-card stack-flush" aria-label="Decisions">
+      <div className="grid-toolbar">
+        <input
+          type="search"
+          className="input grid-search"
+          placeholder="Search product, outcome, ID…"
+          aria-label="Search decisions"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div
+          className="segmented segmented--quiet"
+          role="group"
+          aria-label="Filter by outcome"
+        >
+          {OUTCOMES.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              aria-pressed={outcome === option.key}
+              onClick={() => {
+                setOutcome(option.key);
+                // AG Grid reads external filters lazily.
+                requestAnimationFrame(() => apiRef.current?.onFilterChanged());
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid-scroll">
+        <div className="grid-inner grid-inner--decisions">
+          <AgGridReact<DecisionRow>
+            theme={gridTheme}
+            rowData={rows}
+            columnDefs={columns}
+            defaultColDef={{
+              sortable: true,
+              resizable: true,
+              suppressMovable: true,
+            }}
+            getRowId={(params) => params.data.decisionId}
+            domLayout="autoHeight"
+            pagination
+            paginationPageSize={PAGE_SIZE}
+            // The shared <Pagination> below renders the controls.
+            paginationPageSizeSelector={false}
+            suppressPaginationPanel
+            quickFilterText={search}
+            isExternalFilterPresent={isExternalFilterPresent}
+            doesExternalFilterPass={doesExternalFilterPass}
+            rowClassRules={{
+              "grid-row-selected": (params) =>
+                params.data?.decisionId === selectedId,
+            }}
+            rowClass="grid-row-link"
+            tooltipShowDelay={400}
+            overlayNoRowsTemplate="No decisions match this search."
+            onGridReady={(event) => {
+              apiRef.current = event.api;
+            }}
+            onFirstDataRendered={(event) => {
+              showSelected(event.api);
+              syncPaging(event.api);
+            }}
+            onPaginationChanged={(event) => syncPaging(event.api)}
+            onRowClicked={(event) => open(event.data)}
+            onCellKeyDown={(event) => {
+              const key = (event.event as KeyboardEvent | undefined)?.key;
+              if (key === "Enter") open(event.data);
+            }}
+          />
+        </div>
+      </div>
+      <div className="grid-footer">
+        <Pagination
+          page={paging.page}
+          pageCount={paging.pageCount}
+          total={paging.total}
+          pageSize={PAGE_SIZE}
+          label="decisions"
+          onPage={(page) => apiRef.current?.paginationGoToPage(page - 1)}
+        />
+      </div>
+    </section>
+  );
+}

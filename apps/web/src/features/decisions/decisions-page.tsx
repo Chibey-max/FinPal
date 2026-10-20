@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { Pagination, paginate } from "@/components/pagination";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { requireUser } from "@/lib/auth";
 import {
@@ -11,17 +10,14 @@ import {
   getUserDecisionDetail,
 } from "@/lib/backend";
 
-import { DecisionDetailView, DecisionsTable } from "./decisions-screen";
+import { DecisionsGrid } from "./decisions-grid";
+import { DecisionDetailView } from "./decisions-screen";
 
-/** /app/decisions and /app/decisions/[id]: the table plus one decision's evidence. */
-const PAGE_SIZE = 8;
-
+/** /app/decisions and /app/decisions/[id]: the grid plus one decision's evidence. */
 export async function DecisionsPage({
   selectedId,
-  pageParam,
 }: {
   selectedId: string | null;
-  pageParam?: string;
 }) {
   const user = await requireUser();
   if (selectedId !== null && !z.uuid().safeParse(selectedId).success)
@@ -32,18 +28,8 @@ export async function DecisionsPage({
     getUserConstraints(user.id),
     getUserDecisionDetail(),
   ]);
-  // Without ?page, open the page that contains the selected decision.
-  const selectedIndex = selectedId
-    ? rows.findIndex((r) => r.decisionId === selectedId)
-    : -1;
-  const { page, pageCount, start, end } = paginate(
-    rows.length,
-    pageParam ??
-      (selectedIndex >= 0 ? Math.floor(selectedIndex / PAGE_SIZE) + 1 : 1),
-    PAGE_SIZE,
-  );
-  const pageRows = rows.slice(start, end);
-  const activeId = selectedId ?? pageRows[0]?.decisionId ?? null;
+  // Rows arrive newest first; without a selection, show the latest.
+  const activeId = selectedId ?? rows[0]?.decisionId ?? null;
   const detail = activeId
     ? await details.getDecisionDetail(user.id, activeId)
     : null;
@@ -66,17 +52,7 @@ export async function DecisionsPage({
       </div>
 
       {rows.length ? (
-        <div className="stack-md">
-          <DecisionsTable rows={pageRows} selectedId={activeId} page={page} />
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            total={rows.length}
-            pageSize={PAGE_SIZE}
-            label="decisions"
-            hrefFor={(p) => `/app/decisions?page=${p}`}
-          />
-        </div>
+        <DecisionsGrid rows={rows} selectedId={activeId} timeZone={timeZone} />
       ) : (
         <div className="empty-panel">
           <p>
