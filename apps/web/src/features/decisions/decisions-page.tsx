@@ -5,6 +5,7 @@ import { z } from "zod";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { requireUser } from "@/lib/auth";
 import {
+  getAssistantService,
   getUserConstraints,
   getUserDashboard,
   getUserDecisionDetail,
@@ -69,7 +70,11 @@ export async function DecisionsPage({
       )}
 
       {detail ? (
-        <DecisionDetailView detail={detail} timeZone={timeZone} />
+        <DecisionDetailView
+          detail={detail}
+          timeZone={timeZone}
+          summary={getAssistantService().configured}
+        />
       ) : null}
     </div>
   );

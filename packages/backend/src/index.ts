@@ -38,3 +38,6 @@ export * from "./use-cases/evaluate-proposal";
 export * from "./use-cases/payments";
 export * from "./use-cases/paypal-webhooks";
 export * from "./use-cases/review-decision";
+export * from "./integrations/groq/groq-http-client";
+export * from "./integrations/groq/llm-client";
+export * from "./use-cases/assistant";

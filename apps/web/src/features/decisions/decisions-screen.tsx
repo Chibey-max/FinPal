@@ -10,6 +10,7 @@ import {
 } from "@/features/app/present";
 
 import { DecisionActions, type DecisionActionState } from "./decision-actions";
+import { DecisionSummary } from "./decision-summary";
 import {
   constraintChecklist,
   priceBand,
@@ -36,9 +37,12 @@ function actionState(detail: DecisionDetail): DecisionActionState {
 export function DecisionDetailView({
   detail,
   timeZone,
+  summary = false,
 }: {
   detail: DecisionDetail;
   timeZone: string;
+  /** Show the Groq summary (only when a model is configured). */
+  summary?: boolean;
 }) {
   const { proposal, evaluation, decision } = detail;
   const review = decision.reviewStatus;
@@ -69,6 +73,9 @@ export function DecisionDetailView({
         </span>
       </div>
       <p className="detail-explanation">{decision.reason}</p>
+      {summary ? (
+        <DecisionSummary key={decision.id} decisionId={decision.id} />
+      ) : null}
 
       <div className="evidence-grid">
         <section

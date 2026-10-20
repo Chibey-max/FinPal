@@ -17,6 +17,8 @@ All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. E
 | `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment    |
 | `GET`  | `/api/v1/decisions/:decisionId`         | Full detail for one decision, with its audit trail       |
 | `POST` | `/api/v1/decisions/:decisionId/review`  | Approve or reject a `MANUAL_REVIEW` decision             |
+| `POST` | `/api/v1/decisions/:decisionId/explain` | Plain-language summary of a decision (Groq or rules)     |
+| `POST` | `/api/v1/proposals/draft`               | Turn a sentence into proposal form fields (no write)     |
 | `GET`  | `/api/v1/calendar/events`               | Upcoming Google Calendar events for proposal prefill     |
 | `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
 
@@ -38,6 +40,19 @@ POST /decisions/:id/review  { action: "APPROVED" | "REJECTED" }
 ### Manual review
 
 `POST /api/v1/decisions/:decisionId/review` with `{ "action": "APPROVED" }` or `{ "action": "REJECTED" }` records the reviewer, audits `DECISION_APPROVED` / `DECISION_REJECTED`, and (on approve) makes the decision payable. Only `MANUAL_REVIEW` decisions that have not already been reviewed are accepted (`422 NOT_MANUAL_REVIEW`, `409 ALREADY_REVIEWED`).
+
+### Assistant (Groq)
+
+The LLM only words things. It never chooses or changes a decision category (PRD section 5), and it never creates anything. Both routes work without `GROQ_API_KEY`: they fall back to rule-based text, and `source` says which produced the reply. Each route allows 20 requests a minute per user (`429 RATE_LIMITED`).
+
+```text
+POST /decisions/:id/explain
+  -> 200 { text, source: "llm" | "rules", model }
+POST /proposals/draft { text, currency? }
+  -> 200 { draft: { productName, proposedPrice, currency, time }, missing, source, model }
+```
+
+The explanation is rejected in favour of the rules if it names a different outcome or price score than the decision has. A drafted price is kept only if the sentence states it. Only decision facts and the typed sentence are sent to Groq, never user ids or emails.
 
 ### Calendar prefill
 

@@ -8,6 +8,7 @@
 - Use idempotency for all payment mutations.
 - Treat audit events as immutable; corrections are subsequent events.
 - Use Sandbox accounts and simulated funds only.
+- Treat LLM output as untrusted text: validate it, never let it change a decision, and send Groq only decision facts or the user's typed request (no ids, emails or secrets).
 
 ## Secrets in code
 

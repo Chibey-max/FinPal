@@ -1,14 +1,21 @@
 "use client";
 
 import type {
+  DraftProposalResult,
   Proposal,
   ProposalEvaluation,
   TrustSignal,
 } from "@finpal/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import {
+  useState,
+  useTransition,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
+import { AutoAwesomeIcon } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { Select } from "@/components/ui/select";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
@@ -47,6 +54,7 @@ export function ProposalForm({
   simulateTrust,
   catalog,
   presetActive,
+  assistantModel,
 }: {
   initial: ProposalDraft;
   event: EventContext | null;
@@ -57,6 +65,8 @@ export function ProposalForm({
   /** Mock mode: product names the simulated Channel3 knows. */
   catalog: string[];
   presetActive: boolean;
+  /** Groq model id, or null when sentences are parsed by the rules. */
+  assistantModel: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -66,6 +76,49 @@ export function ProposalForm({
   const [pending, setPending] = useState(false);
   const [, startTransition] = useTransition();
   const valid = validate(draft) === null;
+  const [request, setRequest] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [drafted, setDrafted] = useState<DraftProposalResult | null>(null);
+  const [options, setOptions] = useState(currencies);
+
+  async function fillFromText() {
+    const text = request.trim();
+    if (text.length < 3 || drafting) return;
+    setDrafting(true);
+    try {
+      const result = await apiRequest<DraftProposalResult>(
+        "/api/v1/proposals/draft",
+        { body: { text, currency: currencies[0] } },
+      );
+      const { productName, proposedPrice, currency, time } = result.draft;
+      if (currency && !options.includes(currency)) {
+        setOptions((list) => [...list, currency]);
+      }
+      setDraft((current) => ({
+        ...current,
+        name: productName ?? current.name,
+        price:
+          proposedPrice !== null ? proposedPrice.toFixed(2) : current.price,
+        currency: currency ?? current.currency,
+        time: time ?? current.time,
+      }));
+      setDrafted(result);
+      setError(null);
+      clearPresetParam();
+    } catch (caught) {
+      toast(errorMessage(caught), "bad");
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  function onRequestKey(event: KeyboardEvent<HTMLInputElement>) {
+    // Enter fills the form instead of submitting it.
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void fillFromText();
+    }
+  }
 
   function clearPresetParam() {
     if (presetActive && window.location.search.includes("preset=")) {
@@ -155,6 +208,51 @@ export function ProposalForm({
         </div>
       ) : null}
 
+      <div className="field-group describe">
+        <label className="eyebrow" htmlFor="describe-input">
+          Describe it
+        </label>
+        <div className="describe__row">
+          <input
+            id="describe-input"
+            className="input"
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+            onKeyDown={onRequestKey}
+            placeholder="e.g. AirPods Pro 2 for $229 at 6pm"
+            maxLength={500}
+            autoComplete="off"
+            enterKeyHint="go"
+          />
+          <button
+            type="button"
+            className="btn btn-outline describe__go"
+            onClick={() => void fillFromText()}
+            disabled={drafting || request.trim().length < 3}
+          >
+            {drafting ? (
+              <span className="spinner" aria-hidden />
+            ) : (
+              <AutoAwesomeIcon aria-hidden />
+            )}
+            Fill form
+          </button>
+        </div>
+        <p className="describe__note" role="status">
+          {drafted
+            ? drafted.missing.length
+              ? `Filled what it could. Add the ${drafted.missing
+                  .map((field) =>
+                    field === "proposedPrice" ? "price" : "product name",
+                  )
+                  .join(" and ")}, then evaluate.`
+              : "Form filled. Check the fields, then evaluate."
+            : assistantModel
+              ? `Groq (${assistantModel}) fills the fields below. Nothing is submitted until you evaluate.`
+              : "FinPal fills the fields below. Nothing is submitted until you evaluate."}
+        </p>
+      </div>
+
       <div className="field-group">
         <span className="eyebrow">Presets</span>
         <div className="preset-row">
@@ -213,7 +311,7 @@ export function ProposalForm({
             className="input"
             value={draft.currency}
             onChange={(value) => update("currency", value)}
-            options={currencies}
+            options={options}
           />
         </label>
       </div>
