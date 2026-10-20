@@ -3,10 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isMockMode } from "@/lib/data-source";
 import { updateSession } from "@/lib/supabase/proxy";
 
+const AUTH_PAGES = new Set(["/login", "/forgot-password", "/reset-password"]);
+
 export async function proxy(request: NextRequest) {
-  // Mock mode has a single built-in demo user and no Supabase session.
+  // Mock mode has a single built-in demo user and no accounts to manage.
   if (isMockMode()) {
-    return request.nextUrl.pathname === "/login"
+    return AUTH_PAGES.has(request.nextUrl.pathname)
       ? NextResponse.redirect(new URL("/app", request.url))
       : NextResponse.next();
   }

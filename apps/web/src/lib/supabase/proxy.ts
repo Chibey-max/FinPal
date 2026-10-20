@@ -69,7 +69,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isSignedIn && pathname === "/login") {
+  // Signed-in users skip sign-in. /reset-password stays open: the email
+  // link signs the user in with a recovery session to set a new password.
+  if (
+    isSignedIn &&
+    (pathname === "/login" || pathname === "/forgot-password")
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
     url.search = "";
