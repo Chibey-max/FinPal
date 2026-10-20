@@ -2,6 +2,10 @@ packages:
   - apps/*
   - packages/*
 allowBuilds:
+  # Bryntum trial postinstall only stamps a per-install trial id into the
+  # bundle (obfuscated scripts, no network); the calendar works without it.
+  "@bryntum/calendar-trial": false
+  "@bryntum/calendar-trial-lib": false
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - "@next/env@16.4.1"

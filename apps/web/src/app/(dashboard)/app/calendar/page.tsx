@@ -1,7 +1,4 @@
-import {
-  CalendarWeek,
-  type CalendarDay,
-} from "@/features/calendar/calendar-week";
+import { CalendarWeek } from "@/features/calendar/calendar-week";
 import { requireUser } from "@/lib/auth";
 import { getCalendarEvents, getUserConstraints } from "@/lib/backend";
 import { addDays, localDate, localWeekday, zonedToDate } from "@/lib/zoned";
@@ -20,18 +17,15 @@ export default async function CalendarPage() {
   const user = await requireUser();
   const constraints = await getUserConstraints(user.id);
   const timeZone = constraints?.timezone ?? "America/Los_Angeles";
-  const { events, configured } = await getCalendarEvents();
+  const { events, configured } = await getCalendarEvents(50);
   const monday = weekStart(timeZone);
-  const days: CalendarDay[] = WEEKDAYS.map((dow, index) => {
-    const date = addDays(monday, index);
-    return { date, dow, num: String(Number(date.slice(8, 10))) };
-  });
+  const mondayNoon = zonedToDate(monday, "12:00", timeZone);
   const weekLabel = new Intl.DateTimeFormat("en-US", {
     timeZone,
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(zonedToDate(monday, "12:00", timeZone));
+  }).format(mondayNoon);
 
   return (
     <div className="app-page">
@@ -45,10 +39,12 @@ export default async function CalendarPage() {
         </div>
       </div>
       <CalendarWeek
-        days={days}
         events={events}
+        windows={constraints?.timeWindows ?? []}
         configured={configured}
         timeZone={timeZone}
+        weekStart={mondayNoon.toISOString()}
+        firstDate={monday}
       />
     </div>
   );
