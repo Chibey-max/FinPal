@@ -86,8 +86,9 @@ The backend owns business rules, external integrations, payment orchestration, i
 - **Supabase** provides authentication and PostgreSQL storage.
 - **Channel3** provides comparable product offers used for price evaluation.
 - **PayPal Sandbox** provides the payment order, authorization, capture, and void workflow.
-- **KERNEL** is intended to provide a basic merchant trust signal.
-- **Bryntum Calendar** is intended to support calendar-assisted proposal creation.
+- **KERNEL** provides a basic merchant trust signal.
+- **Bryntum Calendar** and **Google Calendar** support calendar-assisted proposal creation.
+- **Groq** optionally rewords explanations and drafts proposals; it never decides.
 - **AG Grid** presents structured decision and activity data.
 
 ## 7. Core Product Concepts
@@ -181,9 +182,15 @@ Time windows use an inclusive start and exclusive end and may cross midnight. Am
 
 ### 8.7 Evaluate Merchant Trust
 
-KERNEL is intended to provide a basic merchant trust result. The model supports `PASS`, `FAIL`, `UNAVAILABLE`, and `NOT_CHECKED`-style outcomes so missing trust data can be handled explicitly.
+KERNEL provides a basic merchant trust result. The model supports `PASS`, `FAIL`, `UNAVAILABLE`, and `NOT_CHECKED`-style outcomes so missing trust data can be handled explicitly.
 
-Until the KERNEL integration is connected, the current implementation records the trust check as not checked. The decision engine must not invent a positive trust result.
+KERNEL is connected. When `KERNEL_API_KEY` is set, the evaluation opens a short-lived KERNEL browser session and loads the merchant page of the cheapest Channel3 reference offer:
+
+- HTTP 2xx or 3xx gives `PASS`; 4xx or 5xx gives `FAIL`.
+- A timeout, provider error or missing merchant URL gives `UNAVAILABLE`, which can never auto-approve.
+- Without `KERNEL_API_KEY` the result is `NOT_CHECKED`, which the decision table treats as "N/A".
+
+The URL, HTTP status, duration and KERNEL session id are stored as `trust_evidence` on the evaluation. The decision engine never invents a positive trust result.
 
 ### 8.8 Make the Decision
 
@@ -204,7 +211,7 @@ Every decision includes structured reason codes and a human-readable explanation
 
 ### 8.9 Create and Complete the Payment
 
-Only a payable decision may create a PayPal order. In the current implementation, that means an `AUTO_APPROVE` decision. A manual-review approval transition is planned but is not yet implemented.
+Only a payable decision may create a PayPal order: an `AUTO_APPROVE` decision, or a `MANUAL_REVIEW` decision that a reviewer has approved. A reviewer acts once, and rejected or blocked decisions can never be paid. Approvals and rejections are audited.
 
 FinPal uses centrally configured PayPal Sandbox merchant credentials. Users do not connect their own PayPal accounts.
 
@@ -268,8 +275,9 @@ packages/backend
           ├── Supabase Auth and PostgreSQL
           ├── Channel3
           ├── PayPal Sandbox
-          ├── KERNEL (planned connection)
-          └── Calendar provider (planned connection)
+          ├── KERNEL (merchant trust, when KERNEL_API_KEY is set)
+          ├── Google Calendar (proposal prefill, optional)
+          └── Groq (plain-language wording only, optional)
 
 packages/contracts
   └── Shared request, response, and domain schemas
@@ -385,13 +393,21 @@ PayPal Sandbox is the only payment environment for the prototype. Credentials ar
 
 ### 14.4 KERNEL
 
-KERNEL is a should-have integration for merchant trust. The domain model has a place for the result, but the live provider integration is not yet connected.
+KERNEL is a should-have integration for merchant trust, and it is connected (see 8.7). It is a basic signal: it confirms that the merchant page loads, not the merchant's reputation.
 
 ### 14.5 Bryntum Calendar
 
-Bryntum Calendar is a should-have proposal-entry aid. The intended behavior is a manual “Create proposal from event” action that prefills known event information. It does not authorize spending or automatically infer a purchasable product.
+Bryntum Calendar shows spending windows and upcoming Google Calendar events in a week view. A manual “Create proposal from event” action prefills only the event title and date; the user supplies the product and price. It never authorizes spending or infers a purchasable product.
 
-### 14.6 AG Grid
+### 14.6 Google Calendar
+
+FinPal reads upcoming events from one configured Google Calendar with read-only scope. Credentials are an OAuth client plus a long-lived refresh token (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`): access tokens, which expire after about an hour, are renewed automatically and cached until a minute before expiry. If Google rejects a cached token, FinPal refreshes once and retries. A fixed `GOOGLE_CALENDAR_ACCESS_TOKEN` is accepted for quick local testing only. A calendar failure degrades to "no events" and never affects decisions.
+
+### 14.7 Groq
+
+Groq optionally rewords decision explanations in plain language and drafts the proposal form from a typed sentence. It only words things: it never chooses or changes a decision, and FinPal validates its output and falls back to rule-based text without a key or on any error. Only decision facts or the user's typed request are sent, never ids, emails or secrets.
+
+### 14.8 AG Grid
 
 AG Grid is used to present decision and audit information in sortable, structured tables. It is part of the required sponsor scope but does not own any business rules.
 
@@ -425,7 +441,7 @@ FinPal fails conservatively around money:
 - Capture and void operations use guarded updates to avoid race-condition outcomes.
 - External provider identifiers and responses are stored only to the degree required for reconciliation and audit.
 
-The evaluation and decision records are currently inserted as separate operations. Combining them in a database transaction is a future hardening task so partial persistence cannot occur between the two steps.
+The evaluation and its decision are stored in one transaction, through the `record_evaluation_with_decision` database function. If the decision insert fails, the evaluation is rolled back too, so an evaluation can never exist without its decision. Only the service role may call the function.
 
 ## 17. Auditability and Explainability
 
@@ -471,35 +487,42 @@ The deterministic decision engine is particularly suited to table-driven tests b
 
 ## 20. Current Implementation State
 
-The repository currently contains the foundation of the core backend flow:
+The complete core loop and the P1 integrations are implemented and covered by automated tests:
 
-- Supabase authentication and row-level-security policies.
-- The minimum database schema.
-- Constraint evaluation.
-- Channel3 client and comparable-offer processing.
-- Deterministic quality scoring.
-- Decision orchestration.
-- PayPal Sandbox order, authorization, capture, and void handling.
-- Idempotency and guarded payment transitions.
-- Audit-event storage and activity APIs.
-- Decision and activity dashboard support.
-- Automated backend, API, contract, and integration-oriented tests.
-- CI and CodeQL workflows.
+- Supabase authentication, row-level security and eight schema migrations.
+- Constraints (time windows, per-purchase, daily and monthly caps), including clearing them.
+- Channel3 comparable offers and the deterministic Quality Score.
+- Decision orchestration with the PRD decision table; the evaluation and decision are stored atomically.
+- KERNEL merchant trust, manual-review approve/reject, and verified PayPal webhooks.
+- PayPal Sandbox order, authorization, capture and void, with idempotency and guarded transitions.
+- Append-only audit log, AG Grid decisions view, Bryntum calendar, Google Calendar prefill, and the optional Groq assistant.
+- A mock data source that runs the real use cases on in-memory data with simulated providers, for development without keys.
 
-The implementation is therefore beyond an empty scaffold: the principal backend domain and payment workflow exist, while several integration and product-completion tasks remain.
+Automated tests use simulated PayPal and Channel3 and an in-memory database. A live run against real Supabase, PayPal Sandbox, Channel3 and KERNEL has not yet been recorded.
 
 ## 21. Remaining Work
 
-The most important remaining work is:
+1. Create the hosted Supabase project, apply the migrations, and set the Render environment variables (see `docs/operations.md`).
+2. Register the PayPal webhook and set `PAYPAL_WEBHOOK_ID`.
+3. Deploy to Render.
+4. Run the live integration matrix against real services and record the results.
+5. Rehearse the demo and capture backup footage.
 
-1. Connect KERNEL and replace the placeholder trust result with real provider evidence.
-2. Connect Bryntum Calendar to the explicit proposal-prefill workflow.
-3. Add an authenticated manual-review approve/reject transition.
-4. Implement and verify PayPal webhook signature handling if webhooks are included in the demo.
-5. Run and document a real end-to-end smoke test against Supabase, Channel3, and PayPal Sandbox.
-6. Make evaluation and decision persistence atomic.
-7. Confirm the production deployment environment and required Render secrets.
-8. Finish the user-facing workflow and ensure every decision explanation is understandable without reading raw provider data.
+## 21a. Known Limitations
+
+- **Sandbox only.** No real money moves; payments need a PayPal Sandbox buyer account.
+- **No refunds.** Refunds are out of scope; a captured payment cannot be reversed in FinPal, and the `REFUNDED` state is unused.
+- **Caps are checked at evaluation time.** Daily and monthly totals count `AUTHORIZED` and `CAPTURED` payments. An order that is created but not yet authorized does not count until it is authorized.
+- **No currency conversion.** Channel3 prices only USD, CAD, AUD, GBP, EUR, SEK, CZK and RON; other currencies give Insufficient data, and a proposal in a different currency from the constraints is blocked.
+- **Basic merchant trust.** KERNEL checks that the merchant page loads, not the merchant's reputation.
+- **One shared Google Calendar.** Calendar access uses server-level credentials, not a per-user Google connection. Refresh tokens of Google OAuth apps in "Testing" publishing status expire after 7 days; publish the OAuth app, or reissue the token shortly before the demo.
+- **Webhooks are optional.** Payment state normally advances through the PayPal return URL and API calls; webhooks apply updates only when `PAYPAL_WEBHOOK_ID` is set.
+- **Single instance.** There is no shared rate limiter; one Render instance is assumed.
+- **Users with audit history cannot be hard-deleted.** Audit events reference users with `on delete restrict` by design.
+
+## 21b. Sandbox Disclosure
+
+FinPal is a hackathon prototype that uses **PayPal Sandbox only**. Every payment is simulated: no real money is charged, authorized or transferred, and the application refuses any PayPal API host that is not `*.sandbox.paypal.com`. Merchant credentials are a central Sandbox account, not user PayPal accounts. Product prices come from Channel3 and may be incomplete or out of date; decisions are for demonstration and are not financial advice.
 
 ## 22. Sponsor Scope and Priority
 

@@ -9,6 +9,7 @@ export * from "./integrations/channel3/channel3-client";
 export * from "./integrations/channel3/channel3-http-client";
 export * from "./integrations/google-calendar/calendar-client";
 export * from "./integrations/google-calendar/calendar-http-client";
+export * from "./integrations/google-calendar/google-oauth";
 export * from "./integrations/kernel/kernel-client";
 export * from "./integrations/kernel/kernel-http-client";
 export * from "./integrations/paypal/paypal-client";

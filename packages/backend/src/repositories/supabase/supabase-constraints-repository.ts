@@ -41,5 +41,13 @@ export function createSupabaseConstraintsRepository(
       );
       if (error) throw error;
     },
+
+    async clear(userId) {
+      const { error } = await db
+        .from("constraints")
+        .delete()
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
   };
 }

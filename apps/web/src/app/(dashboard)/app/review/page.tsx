@@ -11,7 +11,7 @@ import {
 } from "@/features/app/present";
 import { ReviewActions } from "@/features/review/review-actions";
 import { requireUser } from "@/lib/auth";
-import { getUserConstraints, getUserDashboard } from "@/lib/backend";
+import { getUserConstraints, getDecisionRows } from "@/lib/backend";
 
 const PAGE_SIZE = 5;
 
@@ -23,7 +23,7 @@ export default async function ReviewPage({
   const user = await requireUser();
   const params = await searchParams;
   const [rows, constraints] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getUserConstraints(user.id),
   ]);
   const pending = rows.filter(

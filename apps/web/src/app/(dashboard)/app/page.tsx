@@ -17,7 +17,7 @@ import { requireUser } from "@/lib/auth";
 import {
   getSpendSummary,
   getUserConstraints,
-  getUserDashboard,
+  getDecisionRows,
 } from "@/lib/backend";
 
 export default async function OverviewPage({
@@ -29,7 +29,7 @@ export default async function OverviewPage({
   const { password } = await searchParams;
   const constraints = await getUserConstraints(user.id);
   const [rows, spend] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getSpendSummary(user.id, constraints),
   ]);
 

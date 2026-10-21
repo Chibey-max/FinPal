@@ -32,9 +32,21 @@ services:
         sync: false
       - key: KERNEL_API_KEY
         sync: false
-      - key: GOOGLE_CALENDAR_ACCESS_TOKEN
+      # Google Calendar prefill: an OAuth client plus a refresh token, so
+      # access tokens renew automatically (a fixed token expires in ~1 hour).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
         sync: false
       - key: GOOGLE_CALENDAR_ID
         sync: false
+      # Groq: plain-language explanations and proposal drafts. Without a key
+      # FinPal falls back to rule-based text; the model never changes a decision.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
       - key: LOG_LEVEL
         value: info
