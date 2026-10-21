@@ -45,6 +45,17 @@ const nextConfig: NextConfig = {
         source: "/app/calendar",
         headers: [{ key: "Content-Security-Policy", value: calendarPolicy }],
       },
+      // Lets apps/mobile's browser preview (another origin) read the API in
+      // development. Native apps are not subject to CORS, and production
+      // sends no such header.
+      ...(process.env.NODE_ENV === "production"
+        ? []
+        : [
+            {
+              source: "/api/v1/:path*",
+              headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+            },
+          ]),
     ];
   },
   async redirects() {
