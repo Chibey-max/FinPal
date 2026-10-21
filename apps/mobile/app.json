@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "FinPal",
+    "slug": "finpal",
+    "scheme": "finpal",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#040509",
+    "ios": { "supportsTablet": false },
+    "android": { "predictiveBackGestureEnabled": false },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}
