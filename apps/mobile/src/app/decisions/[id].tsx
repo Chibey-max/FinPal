@@ -2,6 +2,7 @@ import type { DecisionDetail } from "@finpal/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 
+import { DecisionActions, DecisionSummary } from "@/components/decision-parts";
 import {
   Badge,
   Card,
@@ -53,13 +54,19 @@ export default function DecisionDetailScreen() {
       ) : error || !data ? (
         <ErrorNotice message={error ?? "No data."} onRetry={refresh} />
       ) : (
-        <Detail detail={data} />
+        <Detail detail={data} onChanged={refresh} />
       )}
     </Screen>
   );
 }
 
-function Detail({ detail }: { detail: DecisionDetail }) {
+function Detail({
+  detail,
+  onChanged,
+}: {
+  detail: DecisionDetail;
+  onChanged: () => void;
+}) {
   const { colors } = useTheme();
   const { proposal, evaluation, decision, payment, events } = detail;
   const { quality } = evaluation;
@@ -83,6 +90,8 @@ function Detail({ detail }: { detail: DecisionDetail }) {
         </Text>
       </View>
 
+      <DecisionSummary decisionId={decision.id} />
+
       <Card>
         <Eyebrow>Decision</Eyebrow>
         <Badge label={decision.outcome} tone={outcomeTone[decision.outcome]} />
@@ -95,6 +104,8 @@ function Detail({ detail }: { detail: DecisionDetail }) {
           <Row label="Review" value={decision.reviewStatus} />
         ) : null}
       </Card>
+
+      <DecisionActions detail={detail} onChanged={onChanged} />
 
       <Card>
         <Eyebrow>Why</Eyebrow>

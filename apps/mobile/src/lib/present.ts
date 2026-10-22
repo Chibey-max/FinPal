@@ -94,3 +94,6 @@ export function formatWhen(iso: string | null | undefined, timeZone: string) {
 /** Percent of a cap used, clamped to 0-100. */
 export const percentOf = (value: number, cap: number | undefined) =>
   cap ? Math.min(100, Math.max(0, Math.round((value / cap) * 100))) : 0;
+
+/** One key per decision: retries and double taps reuse the same order. */
+export const idempotencyKeyFor = (decisionId: string) => `idem_${decisionId}`;

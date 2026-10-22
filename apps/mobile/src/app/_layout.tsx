@@ -14,8 +14,11 @@ import { useMemo } from "react";
 import { Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AuthGate } from "@/components/auth-gate";
 import { Backdrop } from "@/components/backdrop";
+import { ToastProvider } from "@/components/toast";
 import { TopBar } from "@/components/top-bar";
+import { AuthProvider } from "@/lib/auth";
 import { AppThemeProvider, useTheme } from "@/lib/theme-context";
 
 // In a desktop browser, hold the app to a phone-sized column so the preview
@@ -25,7 +28,9 @@ const PHONE_WIDTH = 430;
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <Shell />
+      <AuthProvider>
+        <Shell />
+      </AuthProvider>
     </AppThemeProvider>
   );
 }
@@ -72,15 +77,19 @@ function Shell() {
             text never flashes in the phone's own face or the wrong theme. */}
         {fontsLoaded && ready ? (
           <ThemeProvider value={navTheme}>
-            <Backdrop />
-            <TopBar />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: "fade",
-                contentStyle: { backgroundColor: "transparent" },
-              }}
-            />
+            <ToastProvider>
+              <Backdrop />
+              <AuthGate>
+                <TopBar />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: "fade",
+                    contentStyle: { backgroundColor: "transparent" },
+                  }}
+                />
+              </AuthGate>
+            </ToastProvider>
           </ThemeProvider>
         ) : null}
       </View>

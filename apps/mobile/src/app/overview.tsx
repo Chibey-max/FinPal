@@ -1,7 +1,8 @@
 import type { DecisionRow } from "@finpal/contracts";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { Pressable, View } from "react-native";
 
+import { Button } from "@/components/form";
 import {
   Badge,
   Card,
@@ -127,6 +128,7 @@ export default function Overview() {
       title: row.productName,
       sub: "MANUAL_REVIEW · awaiting a person",
       tone: "warn" as Tone,
+      href: "/review",
     })),
     ...openPayments.map((row) => ({
       key: `p-${row.paymentId}`,
@@ -134,12 +136,27 @@ export default function Overview() {
       title: row.productName,
       sub: `${row.paymentStatus} · next: ${nextPaymentStep[row.paymentStatus!] ?? "check status"}`,
       tone: paymentTone[row.paymentStatus!],
+      href: `/payments/${row.paymentId}`,
     })),
   ];
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Title>Overview</Title>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: s(12),
+        }}
+      >
+        <Title>Overview</Title>
+        <Button
+          label="New proposal"
+          variant="primary"
+          onPress={() => router.navigate("/proposals/new")}
+        />
+      </View>
 
       {!caps ? (
         <Card style={{ borderColor: colors.tones.warn.line }}>
@@ -148,7 +165,13 @@ export default function Overview() {
             style={{ color: colors.ink2, fontSize: ms(14), lineHeight: ms(21) }}
           >
             This is not unrestricted permission: every proposal goes to manual
-            review.
+            review.{" "}
+            <Text
+              onPress={() => router.navigate("/constraints")}
+              style={{ color: colors.brand, fontSize: ms(14) }}
+            >
+              Set constraints →
+            </Text>
           </Text>
         </Card>
       ) : null}
@@ -264,7 +287,7 @@ export default function Overview() {
           actions.map((action) => (
             <Pressable
               key={action.key}
-              onPress={() => router.push(`/decisions/${action.id}`)}
+              onPress={() => router.push(action.href as Href)}
               style={({ pressed }) => ({
                 gap: s(4),
                 paddingVertical: s(12),

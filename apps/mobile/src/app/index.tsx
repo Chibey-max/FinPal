@@ -52,6 +52,7 @@ export default function Intro() {
   const [stepsY, setStepsY] = useState(0);
   const heroHeight = Math.max(620, height);
   const open = () => router.navigate("/overview");
+  const propose = () => router.navigate("/proposals/new");
 
   return (
     <ScrollView
@@ -152,7 +153,7 @@ export default function Intro() {
               marginTop: s(26),
             }}
           >
-            <PrimaryPill label="Run a proposal" onPress={open} />
+            <PrimaryPill label="Run a proposal" onPress={propose} />
             <GlassPill
               label="How it works"
               icon={<PlayIcon size={18} color={colors.ink} />}

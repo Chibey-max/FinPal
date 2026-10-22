@@ -40,3 +40,15 @@ export function PlayIcon({ size = 18, color }: IconProps) {
     </Svg>
   );
 }
+
+export function LogoutIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 4.5H6.5A2 2 0 0 0 4.5 6.5v11a2 2 0 0 0 2 2H9M15.5 8l4 4-4 4M19.5 12H9.5"
+        stroke={color}
+        {...stroke}
+      />
+    </Svg>
+  );
+}
