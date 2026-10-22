@@ -7,10 +7,23 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#040509",
-    "ios": { "supportsTablet": false },
-    "android": { "predictiveBackGestureEnabled": false },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true }
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

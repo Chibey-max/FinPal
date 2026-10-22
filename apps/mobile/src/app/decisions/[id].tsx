@@ -1,6 +1,6 @@
 import type { DecisionDetail } from "@finpal/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
 import {
   Badge,
@@ -10,6 +10,7 @@ import {
   Loading,
   Row,
   Screen,
+  Text,
   Title,
 } from "@/components/ui";
 import { ms, s } from "@/lib/screen";
@@ -24,11 +25,13 @@ import {
   shortId,
   trustTone,
 } from "@/lib/present";
-import { colors, mono } from "@/theme";
+import { useTheme } from "@/lib/theme-context";
+import { mono } from "@/theme";
 
 export default function DecisionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
   const { data, error, loading, refreshing, refresh } = useApi<DecisionDetail>(
     `/api/v1/decisions/${id}`,
   );
@@ -37,7 +40,7 @@ export default function DecisionDetailScreen() {
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <Pressable
         onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
+          router.canGoBack() ? router.back() : router.replace("/overview")
         }
         accessibilityRole="button"
         hitSlop={12}
@@ -57,6 +60,7 @@ export default function DecisionDetailScreen() {
 }
 
 function Detail({ detail }: { detail: DecisionDetail }) {
+  const { colors } = useTheme();
   const { proposal, evaluation, decision, payment, events } = detail;
   const { quality } = evaluation;
   const tz = useTimezone();

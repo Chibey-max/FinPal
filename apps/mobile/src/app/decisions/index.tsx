@@ -1,7 +1,7 @@
 import type { DecisionOutcome, DecisionRow } from "@finpal/contracts";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 
 import {
   Badge,
@@ -9,6 +9,7 @@ import {
   ErrorNotice,
   Loading,
   Screen,
+  Text,
   Title,
 } from "@/components/ui";
 import { ms, s } from "@/lib/screen";
@@ -21,7 +22,8 @@ import {
   scoreTone,
   shortId,
 } from "@/lib/present";
-import { colors, mono, radius, toneFill, toneLine } from "@/theme";
+import { useTheme } from "@/lib/theme-context";
+import { mono, radius } from "@/theme";
 
 const FILTERS: { label: string; value: DecisionOutcome | null }[] = [
   { label: "All", value: null },
@@ -32,6 +34,7 @@ const FILTERS: { label: string; value: DecisionOutcome | null }[] = [
 
 export default function Decisions() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { data, error, loading, refreshing, refresh } = useApi<{
     rows: DecisionRow[];
   }>("/api/v1/decisions");
@@ -92,7 +95,9 @@ export default function Decisions() {
                 borderRadius: radius.pill,
                 borderWidth: 1,
                 borderColor: active ? colors.brand : colors.border,
-                backgroundColor: active ? toneFill("info") : "transparent",
+                backgroundColor: active
+                  ? colors.tones.info.fill
+                  : "transparent",
                 paddingHorizontal: s(13),
                 paddingVertical: s(7),
               }}
@@ -125,7 +130,7 @@ export default function Decisions() {
           <Card
             key={row.decisionId}
             onPress={() => router.push(`/decisions/${row.decisionId}`)}
-            style={{ borderColor: toneLine(outcomeTone[row.outcome]) }}
+            style={{ borderColor: colors.tones[outcomeTone[row.outcome]].line }}
           >
             <View
               style={{
