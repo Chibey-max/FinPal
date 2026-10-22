@@ -24,7 +24,7 @@ import {
   getPaymentService,
   getUserAuditLog,
   getUserConstraints,
-  getUserDashboard,
+  getDecisionRows,
 } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
 
@@ -96,7 +96,7 @@ export async function PaymentsPage({
     notFound();
 
   const [rows, constraints] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getUserConstraints(user.id),
   ]);
   const timeZone = constraints?.timezone ?? "UTC";

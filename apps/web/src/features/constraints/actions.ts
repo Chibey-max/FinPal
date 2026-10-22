@@ -50,10 +50,7 @@ export async function saveConstraints(
     console.error("Saving constraints failed", error);
     return {
       status: "error",
-      message:
-        error instanceof Error && error.message.includes("not supported")
-          ? error.message
-          : "Could not save. Please try again.",
+      message: "Could not save. Please try again.",
       at,
     };
   }

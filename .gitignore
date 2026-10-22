@@ -12,3 +12,7 @@ dist/
 *.log
 tmp/
 
+
+# Supabase CLI local state (linked project, cached versions)
+supabase/.temp/
+supabase/.branches/

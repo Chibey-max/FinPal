@@ -3,9 +3,11 @@
 import type { DecisionOutcome, DecisionRow } from "@finpal/contracts";
 import type {
   ColDef,
+  GetRowIdParams,
   GridApi,
   ICellRendererParams,
   IRowNode,
+  RowClassRules,
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useRouter } from "next/navigation";
@@ -69,6 +71,17 @@ function PaymentCell({ data }: Cell<"paymentStatus">) {
  * filterable columns, paged with the shared pagination control. Selecting a
  * row opens its evidence below via the URL.
  */
+// Stable grid options. Passing a new object or function on every render makes
+// AG Grid refresh, and with the paging sync that became an endless render
+// loop that also starved page navigation (React could never commit it).
+const DEFAULT_COL_DEF: ColDef<DecisionRow> = {
+  sortable: true,
+  resizable: true,
+  suppressMovable: true,
+};
+const getRowId = (params: GetRowIdParams<DecisionRow>) =>
+  params.data.decisionId;
+
 export function DecisionsGrid({
   rows,
   selectedId,
@@ -162,13 +175,29 @@ export function DecisionsGrid({
     [timeZone],
   );
 
+  // Only update when a number changed: a new object on every grid event
+  // would re-render, refresh the grid and fire the event again, forever.
   const syncPaging = useCallback((api: GridApi<DecisionRow>) => {
-    setPaging({
+    const next = {
       page: api.paginationGetCurrentPage() + 1,
       pageCount: Math.max(1, api.paginationGetTotalPages()),
       total: api.getDisplayedRowCount(),
-    });
+    };
+    setPaging((prev) =>
+      prev.page === next.page &&
+      prev.pageCount === next.pageCount &&
+      prev.total === next.total
+        ? prev
+        : next,
+    );
   }, []);
+
+  const rowClassRules = useMemo<RowClassRules<DecisionRow>>(
+    () => ({
+      "grid-row-selected": (params) => params.data?.decisionId === selectedId,
+    }),
+    [selectedId],
+  );
 
   // Open on the page that holds the selected decision.
   const showSelected = useCallback(
@@ -229,12 +258,8 @@ export function DecisionsGrid({
             theme={gridTheme}
             rowData={rows}
             columnDefs={columns}
-            defaultColDef={{
-              sortable: true,
-              resizable: true,
-              suppressMovable: true,
-            }}
-            getRowId={(params) => params.data.decisionId}
+            defaultColDef={DEFAULT_COL_DEF}
+            getRowId={getRowId}
             domLayout="autoHeight"
             pagination
             paginationPageSize={PAGE_SIZE}
@@ -244,10 +269,7 @@ export function DecisionsGrid({
             quickFilterText={search}
             isExternalFilterPresent={isExternalFilterPresent}
             doesExternalFilterPass={doesExternalFilterPass}
-            rowClassRules={{
-              "grid-row-selected": (params) =>
-                params.data?.decisionId === selectedId,
-            }}
+            rowClassRules={rowClassRules}
             rowClass="grid-row-link"
             tooltipShowDelay={400}
             overlayNoRowsTemplate="No decisions match this search."

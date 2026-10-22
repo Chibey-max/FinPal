@@ -29,7 +29,14 @@ export const serverEnvSchema = z.object({
   PAYPAL_WEBHOOK_ID: z.string().min(1).optional(),
   CHANNEL3_API_KEY: z.string().min(1),
   KERNEL_API_KEY: z.string().min(1).optional(),
-  /** OAuth access token for one Google Calendar used to prefill proposals. */
+  /**
+   * Google Calendar for proposal prefill. Preferred: an OAuth client plus a
+   * long-lived refresh token, so access tokens renew automatically.
+   */
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_REFRESH_TOKEN: z.string().min(1).optional(),
+  /** Fallback for quick local tests only: a fixed token expires in ~1 hour. */
   GOOGLE_CALENDAR_ACCESS_TOKEN: z.string().min(1).optional(),
   GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
   /** Groq key for plain-language explanations and proposal drafts. */

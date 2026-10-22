@@ -41,14 +41,11 @@ export function ConstraintsForm({
   timeZones,
   spentToday,
   spentThisMonth,
-  canClear,
 }: {
   initial: SpendingConstraints | null;
   timeZones: string[];
   spentToday: number;
   spentThisMonth: number;
-  /** The live repository cannot delete constraints yet. */
-  canClear: boolean;
 }) {
   const toast = useToast();
   const [state, action, pending] = useActionState<
@@ -128,12 +125,6 @@ export function ConstraintsForm({
           aria-checked={enabled}
           className="enforce-toggle"
           onClick={() => setEnabled((value) => !value)}
-          disabled={!canClear && initial !== null && enabled}
-          title={
-            !canClear && initial !== null
-              ? "Clearing constraints is not supported by the backend yet."
-              : undefined
-          }
         >
           <span
             className="enforce-toggle__track"

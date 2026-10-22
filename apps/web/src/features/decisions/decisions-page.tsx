@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import {
   getAssistantService,
   getUserConstraints,
-  getUserDashboard,
+  getDecisionRows,
   getUserDecisionDetail,
 } from "@/lib/backend";
 
@@ -25,7 +25,7 @@ export async function DecisionsPage({
     notFound();
 
   const [rows, constraints, details] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getUserConstraints(user.id),
     getUserDecisionDetail(),
   ]);

@@ -2,6 +2,8 @@
 
 FinPal is a sandbox-only agentic purchasing assistant for the PayPal AI Hackathon. It evaluates spending constraints, purchase quality, and merchant trust before authorizing a PayPal Sandbox payment.
 
+> **Sandbox only.** Every payment is simulated in PayPal Sandbox: no real money is charged, authorized or transferred, and FinPal refuses any PayPal host that is not `*.sandbox.paypal.com`. Prices come from Channel3 and may be incomplete; decisions are for demonstration, not financial advice. See [Known limitations](docs/design.md#21a-known-limitations).
+
 ## Repository layout
 
 - `apps/web` - Next.js frontend and thin API route adapters.
@@ -19,13 +21,14 @@ FinPal is a sandbox-only agentic purchasing assistant for the PayPal AI Hackatho
 Requirements: Node.js 22+, pnpm 11+, and Docker for local Supabase.
 
 ```bash
-cp .env.example .env.local
+cp .env.example apps/web/.env.local
 pnpm install
-pnpm db:start
 pnpm dev
 ```
 
-Open `http://localhost:3000`. All PayPal operations must use Sandbox credentials.
+Open `http://localhost:3000`. With no Supabase URL set, FinPal runs in **mock mode**: the real decision and payment logic on in-memory data with simulated PayPal Sandbox, Channel3, KERNEL and calendar, so no keys are needed.
+
+To run against real services, fill in `apps/web/.env.local` (Next.js only reads env files from the app folder; start a local database with `pnpm db:start`, or use a hosted Supabase project). All PayPal operations must use Sandbox credentials. To deploy and run the live integration checklist, follow [docs/operations.md](docs/operations.md).
 
 ## Quality gates
 

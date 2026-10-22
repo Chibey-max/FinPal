@@ -1,7 +1,6 @@
 import { ConstraintsForm } from "@/features/constraints/constraints-form";
 import { requireUser } from "@/lib/auth";
 import { getSpendSummary, getUserConstraints } from "@/lib/backend";
-import { isMockMode } from "@/lib/data-source";
 
 export default async function ConstraintsPage() {
   const user = await requireUser();
@@ -10,13 +9,13 @@ export default async function ConstraintsPage() {
 
   return (
     <div className="app-page app-page--narrow">
+      {/* No key: re-mounting on new values would drop the save result,
+          so the "Constraints saved" toast would never show. */}
       <ConstraintsForm
-        key={JSON.stringify(constraints)}
         initial={constraints}
         timeZones={Intl.supportedValuesOf("timeZone")}
         spentToday={spend.spentToday}
         spentThisMonth={spend.spentThisMonth}
-        canClear={isMockMode()}
       />
     </div>
   );

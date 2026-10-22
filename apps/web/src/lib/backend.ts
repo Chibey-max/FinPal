@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   createAssistantService,
   createAuditLog,
@@ -7,6 +9,7 @@ import {
   createDecisionDetailService,
   createEvaluationService,
   createGoogleCalendarHttpClient,
+  createGoogleRefreshTokenProvider,
   createGroqHttpClient,
   createKernelHttpClient,
   createKernelTrustChecker,
@@ -30,6 +33,7 @@ import {
   type CalendarEventsService,
   type DashboardRepository,
   type EvaluationService,
+  type GoogleAccessTokenProvider,
   type PaymentService,
   type PaypalWebhookService,
   type ReviewDecisionService,
@@ -44,6 +48,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getComparableOffersService } from "@/lib/channel3";
 import { isMockMode } from "@/lib/data-source";
 import { getPublicEnv } from "@/lib/env";
+import type { ServerEnv } from "@/lib/env-schema";
 import { getGroqEnv, getServerEnv } from "@/lib/env.server";
 import {
   describeConstraints,
@@ -52,6 +57,7 @@ import {
   simulateTrust,
 } from "@/lib/mock";
 import * as mockRepo from "@/lib/mock/repositories";
+import { supabaseFetch } from "@/lib/supabase/fetch";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Composition root: wires backend use cases to real infrastructure, or to the
@@ -69,7 +75,10 @@ function getServiceDb(): SupabaseClient {
   serviceDb ??= createClient(
     getPublicEnv().NEXT_PUBLIC_SUPABASE_URL,
     getServerEnv().SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: supabaseFetch },
+    },
   );
   return serviceDb;
 }
@@ -138,15 +147,38 @@ export function getReviewDecisionService(): ReviewDecisionService {
   return reviewService;
 }
 
+/**
+ * Google credentials for the calendar: a refresh token renews access tokens
+ * automatically; a fixed access token is a local-testing fallback that stops
+ * working after about an hour. Neither: calendar is not configured.
+ */
+function googleCalendarAccessToken(
+  env: ServerEnv,
+): GoogleAccessTokenProvider | string | undefined {
+  if (
+    env.GOOGLE_CLIENT_ID &&
+    env.GOOGLE_CLIENT_SECRET &&
+    env.GOOGLE_REFRESH_TOKEN
+  ) {
+    return createGoogleRefreshTokenProvider({
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      refreshToken: env.GOOGLE_REFRESH_TOKEN,
+    });
+  }
+  return env.GOOGLE_CALENDAR_ACCESS_TOKEN;
+}
+
 /** Upcoming events for proposal prefill; `configured: false` without Google. */
 export function getCalendarEventsService(): CalendarEventsService {
   if (isMockMode()) return mockBackend.calendar;
   if (calendarService) return calendarService;
   const serverEnv = getServerEnv();
+  const accessToken = googleCalendarAccessToken(serverEnv);
   calendarService = createCalendarEventsService({
-    calendar: serverEnv.GOOGLE_CALENDAR_ACCESS_TOKEN
+    calendar: accessToken
       ? createGoogleCalendarHttpClient({
-          accessToken: serverEnv.GOOGLE_CALENDAR_ACCESS_TOKEN,
+          accessToken,
           calendarId: serverEnv.GOOGLE_CALENDAR_ID,
         })
       : undefined,
@@ -210,6 +242,14 @@ export async function getUserAuditLog(): Promise<AuditLog> {
   return createAuditLog(createSupabaseAuditEventRepository(supabase));
 }
 
+/**
+ * The user's latest 200 decision rows, loaded once per request: the layout
+ * (nav badges) and the page share one query instead of running it twice.
+ */
+export const getDecisionRows = cache(async (userId: string) =>
+  (await getUserDashboard()).listDecisionRows(userId, { limit: 200 }),
+);
+
 /** Dashboard reads, through the user's own session so RLS applies. */
 export async function getUserDashboard(): Promise<DashboardRepository> {
   if (isMockMode()) return mockBackend.dashboard;
@@ -236,43 +276,31 @@ export async function getUserConstraints(
 }
 
 /**
- * Saves (or, in mock mode, clears) the user's constraints and records
- * CONSTRAINTS_UPDATED. The live repository has no delete yet.
+ * Saves the user's constraints, or clears them when `constraints` is null,
+ * and records CONSTRAINTS_UPDATED. Clearing never grants permission: with no
+ * constraints, evaluations go to manual review.
  */
 export async function saveUserConstraints(
   userId: string,
   constraints: SpendingConstraints | null,
 ) {
-  if (isMockMode()) {
-    await ensureSeeded();
-    if (constraints) await mockRepo.constraints.save(userId, constraints);
-    else await mockRepo.constraints.clear(userId);
-    await mockBackend.audit.record({
-      userId,
-      entityType: "constraints",
-      entityId: userId,
-      type: "CONSTRAINTS_UPDATED",
-      payload: constraints
-        ? describeConstraints(constraints)
-        : { cleared: true },
-    });
-    return;
-  }
-  if (!constraints) {
-    throw new Error(
-      "Clearing constraints is not supported by the backend yet.",
-    );
-  }
-  // User-scoped client: RLS guarantees users can only write their own row.
-  const supabase = await createServerSupabaseClient();
-  await createSupabaseConstraintsRepository(supabase).save(userId, constraints);
+  if (isMockMode()) await ensureSeeded();
+  // Live: user-scoped client, so RLS guarantees users only touch their own row.
+  const repository = isMockMode()
+    ? mockRepo.constraints
+    : createSupabaseConstraintsRepository(await createServerSupabaseClient());
+
+  if (constraints) await repository.save(userId, constraints);
+  else await repository.clear(userId);
+
   // Audit inserts require the service role (users cannot write audit_events).
-  await getServiceAuditLog().record({
+  const audit = isMockMode() ? mockBackend.audit : getServiceAuditLog();
+  await audit.record({
     userId,
     entityType: "constraints",
     entityId: userId,
     type: "CONSTRAINTS_UPDATED",
-    payload: describeConstraints(constraints),
+    payload: constraints ? describeConstraints(constraints) : { cleared: true },
   });
 }
 

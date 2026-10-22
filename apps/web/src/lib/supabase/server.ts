@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { getPublicEnv } from "@/lib/env";
+import { supabaseFetch } from "@/lib/supabase/fetch";
 
 export async function createServerSupabaseClient() {
   // Read cookies first: it opts the route into dynamic rendering, so the build
@@ -15,6 +16,7 @@ export async function createServerSupabaseClient() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
           return cookieStore.getAll();
