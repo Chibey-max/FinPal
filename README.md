@@ -8,7 +8,7 @@ Decisions come from fixed, deterministic rules. An LLM may explain a decision in
 
 ## How it works
 
-1. **Propose.** The user enters a purchase (product, price, currency, time), types it as a sentence ("AirPods Pro 2 for $229 at 6pm"), or starts from a Google Calendar event.
+1. **Propose.** The shopping agent turns a need ("noise-cancelling headphones under $350") into a Channel3 search, picks a real offer and submits it. The user can also enter a purchase by hand, type it as a sentence, or start from a calendar event the agent suggests.
 2. **Evaluate.**
    - **Spending rules:** time windows, per-purchase, daily and monthly caps, and currency. Currencies are never converted.
    - **Price check:** Quality Score v1 compares the price with the median of comparable Channel3 offers.
@@ -26,32 +26,33 @@ See [`docs/architecture.md`](docs/architecture.md) for the decision table, Quali
 
 ## The app
 
-| Route                | What it shows                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| `/`                  | Landing page                                                                             |
-| `/login`             | Sign in or create an account; password reset at `/forgot-password` and `/reset-password` |
-| `/app`               | Overview: spend against caps, items needing attention, recent decisions                  |
-| `/app/proposals/new` | New proposal, with presets and "Describe it" sentence entry                              |
-| `/app/decisions`     | All decisions in AG Grid, with each decision's evidence and an AI summary                |
-| `/app/review`        | Manual review queue: approve or reject                                                   |
-| `/app/payments`      | Payment attempts and their PayPal state                                                  |
-| `/app/calendar`      | Bryntum Calendar week view with spending windows and events                              |
-| `/app/activity`      | The audit log in a filterable AG Grid                                                    |
-| `/app/constraints`   | Spending rules: windows, caps, currency and timezone                                     |
+| Route                | What it shows                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `/`                  | Landing page                                                                                        |
+| `/login`             | Sign in or create an account; password reset at `/forgot-password` and `/reset-password`            |
+| `/app`               | Overview: spend against caps, items needing attention, recent decisions                             |
+| `/app/agent`         | Shopping agent: describe a need, it finds and submits an offer; calendar ideas and spending outlook |
+| `/app/proposals/new` | New proposal, with presets and "Describe it" sentence entry                                         |
+| `/app/decisions`     | All decisions in AG Grid, with each decision's evidence and an AI summary                           |
+| `/app/review`        | Manual review queue: approve or reject                                                              |
+| `/app/payments`      | Payment attempts and their PayPal state                                                             |
+| `/app/calendar`      | Bryntum Calendar week view with spending windows and events                                         |
+| `/app/activity`      | The audit log in a filterable AG Grid                                                               |
+| `/app/constraints`   | Spending rules: windows, caps, currency and timezone                                                |
 
 A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decisions and decision detail from the same API. See [`apps/mobile/README.md`](apps/mobile/README.md).
 
 ### Integrations
 
-| Service          | Used for                                                   | Required                       |
-| ---------------- | ---------------------------------------------------------- | ------------------------------ |
-| PayPal Sandbox   | Orders v2: create, authorize, capture, void, and webhooks  | Yes (live mode)                |
-| Supabase         | Auth, Postgres, row-level security                         | Yes (live mode)                |
-| Channel3         | Comparable offers for the price check                      | Yes (live mode)                |
-| KERNEL           | Merchant trust check                                       | No; `NOT_CHECKED` without it   |
-| Google Calendar  | Events for proposal prefill (OAuth refresh token)          | No                             |
-| Groq             | Plain-language decision summaries, sentence-to-form drafts | No; rule-based text without it |
-| AG Grid, Bryntum | Decisions and Activity grids; Calendar                     | Bundled                        |
+| Service          | Used for                                                                            | Required                       |
+| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------ |
+| PayPal Sandbox   | Orders v2: create, authorize, capture, void, and webhooks                           | Yes (live mode)                |
+| Supabase         | Auth, Postgres, row-level security                                                  | Yes (live mode)                |
+| Channel3         | Comparable offers for the price check                                               | Yes (live mode)                |
+| KERNEL           | Merchant trust check                                                                | No; `NOT_CHECKED` without it   |
+| Google Calendar  | Events for proposal prefill (OAuth refresh token)                                   | No                             |
+| Groq             | Shopping agent, calendar ideas, written rules, spending outlook, decision summaries | No; rule-based text without it |
+| AG Grid, Bryntum | Decisions and Activity grids; Calendar                                              | Bundled                        |
 
 ## Repository layout
 

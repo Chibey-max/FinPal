@@ -4,6 +4,10 @@ import { cache } from "react";
 
 import {
   createAssistantService,
+  createCalendarSuggestions,
+  createConstraintsDrafter,
+  createShoppingAgent,
+  createSpendingForecaster,
   createAuditLog,
   createCalendarEventsService,
   createDecisionDetailService,
@@ -29,6 +33,8 @@ import {
   localDayRange,
   localMonthRange,
   type AssistantService,
+  type LlmClient,
+  type ShoppingAgent,
   type AuditLog,
   type CalendarEventsService,
   type DashboardRepository,
@@ -191,19 +197,83 @@ export function getCalendarEventsService(): CalendarEventsService {
  * Groq when GROQ_API_KEY is set, rule-based text otherwise. Only decision
  * facts and the user's typed request are sent, never ids or emails.
  */
-export function getAssistantService(): AssistantService {
-  if (assistantService) return assistantService;
-  const env = getGroqEnv();
-  assistantService = createAssistantService({
-    llm: env.GROQ_API_KEY
+let llmClient: LlmClient | null | undefined;
+
+/** One Groq client for every assistant feature; null without GROQ_API_KEY. */
+function getLlm(): LlmClient | undefined {
+  if (llmClient === undefined) {
+    const env = getGroqEnv();
+    llmClient = env.GROQ_API_KEY
       ? createGroqHttpClient({
           apiKey: env.GROQ_API_KEY,
           model: env.GROQ_MODEL,
         })
-      : undefined,
-    onError: (error) => console.error("Groq request failed", error),
+      : null;
+  }
+  return llmClient ?? undefined;
+}
+
+const reportLlmError = (error: unknown) =>
+  console.error("Groq request failed", error);
+
+export function getAssistantService(): AssistantService {
+  assistantService ??= createAssistantService({
+    llm: getLlm(),
+    onError: reportLlmError,
   });
   return assistantService;
+}
+
+let shoppingAgent: ShoppingAgent | undefined;
+
+/**
+ * The shopping agent searches Channel3, submits the proposal and runs the
+ * normal evaluation, so every agent purchase passes the same rules.
+ */
+export function getShoppingAgent(): ShoppingAgent {
+  if (isMockMode()) {
+    return createShoppingAgent({
+      llm: getLlm(),
+      offers: mockBackend.offers,
+      evaluation: mockBackend.evaluation,
+      audit: mockBackend.audit,
+      onError: reportLlmError,
+    });
+  }
+  shoppingAgent ??= createShoppingAgent({
+    llm: getLlm(),
+    offers: getComparableOffersService(),
+    evaluation: getEvaluationService(),
+    audit: getServiceAuditLog(),
+    onError: reportLlmError,
+  });
+  return shoppingAgent;
+}
+
+export function getConstraintsDrafter() {
+  return createConstraintsDrafter({ llm: getLlm(), onError: reportLlmError });
+}
+
+/** Purchase ideas from upcoming calendar events, for the user to confirm. */
+export async function getEventSuggestions() {
+  const page = await getCalendarEvents(50);
+  return createCalendarSuggestions({
+    llm: getLlm(),
+    onError: reportLlmError,
+  }).suggest(page.events, page.configured);
+}
+
+/** Pace, headroom and busy days ahead, with a short piece of advice. */
+export async function getSpendingForecast(userId: string) {
+  const constraints = await getUserConstraints(userId);
+  const [spend, page] = await Promise.all([
+    getSpendSummary(userId, constraints),
+    getCalendarEvents(50),
+  ]);
+  return createSpendingForecaster({
+    llm: getLlm(),
+    onError: reportLlmError,
+  }).forecast({ constraints, spend, events: page.events });
 }
 
 /** Verified PayPal webhooks. Live only: mock mode has no PayPal to call back. */

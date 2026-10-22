@@ -223,7 +223,7 @@ function normaliseDraft(
     typeof raw.proposedPrice === "string"
       ? Number(raw.proposedPrice.replace(/[^\d.]/g, ""))
       : raw.proposedPrice;
-  const statedPrices = pricesIn(text);
+  const statedPrices = numbersIn(text);
   const currency = raw.currency?.trim().toUpperCase();
   const time = raw.time?.trim();
   return {
@@ -274,7 +274,8 @@ const TIME = /\b(?:at|around|by|@)\s*(\d{1,2})(?::([0-5]\d))?\s*(am|pm)?\b/i;
 
 const toNumber = (value: string) => Number(value.replace(/,/g, ""));
 
-function pricesIn(text: string): number[] {
+/** Every number written in the text, e.g. "$1,299.50 at 9" -> [1299.5, 9]. */
+export function numbersIn(text: string): number[] {
   const all = new RegExp(NUMBER, "g");
   return [...text.matchAll(all)].map((m) => toNumber(m[0]));
 }

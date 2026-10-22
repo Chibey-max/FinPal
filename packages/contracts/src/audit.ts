@@ -20,6 +20,8 @@ export const auditEventTypeSchema = z.enum([
   "CONSTRAINTS_UPDATED",
   // proposal -> evaluation -> decision
   "PROPOSAL_CREATED",
+  // the shopping agent chose an offer and submitted the proposal
+  "AGENT_PURCHASE_PROPOSED",
   "EVALUATION_COMPLETED",
   "DECISION_RECORDED",
   "DECISION_APPROVED",

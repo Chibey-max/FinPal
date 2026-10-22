@@ -23,6 +23,7 @@ import {
   scoreLabel,
   scoreTone,
   shortId,
+  sourceLabel,
 } from "@/features/app/present";
 
 const PAGE_SIZE = 10;
@@ -154,7 +155,7 @@ export function DecisionsGrid({
         headerName: "Source",
         field: "source",
         width: 110,
-        valueFormatter: (p) => (p.value === "CALENDAR" ? "Calendar" : "Manual"),
+        valueFormatter: (p) => (p.value ? sourceLabel(p.value) : ""),
         cellClass: "grid-muted",
       },
       {

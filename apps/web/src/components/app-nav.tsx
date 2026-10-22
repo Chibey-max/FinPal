@@ -9,6 +9,7 @@ import { LinkPending } from "./navigation-feedback";
 
 const navItems = [
   { href: "/app", label: "Overview", exact: true },
+  { href: "/app/agent", label: "Agent" },
   { href: "/app/calendar", label: "Calendar" },
   { href: "/app/proposals/new", label: "New proposal" },
   { href: "/app/decisions", label: "Decisions" },

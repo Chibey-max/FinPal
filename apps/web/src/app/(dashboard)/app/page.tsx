@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ForecastCard } from "@/features/agent/forecast-card";
 import { FlashToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import {
@@ -135,6 +136,8 @@ export default async function OverviewPage({
           </article>
         ))}
       </div>
+
+      <ForecastCard timeZone={constraints?.timezone ?? "UTC"} />
 
       <div className="split-grid">
         <section className="card span-2 list-card" aria-labelledby="recent">

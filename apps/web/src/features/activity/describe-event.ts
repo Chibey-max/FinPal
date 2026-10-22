@@ -11,6 +11,7 @@ export interface EventDescription {
 const titles: Record<AuditEventType, { title: string; tone: EventTone }> = {
   CONSTRAINTS_UPDATED: { title: "Spending limits updated", tone: "neutral" },
   PROPOSAL_CREATED: { title: "Proposal created", tone: "neutral" },
+  AGENT_PURCHASE_PROPOSED: { title: "Agent chose an offer", tone: "neutral" },
   EVALUATION_COMPLETED: { title: "Purchase evaluated", tone: "neutral" },
   DECISION_RECORDED: { title: "Decision recorded", tone: "neutral" },
   DECISION_APPROVED: { title: "Approved by reviewer", tone: "success" },
@@ -124,8 +125,22 @@ export function summarizeEvent(event: AuditEvent): string {
         join(
           text(p.productName),
           money(p),
-          p.source === "CALENDAR" ? "from calendar" : undefined,
+          p.source === "CALENDAR"
+            ? "from calendar"
+            : p.source === "AGENT"
+              ? "by the agent"
+              : undefined,
         ) ?? "Proposal created"
+      );
+    case "AGENT_PURCHASE_PROPOSED":
+      return (
+        join(
+          text(p.merchant),
+          money(p),
+          num(p.offersFound) !== undefined
+            ? `${num(p.offersFound)} offers checked`
+            : undefined,
+        ) ?? "Agent chose an offer"
       );
     case "EVALUATION_COMPLETED": {
       const median = num(p.medianPrice);

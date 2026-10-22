@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-export const proposalSourceSchema = z.enum(["MANUAL", "CALENDAR"]);
+/** AGENT: created by the shopping agent, never accepted from a client. */
+export const proposalSourceSchema = z.enum(["MANUAL", "CALENDAR", "AGENT"]);
+
+export type ProposalSource = z.infer<typeof proposalSourceSchema>;
 
 export const createProposalSchema = z.object({
   productName: z.string().trim().min(1).max(200),
@@ -16,6 +19,11 @@ export const createProposalSchema = z.object({
 });
 
 export type CreateProposalInput = z.infer<typeof createProposalSchema>;
+
+/** What POST /api/v1/proposals accepts: only people create MANUAL or CALENDAR. */
+export const createProposalRequestSchema = createProposalSchema.extend({
+  source: z.enum(["MANUAL", "CALENDAR"]),
+});
 
 export const proposalSchema = z.object({
   id: z.uuid(),

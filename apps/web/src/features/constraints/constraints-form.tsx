@@ -1,6 +1,10 @@
 "use client";
 
-import type { SpendingConstraints, Weekday } from "@finpal/contracts";
+import type {
+  DraftConstraintsResult,
+  SpendingConstraints,
+  Weekday,
+} from "@finpal/contracts";
 import {
   startTransition,
   useActionState,
@@ -15,6 +19,7 @@ import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatMoney } from "@/features/app/present";
 
 import { saveConstraints, type SaveConstraintsState } from "./actions";
+import { RulesDescriber } from "./rules-describer";
 
 const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: "MON", label: "Mon" },
@@ -81,6 +86,20 @@ export function ConstraintsForm({
       toast(state.message, state.status === "error" ? "bad" : "ok");
   }, [state.at, state.message, state.status, toast]);
 
+  function applyDraft({ draft }: DraftConstraintsResult) {
+    setEnabled(true);
+    if (draft.currency) setCurrency(draft.currency);
+    if (draft.perPurchase !== null) setPerPurchase(amount(draft.perPurchase));
+    if (draft.daily !== null) setDaily(amount(draft.daily));
+    if (draft.monthly !== null) setMonthly(amount(draft.monthly));
+    const window = draft.timeWindows?.[0];
+    if (window) {
+      setDays(window.days);
+      setStart(window.start);
+      setEnd(window.end);
+    }
+  }
+
   const crosses = end < start;
   const windowNote = crosses
     ? `Window crosses midnight: allowed from ${start} until ${end} the next day.`
@@ -135,6 +154,8 @@ export function ConstraintsForm({
           {enabled ? "Enforced" : "Not configured"}
         </button>
       </div>
+
+      <RulesDescriber onDraft={applyDraft} />
 
       {!enabled ? (
         <p className="notice fade-in" data-tone="warn">

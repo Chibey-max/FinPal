@@ -120,6 +120,8 @@ type Listing = [merchant: string, price: number, flag?: Flag];
 interface CatalogItem {
   title: string;
   keywords: string[];
+  /** Generic words the shopping agent searches with, e.g. "headphones". */
+  categories?: string[];
   listings: Listing[];
 }
 
@@ -127,6 +129,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Sony WH-1000XM5",
     keywords: ["sony", "xm5", "wh-1000"],
+    categories: ["headphones", "noise"],
     listings: [
       ["bestbuy.com", 349.99],
       ["amazon.com", 328],
@@ -142,6 +145,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Herman Miller Sayl chair",
     keywords: ["sayl", "herman"],
+    categories: ["chair", "office"],
     listings: [
       ["dwr.com", 459],
       ["store.hermanmiller.com", 465],
@@ -178,6 +182,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Anker 737 charger",
     keywords: ["anker", "737"],
+    categories: ["charger", "power bank"],
     listings: [
       ["anker.com", 119.99],
       ["amazon.com", 109.99],
@@ -200,6 +205,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Bose QuietComfort Ultra",
     keywords: ["bose", "quietcomfort"],
+    categories: ["headphones", "noise"],
     listings: [
       ["bose.com", 429],
       ["bestbuy.com", 399],
@@ -211,6 +217,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Logitech MX Master 3S",
     keywords: ["logitech", "mx master"],
+    categories: ["mouse"],
     listings: [
       ["logitech.com", 99.99],
       ["amazon.com", 94.99],
@@ -222,6 +229,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Kindle Paperwhite",
     keywords: ["kindle", "paperwhite"],
+    categories: ["e-reader", "ereader", "reader"],
     listings: [
       ["amazon.com", 149.99],
       ["bestbuy.com", 159.99],
@@ -232,6 +240,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Apple AirPods Pro 2",
     keywords: ["airpods"],
+    categories: ["earbuds"],
     listings: [
       ["apple.com", 249],
       ["amazon.com", 229],
@@ -243,6 +252,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Garmin Forerunner 265",
     keywords: ["garmin", "forerunner"],
+    categories: ["running watch", "smartwatch"],
     listings: [
       ["garmin.com", 449.99],
       ["rei.com", 449.95],
@@ -253,6 +263,7 @@ export const CATALOG: CatalogItem[] = [
   {
     title: "Herman Miller Aeron chair",
     keywords: ["aeron"],
+    categories: ["chair", "office"],
     listings: [
       ["store.hermanmiller.com", 1495],
       ["dwr.com", 1495],
@@ -296,10 +307,16 @@ export function findCatalogItem(query: string) {
 
 export const channel3: Channel3Client = {
   async search({ query }) {
-    const item = findCatalogItem(query);
-    // Unknown products: Channel3 finds nothing comparable, so the backend
+    // A product name finds that product (the Quality Score lookup). A
+    // category ("noise-cancelling headphones", the shopping agent) finds every
+    // product in it. Unknown products: nothing comparable, so the backend
     // scores INSUFFICIENT_DATA and the proposal goes to manual review.
-    return item ? toProducts(item) : [];
+    const item = findCatalogItem(query);
+    if (item) return toProducts(item);
+    const key = query.toLowerCase();
+    return CATALOG.filter((entry) =>
+      entry.categories?.some((word) => key.includes(word)),
+    ).flatMap(toProducts);
   },
 };
 
