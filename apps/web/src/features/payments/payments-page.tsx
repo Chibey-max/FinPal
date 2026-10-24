@@ -9,7 +9,11 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { LinkPending } from "@/components/navigation-feedback";
-import { Pagination, paginate } from "@/components/pagination";
+import {
+  DEFAULT_PAGE_SIZE,
+  Pagination,
+  paginate,
+} from "@/components/pagination";
 import { FlashToast } from "@/components/toast";
 import {
   formatClock,
@@ -37,8 +41,6 @@ const stateEvents: Partial<Record<AuditEvent["type"], PaymentStatus>> = {
   PAYMENT_CAPTURED: "CAPTURED",
   PAYMENT_VOIDED: "VOIDED",
 };
-
-const PAGE_SIZE = 6;
 
 export interface PaymentNotice {
   page?: string;
@@ -111,8 +113,10 @@ export async function PaymentsPage({
   const { page, pageCount, start, end } = paginate(
     payments.length,
     notice.page ??
-      (selectedIndex >= 0 ? Math.floor(selectedIndex / PAGE_SIZE) + 1 : 1),
-    PAGE_SIZE,
+      (selectedIndex >= 0
+        ? Math.floor(selectedIndex / DEFAULT_PAGE_SIZE) + 1
+        : 1),
+    DEFAULT_PAGE_SIZE,
   );
   const pagePayments = payments.slice(start, end);
   const activeId = selectedId ?? pagePayments[0]?.paymentId ?? null;
@@ -182,7 +186,7 @@ export async function PaymentsPage({
             page={page}
             pageCount={pageCount}
             total={payments.length}
-            pageSize={PAGE_SIZE}
+            pageSize={DEFAULT_PAGE_SIZE}
             label="payments"
             hrefFor={(p) => `/app/payments?page=${p}`}
           />
