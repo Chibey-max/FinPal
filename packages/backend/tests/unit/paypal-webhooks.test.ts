@@ -59,6 +59,19 @@ describe("paypal webhook service", () => {
     } satisfies Partial<WebhookError>);
   });
 
+  it("rejects missing signature headers before calling PayPal", async () => {
+    await expect(
+      service().handle(
+        { ...headers, transmissionSig: "" },
+        { id: "EVT-1", event_type: "X" },
+      ),
+    ).rejects.toMatchObject({
+      name: "WebhookError",
+      code: "INVALID_SIGNATURE",
+    } satisfies Partial<WebhookError>);
+    expect(paypal.calls).not.toContain("verifyWebhookSignature");
+  });
+
   it("is idempotent for duplicate event ids", async () => {
     await payments.insert({
       userId,

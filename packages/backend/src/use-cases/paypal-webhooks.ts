@@ -75,6 +75,15 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
         );
       }
 
+      // Reject malformed deliveries locally instead of forwarding blank
+      // signature metadata to PayPal and turning its 400 response into a 500.
+      if (Object.values(headers).some((value) => value.trim().length === 0)) {
+        throw new WebhookError(
+          "INVALID_SIGNATURE",
+          "PayPal webhook signature headers were missing.",
+        );
+      }
+
       const verified = await paypal.verifyWebhookSignature({
         ...headers,
         webhookId: deps.webhookId,
