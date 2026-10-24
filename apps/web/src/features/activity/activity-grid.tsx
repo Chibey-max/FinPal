@@ -9,7 +9,7 @@ import type {
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef, useState } from "react";
 
-import { Pagination } from "@/components/pagination";
+import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
 import { useToast } from "@/components/toast";
 import { gridTheme } from "@/features/app/grid-theme";
 import { formatWhen, shortId } from "@/features/app/present";
@@ -24,8 +24,6 @@ const FILTERS = {
   Config: /CONSTRAINTS/,
 } as const;
 type FilterKey = keyof typeof FILTERS;
-
-const PAGE_SIZE = 15;
 
 interface Row {
   id: number;
@@ -168,7 +166,7 @@ export function ActivityGrid({
               ref={gridRef}
               theme={gridTheme}
               pagination
-              paginationPageSize={PAGE_SIZE}
+              paginationPageSize={DEFAULT_PAGE_SIZE}
               // Our own <Pagination> renders the controls.
               paginationPageSizeSelector={false}
               suppressPaginationPanel
@@ -200,7 +198,7 @@ export function ActivityGrid({
         page={paging.page}
         pageCount={paging.pageCount}
         total={rows.length}
-        pageSize={PAGE_SIZE}
+        pageSize={DEFAULT_PAGE_SIZE}
         label="events"
         onPage={(p) => gridRef.current?.api.paginationGoToPage(p - 1)}
       />

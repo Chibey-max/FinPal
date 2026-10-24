@@ -3,12 +3,14 @@
 import type {
   DraftConstraintsResult,
   SpendingConstraints,
+  SpendingConstraintsInput,
   Weekday,
 } from "@finpal/contracts";
 import {
   startTransition,
   useActionState,
   useEffect,
+  useMemo,
   useState,
   type FormEvent,
 } from "react";
@@ -37,6 +39,36 @@ const amount = (value: number | undefined) =>
 const optional = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
 
+const dayOrder = new Map(
+  WEEKDAYS.map((day, index) => [day.value, index] as const),
+);
+
+/** Compare the meaning of the form, not cosmetic number/day formatting. */
+function constraintsSignature(input: SpendingConstraintsInput | null) {
+  if (input === null) return "not-configured";
+  return JSON.stringify({
+    timezone: input.timezone,
+    currency: input.currency.toUpperCase(),
+    timeWindows: input.timeWindows.map((window) => ({
+      ...window,
+      days: [...window.days].sort(
+        (a, b) => (dayOrder.get(a) ?? 0) - (dayOrder.get(b) ?? 0),
+      ),
+    })),
+    amountCaps: {
+      perPurchase: Number(input.amountCaps.perPurchase),
+      daily:
+        input.amountCaps.daily === undefined
+          ? null
+          : Number(input.amountCaps.daily),
+      monthly:
+        input.amountCaps.monthly === undefined
+          ? null
+          : Number(input.amountCaps.monthly),
+    },
+  });
+}
+
 function FieldError({ message }: { message?: string }) {
   return message ? <span className="field-error">{message}</span> : null;
 }
@@ -58,7 +90,10 @@ export function ConstraintsForm({
     Parameters<typeof saveConstraints>[1]
   >(saveConstraints, {});
   const first = initial?.timeWindows[0];
-  const extraWindows = initial?.timeWindows.slice(1) ?? [];
+  const extraWindows = useMemo(
+    () => initial?.timeWindows.slice(1) ?? [],
+    [initial],
+  );
 
   const [enabled, setEnabled] = useState(initial !== null);
   const [timezone, setTimezone] = useState(
@@ -81,9 +116,48 @@ export function ConstraintsForm({
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
   const errors = state.fieldErrors ?? {};
 
+  const currentInput = useMemo<SpendingConstraintsInput | null>(
+    () =>
+      enabled
+        ? {
+            timezone,
+            currency,
+            timeWindows: [{ days, start, end }, ...extraWindows],
+            amountCaps: {
+              perPurchase: Number(perPurchase),
+              daily: optional(daily),
+              monthly: optional(monthly),
+            },
+          }
+        : null,
+    [
+      currency,
+      daily,
+      days,
+      enabled,
+      end,
+      extraWindows,
+      monthly,
+      perPurchase,
+      start,
+      timezone,
+    ],
+  );
+  const currentSignature = constraintsSignature(currentInput);
+  const initialSignature = useMemo(
+    () => constraintsSignature(initial),
+    [initial],
+  );
+  const savedSignature =
+    state.saved === undefined
+      ? initialSignature
+      : constraintsSignature(state.saved);
+  const isDirty = currentSignature !== savedSignature;
+
   useEffect(() => {
-    if (state.message)
+    if (state.message) {
       toast(state.message, state.status === "error" ? "bad" : "ok");
+    }
   }, [state.at, state.message, state.status, toast]);
 
   function applyDraft({ draft }: DraftConstraintsResult) {
@@ -107,22 +181,8 @@ export function ConstraintsForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    startTransition(() =>
-      action(
-        enabled
-          ? {
-              timezone,
-              currency,
-              timeWindows: [{ days, start, end }, ...extraWindows],
-              amountCaps: {
-                perPurchase: Number(perPurchase),
-                daily: optional(daily),
-                monthly: optional(monthly),
-              },
-            }
-          : null,
-      ),
-    );
+    if (!isDirty || pending) return;
+    startTransition(() => action(currentInput));
   }
 
   const zones = timeZones.includes(timezone)
@@ -144,6 +204,7 @@ export function ConstraintsForm({
           aria-checked={enabled}
           className="enforce-toggle"
           onClick={() => setEnabled((value) => !value)}
+          disabled={pending}
         >
           <span
             className="enforce-toggle__track"
@@ -288,11 +349,29 @@ export function ConstraintsForm({
         type="submit"
         size="xl"
         className="self-start rounded-full"
-        disabled={pending}
+        disabled={pending || !isDirty}
+        aria-describedby="constraints-save-hint"
       >
         {pending ? <span className="spinner" aria-hidden /> : null}
-        {pending ? "Saving…" : "Save constraints"}
+        {pending
+          ? "Saving…"
+          : !isDirty
+            ? state.status === "saved"
+              ? "Saved"
+              : "No changes to save"
+            : enabled
+              ? "Save constraints"
+              : "Clear constraints"}
       </LiquidButton>
+      <span id="constraints-save-hint" className="small ink4">
+        {!isDirty
+          ? enabled
+            ? "Change a rule to enable saving."
+            : "Turn on constraints to configure and save them."
+          : enabled
+            ? "Your changes are not active until you save."
+            : "Saving will clear the current constraints; new proposals will require review."}
+      </span>
     </form>
   );
 }

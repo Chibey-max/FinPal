@@ -13,7 +13,7 @@ import { AgGridReact } from "ag-grid-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { Pagination } from "@/components/pagination";
+import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
 import { gridTheme } from "@/features/app/grid-theme";
 import {
   formatMoney,
@@ -25,8 +25,6 @@ import {
   shortId,
   sourceLabel,
 } from "@/features/app/present";
-
-const PAGE_SIZE = 10;
 
 const OUTCOMES: { key: DecisionOutcome | "ALL"; label: string }[] = [
   { key: "ALL", label: "All" },
@@ -206,7 +204,7 @@ export function DecisionsGrid({
       if (!selectedId) return;
       const node = api.getRowNode(selectedId);
       if (node?.rowIndex != null) {
-        api.paginationGoToPage(Math.floor(node.rowIndex / PAGE_SIZE));
+        api.paginationGoToPage(Math.floor(node.rowIndex / DEFAULT_PAGE_SIZE));
       }
     },
     [selectedId],
@@ -263,7 +261,7 @@ export function DecisionsGrid({
             getRowId={getRowId}
             domLayout="autoHeight"
             pagination
-            paginationPageSize={PAGE_SIZE}
+            paginationPageSize={DEFAULT_PAGE_SIZE}
             // The shared <Pagination> below renders the controls.
             paginationPageSizeSelector={false}
             suppressPaginationPanel
@@ -295,7 +293,7 @@ export function DecisionsGrid({
           page={paging.page}
           pageCount={paging.pageCount}
           total={paging.total}
-          pageSize={PAGE_SIZE}
+          pageSize={DEFAULT_PAGE_SIZE}
           label="decisions"
           onPage={(page) => apiRef.current?.paginationGoToPage(page - 1)}
         />
