@@ -47,6 +47,21 @@ real PayPal it opens PayPal's own checkout page in the in-app browser; PayPal
 returns the buyer to the server, which confirms and authorizes the order, and
 the app refreshes when the browser closes.
 
+## Splash screen
+
+The splash is the logo mark on the left with "FinPal" beside it, on the dark
+theme's colour (`assets/splash-lockup.png`, regenerated from the real logo and
+Rubik Bold). Two layers show it:
+
+- **Native splash** (`expo-splash-screen` in `app.json`): what a real build
+  (EAS or a development build) shows from the instant the app launches.
+- **In-app splash** (`src/components/splash.tsx`): covers the wait for fonts
+  and the saved theme, then fades out. It always uses the dark colour.
+
+**Expo Go** shows its own white loading screen with plain "FinPal" text while
+the app downloads. It ignores the project's splash settings, so it can only be
+changed in a real build. The in-app splash takes over once the app is running.
+
 ## Look and feel
 
 Matches the web app: Rubik, Geist Mono and Instrument Serif; the liquid orb

@@ -172,7 +172,8 @@ export function PaymentFlowLoop() {
                 {index === 3 ? (
                   <span className="flow__branch flow__branch--future">
                     <i aria-hidden />
-                    REFUNDED · future
+                    REFUNDED
+                    <span className="flow__note"> · future</span>
                   </span>
                 ) : null}
               </span>

@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthGate } from "@/components/auth-gate";
 import { Backdrop } from "@/components/backdrop";
+import { SplashOverlay } from "@/components/splash";
 import { ToastProvider } from "@/components/toast";
 import { TopBar } from "@/components/top-bar";
 import { AuthProvider } from "@/lib/auth";
@@ -73,8 +74,9 @@ function Shell() {
         }}
       >
         <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-        {/* Hold the screen back until the fonts and saved theme are in, so
-            text never flashes in the phone's own face or the wrong theme. */}
+        {/* Hold the app back until the fonts and saved theme are in, so text
+            never flashes in the phone's own face or the wrong theme. The
+            splash covers that wait. */}
         {fontsLoaded && ready ? (
           <ThemeProvider value={navTheme}>
             <ToastProvider>
@@ -92,6 +94,7 @@ function Shell() {
             </ToastProvider>
           </ThemeProvider>
         ) : null}
+        <SplashOverlay ready={fontsLoaded && ready} />
       </View>
     </SafeAreaProvider>
   );

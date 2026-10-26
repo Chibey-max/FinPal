@@ -157,6 +157,9 @@
   align-items: center;
   gap: 6px;
 }
+.landing-bottom-nav {
+  display: none;
+}
 .landing-nav__menu {
   display: none;
   width: 36px;
@@ -201,6 +204,8 @@
   perspective: 1200px;
   /* Sit the card on the orb, slightly above the optical centre. */
   padding-bottom: 6vh;
+  /* Follows the orb when it is raised on phones (globals.css). */
+  transform: translateY(var(--orb-shift, 0));
 }
 .card-zoom {
   will-change: transform;
@@ -1071,17 +1076,154 @@
     margin-inline: 6px;
     border-radius: 22px;
   }
+  /* The header on phones: lower, taller, with larger controls. About 75% of
+     the page wide, growing only when its contents need more room. Padding is
+     small and the controls fill the bar, so it stays the same height. */
   .landing-nav {
-    top: 10px;
+    top: 24px;
+    width: max-content;
+    min-width: 75%;
+    max-width: calc(100% - 28px);
+  }
+  .landing-nav[data-hidden] {
+    transform: translate(-50%, calc(-100% - 48px));
   }
   .landing-nav__bar {
-    padding-left: 14px;
+    justify-content: space-between;
+    padding: 7px 7px 7px 11px;
+  }
+  .landing-nav .logo-mark {
+    width: 40px;
+    height: 40px;
+  }
+  .landing-nav .logo-word {
+    font-size: 26px;
+  }
+  .landing-nav__actions {
+    gap: 8px;
+  }
+  .landing-nav__actions .theme-button,
+  .landing-nav__menu {
+    width: 56px;
+    height: 56px;
+  }
+  .landing-nav__actions .theme-button svg,
+  .landing-nav__menu svg {
+    width: 22px;
+    height: 22px;
+  }
+  .landing-nav__actions a {
+    height: 56px;
+    padding-inline: 22px;
+    font-size: 17px;
+  }
+  /* Brand on the left, theme toggle and app entry together on the right. The
+     section links live in the bottom bar below, so the menu button and the
+     dropdown are not needed. */
+  .landing-nav__menu,
+  .landing-nav__links {
+    display: none;
+  }
+
+  /* The section links as a bottom navigation bar. */
+  .landing-bottom-nav {
+    position: fixed;
+    z-index: 50;
+    isolation: isolate;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    width: calc(100% - 28px);
+    max-width: 520px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    padding: 5px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    /* The liquid glass of the Open app button (liquid-glass-button.tsx): a
+       frosted, slightly distorted layer with layered inset highlights. Where
+       the distortion filter is unsupported it falls back to a plain blur. */
+    background: rgba(8, 11, 18, 0.88);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    box-shadow:
+      0 0 8px rgba(0, 0, 0, 0.03),
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      inset 3px 3px 0.5px -3.5px rgba(255, 255, 255, 0.09),
+      inset -3px -3px 0.5px -3.5px rgba(255, 255, 255, 0.85),
+      inset 1px 1px 1px -0.5px rgba(255, 255, 255, 0.6),
+      inset -1px -1px 1px -0.5px rgba(255, 255, 255, 0.6),
+      inset 0 0 6px 6px rgba(255, 255, 255, 0.12),
+      inset 0 0 2px 2px rgba(255, 255, 255, 0.06),
+      0 0 12px rgba(0, 0, 0, 0.15);
+  }
+  [data-theme="light"] .landing-bottom-nav {
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow:
+      0 0 6px rgba(0, 0, 0, 0.03),
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      inset 3px 3px 0.5px -3px rgba(0, 0, 0, 0.9),
+      inset -3px -3px 0.5px -3px rgba(0, 0, 0, 0.85),
+      inset 1px 1px 1px -0.5px rgba(0, 0, 0, 0.6),
+      inset -1px -1px 1px -0.5px rgba(0, 0, 0, 0.6),
+      inset 0 0 6px 6px rgba(0, 0, 0, 0.12),
+      inset 0 0 2px 2px rgba(0, 0, 0, 0.06),
+      0 0 12px rgba(255, 255, 255, 0.15);
+  }
+  .landing-bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 58px;
+    padding: 7px 4px;
+    border-radius: 999px;
+    /* White on the dark theme, dark on the light one (--ink flips with it). */
+    color: var(--ink);
+    font-size: 12px;
+    white-space: nowrap;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .landing-bottom-nav a[aria-current="true"] {
+    background: var(--w08);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.2),
+      inset 0 0 0 1px var(--w06);
+    font-weight: 500;
+  }
+  [data-theme="light"] .landing-bottom-nav a[aria-current="true"] {
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.9),
+      inset 0 0 0 1px var(--w08);
+  }
+  /* Keep the last section clear of the bar, and lift the hero's text above it
+     (the SCROLL hint would sit under it, so it goes). */
+  .landing-shell {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+  .scroll-hint {
+    display: none;
   }
   .hero-story {
     height: 420vh;
   }
   .hero-copy h1 {
     font-size: 54px;
+  }
+  /* Raise the headline block to sit just under the orb (whose bottom edge is
+     about 41svh + 48vw; globals.css raises the orb by 9svh), 64px below
+     it, filling the space. It stays anchored to the bottom, so on a phone too short to have
+     room it keeps its usual place instead of running off the screen. */
+  .hero-copy {
+    top: auto;
+    bottom: 98px;
+    min-height: calc(100svh - 98px - (41svh + 48vw + 64px));
+    padding-bottom: 0;
+    align-content: start;
+    align-items: start;
   }
   .section-heading {
     flex-direction: column;
@@ -1122,7 +1264,14 @@
     top: 50%;
     left: calc(100% + 12px);
     flex-direction: row;
+    white-space: nowrap;
     transform: translateY(-50%);
+  }
+  /* The label sits beside a centred step, so there is little room: keep
+     the state name and drop the aside ("future" is also shown by the dashed
+     line). */
+  .flow__note {
+    display: none;
   }
   .flow__branch i {
     width: 14px;
@@ -1144,6 +1293,75 @@
   .landing-cta {
     min-height: 520px;
     padding-top: 90px;
+  }
+}
+
+/* The nav bar (logo, theme, menu, Open app) is wider than the narrowest
+   phones at its normal spacing: tighten it so it always fits. */
+@media (max-width: 400px) {
+  .landing-nav__bar {
+    gap: 6px;
+    padding: 7px 7px 7px 10px;
+  }
+  .landing-nav__actions {
+    gap: 5px;
+  }
+  .landing-nav .logo-mark {
+    width: 32px;
+    height: 32px;
+  }
+  .landing-nav .logo-word {
+    font-size: 21px;
+  }
+  .landing-nav__actions .theme-button,
+  .landing-nav__menu {
+    width: 50px;
+    height: 50px;
+  }
+  .landing-nav__actions a {
+    height: 50px;
+    padding-inline: 16px;
+    font-size: 15px;
+  }
+  /* The step labels beside the flow diagram's nodes: smaller and closer. */
+  .flow__branch {
+    left: calc(100% + 8px);
+    gap: 4px;
+    font-size: 9.5px;
+  }
+  .flow__branch i {
+    width: 10px;
+  }
+}
+
+/* The very narrowest phones (320px): the header's contents still have to fit. */
+@media (max-width: 340px) {
+  .landing-nav__bar {
+    gap: 4px;
+    padding: 5px 5px 5px 8px;
+  }
+  .landing-nav .logo-mark {
+    width: 28px;
+    height: 28px;
+  }
+  .landing-nav .logo {
+    gap: 6px;
+  }
+  .landing-nav .logo-word {
+    font-size: 18px;
+  }
+  .landing-nav__actions {
+    gap: 4px;
+  }
+  .landing-nav__actions .theme-button,
+  .landing-nav__menu {
+    width: 44px;
+    height: 44px;
+  }
+  .landing-nav__actions a {
+    height: 44px;
+    padding-inline: 12px;
+    font-size: 14px;
   }
 }
 

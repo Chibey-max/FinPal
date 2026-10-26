@@ -1,4 +1,16 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import type { NextConfig } from "next";
+
+// Next only reads .env files from this app's own folder, but the project's
+// secrets live in the repo root's .env (see .env.example). Load it in
+// development; existing environment variables win, and in production the
+// platform supplies them.
+const rootEnv = path.resolve(process.cwd(), "../../.env");
+if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) {
+  process.loadEnvFile(rootEnv);
+}
 
 // Pre-/app routes, kept so old links and bookmarks still land somewhere.
 const legacyRoutes: [string, string][] = [
@@ -27,6 +39,11 @@ const calendarPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Development only: Next refuses to serve its scripts to any address that
+  // is not listed, so a page opened by network IP (from a phone or another
+  // computer on the same Wi-Fi) renders as plain HTML and never becomes
+  // interactive. These are the private network ranges.
+  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*"],
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,

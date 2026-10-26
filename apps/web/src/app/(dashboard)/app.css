@@ -1168,8 +1168,10 @@ select.input option {
 .grid-footer:empty {
   display: none;
 }
-.grid-inner--decisions {
-  min-width: 940px;
+.grid-inner.grid-inner--decisions {
+  /* At least the columns' total width (decisions-grid.tsx), so the grid does
+     not add a second, inner scrollbar inside the page's. */
+  min-width: 1120px;
 }
 .grid-card .ag-cell .chip {
   align-self: center;
@@ -1181,6 +1183,74 @@ select.input option {
 .grid-card .grid-row-selected {
   background: var(--w06);
   box-shadow: inset 2px 0 0 var(--brand);
+}
+
+/* Phones: the decisions as cards instead of a table that scrolls sideways. */
+.decision-cards {
+  display: none;
+}
+.decision-card-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.decision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 1px solid var(--w05);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.decision-card-list li:last-child .decision-card {
+  border-bottom: none;
+}
+.decision-card:active {
+  background: var(--w03);
+}
+.decision-card[aria-current="true"] {
+  background: var(--w06);
+  box-shadow: inset 2px 0 0 var(--brand);
+}
+.decision-card__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.decision-card__name {
+  min-width: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.decision-cards__empty {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--ink3);
+  font-size: 14px;
+}
+.decision-cards .pagination,
+.decision-cards > nav {
+  padding: 12px 16px;
+  border-top: 1px solid var(--w08);
+}
+@media (max-width: 720px) {
+  .decision-cards {
+    display: block;
+  }
+  /* The table and its own pager give way to the cards. */
+  .grid-card:has(.decision-cards) .grid-scroll,
+  .grid-card:has(.decision-cards) .grid-footer {
+    display: none;
+  }
 }
 
 .decision-detail {
@@ -1707,7 +1777,8 @@ select.input option {
   overflow-x: auto;
 }
 .grid-inner {
-  min-width: 720px;
+  /* At least the Activity columns' total width (activity-grid.tsx). */
+  min-width: 730px;
 }
 .grid-card .ag-header-cell-text {
   text-transform: uppercase;

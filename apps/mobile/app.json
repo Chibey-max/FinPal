@@ -19,12 +19,23 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar",
-      "expo-font",
-      "expo-web-browser"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#040509",
+          "image": "./assets/splash-lockup.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "splash": {
+      "backgroundColor": "#040509",
+      "image": "./assets/splash-lockup.png",
+      "resizeMode": "contain"
     }
   }
 }
