@@ -1,11 +1,15 @@
 "use client";
 
 import type { ActivityPage, AuditEvent } from "@finpal/contracts";
-import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type {
+  ColDef,
+  GetRowIdParams,
+  ICellRendererParams,
+} from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef, useState } from "react";
 
-import { Pagination } from "@/components/pagination";
+import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
 import { useToast } from "@/components/toast";
 import { gridTheme } from "@/features/app/grid-theme";
 import { formatWhen, shortId } from "@/features/app/present";
@@ -21,8 +25,6 @@ const FILTERS = {
 } as const;
 type FilterKey = keyof typeof FILTERS;
 
-const PAGE_SIZE = 15;
-
 interface Row {
   id: number;
   at: string;
@@ -31,6 +33,15 @@ interface Row {
   entity: string;
   detail: string;
 }
+
+// Stable grid options: new objects on every render made AG Grid refresh and,
+// with the paging sync, loop forever (see decisions-grid.tsx).
+const DEFAULT_COL_DEF: ColDef<Row> = {
+  sortable: true,
+  resizable: true,
+  suppressMovable: true,
+};
+const getRowId = (params: GetRowIdParams<Row>) => String(params.data.id);
 
 function TypeCell(params: ICellRendererParams<Row, string>) {
   return (
@@ -155,24 +166,26 @@ export function ActivityGrid({
               ref={gridRef}
               theme={gridTheme}
               pagination
-              paginationPageSize={PAGE_SIZE}
+              paginationPageSize={DEFAULT_PAGE_SIZE}
               // Our own <Pagination> renders the controls.
               paginationPageSizeSelector={false}
               suppressPaginationPanel
-              onPaginationChanged={(event) =>
-                setPaging({
+              onPaginationChanged={(event) => {
+                // Only update when a number changed; see DEFAULT_COL_DEF.
+                const next = {
                   page: event.api.paginationGetCurrentPage() + 1,
                   pageCount: Math.max(1, event.api.paginationGetTotalPages()),
-                })
-              }
+                };
+                setPaging((prev) =>
+                  prev.page === next.page && prev.pageCount === next.pageCount
+                    ? prev
+                    : next,
+                );
+              }}
               rowData={rows}
               columnDefs={columns}
-              defaultColDef={{
-                sortable: true,
-                resizable: true,
-                suppressMovable: true,
-              }}
-              getRowId={(params) => String(params.data.id)}
+              defaultColDef={DEFAULT_COL_DEF}
+              getRowId={getRowId}
               domLayout="autoHeight"
               suppressCellFocus
               tooltipShowDelay={400}
@@ -185,7 +198,7 @@ export function ActivityGrid({
         page={paging.page}
         pageCount={paging.pageCount}
         total={rows.length}
-        pageSize={PAGE_SIZE}
+        pageSize={DEFAULT_PAGE_SIZE}
         label="events"
         onPage={(p) => gridRef.current?.api.paginationGoToPage(p - 1)}
       />

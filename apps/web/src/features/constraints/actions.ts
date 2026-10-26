@@ -13,13 +13,15 @@ export interface SaveConstraintsState {
   status?: "saved" | "error";
   message?: string;
   fieldErrors?: Record<string, string>;
+  /** Canonical value persisted by the last successful save. */
+  saved?: SpendingConstraintsInput | null;
   /** Bumped on every save so the form can react to repeat results. */
   at?: number;
 }
 
 /** Saves constraints, or clears them when `input` is null ("Not configured"). */
 export async function saveConstraints(
-  _previous: SaveConstraintsState,
+  previous: SaveConstraintsState,
   input: SpendingConstraintsInput | null,
 ): Promise<SaveConstraintsState> {
   const user = await requireUser();
@@ -38,6 +40,7 @@ export async function saveConstraints(
         status: "error",
         message: "Please fix the highlighted fields.",
         fieldErrors,
+        saved: previous.saved,
         at,
       };
     }
@@ -50,10 +53,8 @@ export async function saveConstraints(
     console.error("Saving constraints failed", error);
     return {
       status: "error",
-      message:
-        error instanceof Error && error.message.includes("not supported")
-          ? error.message
-          : "Could not save. Please try again.",
+      message: "Could not save. Please try again.",
+      saved: previous.saved,
       at,
     };
   }
@@ -61,6 +62,7 @@ export async function saveConstraints(
   revalidatePath("/app", "layout");
   return {
     status: "saved",
+    saved: constraints,
     message: constraints
       ? "Constraints saved. They apply to new proposals."
       : "Constraints cleared. Every new proposal goes to manual review.",

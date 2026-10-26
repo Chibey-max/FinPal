@@ -54,6 +54,9 @@ export function createInMemoryDb(clock: () => Date) {
     async save(userId, value) {
       constraintRows.set(userId, value);
     },
+    async clear(userId) {
+      constraintRows.delete(userId);
+    },
   };
 
   const evaluations: EvaluationRepository = {

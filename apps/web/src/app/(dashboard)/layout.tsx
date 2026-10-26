@@ -11,7 +11,7 @@ import { ToastProvider } from "@/components/toast";
 import { isOpenPayment } from "@/features/app/present";
 import { signOut } from "@/features/auth/actions";
 import { requireUser } from "@/lib/auth";
-import { getUserDashboard } from "@/lib/backend";
+import { getDecisionRows } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
 
 import "./app.css";
@@ -20,9 +20,7 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const user = await requireUser();
-  const rows = await getUserDashboard().then((d) =>
-    d.listDecisionRows(user.id, { limit: 200 }),
-  );
+  const rows = await getDecisionRows(user.id);
   const badges = {
     review: rows.filter(
       (row) => row.outcome === "MANUAL_REVIEW" && row.reviewStatus === null,

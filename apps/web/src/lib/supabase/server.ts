@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies, headers } from "next/headers";
 
 import { getPublicEnv } from "@/lib/env";
+import { supabaseFetch } from "@/lib/supabase/fetch";
 
 /**
  * The Supabase access token a native client (apps/mobile) sends as
@@ -39,6 +40,7 @@ export async function createServerSupabaseClient() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
           return cookieStore.getAll();

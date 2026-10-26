@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { Pagination, paginate } from "@/components/pagination";
+import {
+  DEFAULT_PAGE_SIZE,
+  Pagination,
+  paginate,
+} from "@/components/pagination";
 
 import {
   formatMoney,
@@ -11,9 +15,7 @@ import {
 } from "@/features/app/present";
 import { ReviewActions } from "@/features/review/review-actions";
 import { requireUser } from "@/lib/auth";
-import { getUserConstraints, getUserDashboard } from "@/lib/backend";
-
-const PAGE_SIZE = 5;
+import { getUserConstraints, getDecisionRows } from "@/lib/backend";
 
 export default async function ReviewPage({
   searchParams,
@@ -23,7 +25,7 @@ export default async function ReviewPage({
   const user = await requireUser();
   const params = await searchParams;
   const [rows, constraints] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getUserConstraints(user.id),
   ]);
   const pending = rows.filter(
@@ -32,7 +34,7 @@ export default async function ReviewPage({
   const { page, pageCount, start, end } = paginate(
     pending.length,
     params.page,
-    PAGE_SIZE,
+    DEFAULT_PAGE_SIZE,
   );
   const timeZone = constraints?.timezone ?? "UTC";
 
@@ -78,7 +80,7 @@ export default async function ReviewPage({
             page={page}
             pageCount={pageCount}
             total={pending.length}
-            pageSize={PAGE_SIZE}
+            pageSize={DEFAULT_PAGE_SIZE}
             label="pending reviews"
             hrefFor={(p) => `/app/review?page=${p}`}
           />

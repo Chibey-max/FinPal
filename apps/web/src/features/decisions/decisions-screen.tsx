@@ -61,7 +61,9 @@ export function DecisionDetailView({
             {shortId("decision", decision.id)} ·{" "}
             {proposal.source === "CALENDAR"
               ? "calendar-assisted"
-              : "manual entry"}{" "}
+              : proposal.source === "AGENT"
+                ? "chosen by the agent"
+                : "manual entry"}{" "}
             · evaluated {formatWhen(decision.decidedAt, timeZone)}
           </span>
           <h2 className="detail-title">
@@ -73,6 +75,7 @@ export function DecisionDetailView({
         </span>
       </div>
       <p className="detail-explanation">{decision.reason}</p>
+      <AgentChoice detail={detail} />
       {summary ? (
         <DecisionSummary key={decision.id} decisionId={decision.id} />
       ) : null}
@@ -220,5 +223,42 @@ export function DecisionDetailView({
 
       <DecisionActions decisionId={decision.id} state={actionState(detail)} />
     </div>
+  );
+}
+
+const str = (value: unknown) =>
+  typeof value === "string" && value ? value : null;
+
+/** Why the shopping agent picked this offer, from its audit event. */
+function AgentChoice({ detail }: { detail: DecisionDetail }) {
+  const event = detail.events.find((e) => e.type === "AGENT_PURCHASE_PROPOSED");
+  if (!event) return null;
+  const p = event.payload;
+  const need = str(p.need);
+  const reason = str(p.reason);
+  const merchant = str(p.merchant);
+  const considered = Array.isArray(p.considered) ? p.considered.length : 0;
+  const found = typeof p.offersFound === "number" ? p.offersFound : null;
+  return (
+    <section className="card agent-choice" aria-labelledby="agent-choice">
+      <div className="summary-card__head">
+        <h3 id="agent-choice">Agent&apos;s choice</h3>
+        {str(p.model) ? (
+          <span className="mono small ink4">Groq · {str(p.model)}</span>
+        ) : null}
+      </div>
+      {need ? (
+        <p className="agent-choice__need">
+          <span className="eyebrow">Asked for</span> {need}
+        </p>
+      ) : null}
+      {reason ? <p className="summary-card__text">{reason}</p> : null}
+      <p className="summary-card__note">
+        {merchant ? `${merchant} · ` : ""}
+        {found !== null ? `${found} offers found` : ""}
+        {considered ? `, ${considered} compared` : ""}. The outcome above is set
+        by FinPal&apos;s rules, not the agent.
+      </p>
+    </section>
   );
 }

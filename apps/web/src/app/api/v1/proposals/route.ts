@@ -1,4 +1,7 @@
-import { createProposalSchema, trustSignalSchema } from "@finpal/contracts";
+import {
+  createProposalRequestSchema,
+  trustSignalSchema,
+} from "@finpal/contracts";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const input = createProposalSchema.parse(body);
+    const input = createProposalRequestSchema.parse(body);
     const proposal = await getEvaluationService().createProposal(userId, input);
     const { simulation } = simulationSchema.parse(body);
     if (simulation) recordSimulatedTrust(proposal.id, simulation.trust);

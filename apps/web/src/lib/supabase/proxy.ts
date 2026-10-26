@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv } from "@/lib/env";
+import { supabaseFetch } from "@/lib/supabase/fetch";
 
 const protectedPrefixes = [
   "/app",
@@ -29,6 +30,7 @@ export async function updateSession(request: NextRequest) {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      global: { fetch: supabaseFetch },
       cookies: {
         getAll() {
           return request.cookies.getAll();

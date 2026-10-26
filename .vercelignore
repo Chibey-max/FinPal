@@ -1,0 +1,28 @@
+# Local dependencies and build caches
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+.turbo/
+**/.turbo/
+coverage/
+**/coverage/
+dist/
+**/dist/
+
+# Local configuration and provider metadata
+.env
+.env.*
+.vercel/
+.git/
+
+# Sources that are not part of the web production build
+.github/
+.impeccable/
+apps/mobile/
+docs/
+infra/
+scripts/
+tests/
+*.pdf
+*.mp4

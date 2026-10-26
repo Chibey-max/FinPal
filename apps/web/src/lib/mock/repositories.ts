@@ -55,16 +55,13 @@ export const proposals: ProposalRepository = {
   },
 };
 
-export const constraints: ConstraintsRepository & {
-  clear(userId: string): Promise<void>;
-} = {
+export const constraints: ConstraintsRepository = {
   async get(userId) {
     return getStore().constraints.get(userId) ?? null;
   },
   async save(userId, value) {
     getStore().constraints.set(userId, value);
   },
-  /** Mock only: the live repository has no delete yet. */
   async clear(userId) {
     getStore().constraints.delete(userId);
   },

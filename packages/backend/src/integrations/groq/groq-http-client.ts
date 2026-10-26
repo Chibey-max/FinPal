@@ -14,7 +14,12 @@ export interface GroqHttpClientOptions {
   fetch?: typeof fetch;
 }
 
-export const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
+
+// Reasoning models spend part of the completion budget on hidden reasoning,
+// so they get low effort and room for it on top of the visible reply.
+const isReasoningModel = (model: string) => model.startsWith("openai/gpt-oss");
+const REASONING_ALLOWANCE = 600;
 const DEFAULT_BASE_URL = "https://api.groq.com/openai/v1";
 
 const completionSchema = z.object({
@@ -48,7 +53,10 @@ export function createGroqHttpClient(
             model,
             messages: request.messages,
             temperature: request.temperature ?? 0.2,
-            max_completion_tokens: request.maxTokens ?? 300,
+            max_completion_tokens:
+              (request.maxTokens ?? 300) +
+              (isReasoningModel(model) ? REASONING_ALLOWANCE : 0),
+            ...(isReasoningModel(model) ? { reasoning_effort: "low" } : {}),
             ...(request.json
               ? { response_format: { type: "json_object" } }
               : {}),

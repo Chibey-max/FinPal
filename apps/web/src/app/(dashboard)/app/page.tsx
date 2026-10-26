@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ForecastCard } from "@/features/agent/forecast-card";
 import { FlashToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import {
@@ -17,7 +18,7 @@ import { requireUser } from "@/lib/auth";
 import {
   getSpendSummary,
   getUserConstraints,
-  getUserDashboard,
+  getDecisionRows,
 } from "@/lib/backend";
 
 export default async function OverviewPage({
@@ -29,7 +30,7 @@ export default async function OverviewPage({
   const { password } = await searchParams;
   const constraints = await getUserConstraints(user.id);
   const [rows, spend] = await Promise.all([
-    getUserDashboard().then((d) => d.listDecisionRows(user.id, { limit: 200 })),
+    getDecisionRows(user.id),
     getSpendSummary(user.id, constraints),
   ]);
 
@@ -135,6 +136,8 @@ export default async function OverviewPage({
           </article>
         ))}
       </div>
+
+      <ForecastCard timeZone={constraints?.timezone ?? "UTC"} />
 
       <div className="split-grid">
         <section className="card span-2 list-card" aria-labelledby="recent">

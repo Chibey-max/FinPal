@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 
 import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 
+/** One consistent density across FinPal's operational lists. */
+export const DEFAULT_PAGE_SIZE = 10;
+
 /** Page numbers with ellipses, e.g. 1 … 4 5 6 … 12. */
 export function pageWindow(
   page: number,

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { pageWindow, paginate } from "./pagination";
+import { DEFAULT_PAGE_SIZE, pageWindow, paginate } from "./pagination";
 
 describe("pagination", () => {
+  it("uses ten items as the shared list limit", () => {
+    expect(DEFAULT_PAGE_SIZE).toBe(10);
+  });
+
   it("lists every page when there are few", () => {
     expect(pageWindow(2, 5)).toEqual([1, 2, 3, 4, 5]);
   });

@@ -2,25 +2,29 @@
 
 All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. Every `/api/v1` route requires a signed-in Supabase session and only ever sees the caller's own data.
 
-| Method | Path                                    | Purpose                                                  |
-| ------ | --------------------------------------- | -------------------------------------------------------- |
-| `GET`  | `/api/health`                           | Deployment health check                                  |
-| `POST` | `/api/v1/proposals`                     | Create a manual or calendar-prefilled proposal           |
-| `POST` | `/api/v1/evaluations`                   | Run constraints, quality, trust, and decision rules      |
-| `POST` | `/api/v1/payments`                      | Create the PayPal order for an `AUTO_APPROVE` decision   |
-| `GET`  | `/api/v1/payments/:paymentId`           | Read a payment attempt                                   |
-| `POST` | `/api/v1/payments/:paymentId/authorize` | Confirm buyer approval with PayPal and authorize (retry) |
-| `GET`  | `/api/v1/payments/return`               | PayPal return URL; confirms approval and authorizes      |
-| `POST` | `/api/v1/payments/:paymentId/capture`   | Capture an authorized payment                            |
-| `POST` | `/api/v1/payments/:paymentId/void`      | Void an authorization before capture                     |
-| `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated          |
-| `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment    |
-| `GET`  | `/api/v1/decisions/:decisionId`         | Full detail for one decision, with its audit trail       |
-| `POST` | `/api/v1/decisions/:decisionId/review`  | Approve or reject a `MANUAL_REVIEW` decision             |
-| `POST` | `/api/v1/decisions/:decisionId/explain` | Plain-language summary of a decision (Groq or rules)     |
-| `POST` | `/api/v1/proposals/draft`               | Turn a sentence into proposal form fields (no write)     |
-| `GET`  | `/api/v1/calendar/events`               | Upcoming Google Calendar events for proposal prefill     |
-| `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events               |
+| Method | Path                                    | Purpose                                                    |
+| ------ | --------------------------------------- | ---------------------------------------------------------- |
+| `GET`  | `/api/health`                           | Deployment health check                                    |
+| `POST` | `/api/v1/proposals`                     | Create a manual or calendar-prefilled proposal             |
+| `POST` | `/api/v1/evaluations`                   | Run constraints, quality, trust, and decision rules        |
+| `POST` | `/api/v1/payments`                      | Create the PayPal order for an `AUTO_APPROVE` decision     |
+| `GET`  | `/api/v1/payments/:paymentId`           | Read a payment attempt                                     |
+| `POST` | `/api/v1/payments/:paymentId/authorize` | Confirm buyer approval with PayPal and authorize (retry)   |
+| `GET`  | `/api/v1/payments/return`               | PayPal return URL; confirms approval and authorizes        |
+| `POST` | `/api/v1/payments/:paymentId/capture`   | Capture an authorized payment                              |
+| `POST` | `/api/v1/payments/:paymentId/void`      | Void an authorization before capture                       |
+| `GET`  | `/api/v1/activity`                      | The user's audit trail, newest first, paginated            |
+| `GET`  | `/api/v1/decisions`                     | Dashboard rows: decision + proposal + score + payment      |
+| `GET`  | `/api/v1/decisions/:decisionId`         | Full detail for one decision, with its audit trail         |
+| `POST` | `/api/v1/decisions/:decisionId/review`  | Approve or reject a `MANUAL_REVIEW` decision               |
+| `POST` | `/api/v1/decisions/:decisionId/explain` | Plain-language summary of a decision (Groq or rules)       |
+| `POST` | `/api/v1/proposals/draft`               | Turn a sentence into proposal form fields (no write)       |
+| `POST` | `/api/v1/agent/shop`                    | Shopping agent: search, pick an offer, submit and evaluate |
+| `GET`  | `/api/v1/agent/suggestions`             | Purchase ideas from upcoming calendar events (no write)    |
+| `POST` | `/api/v1/constraints/draft`             | Turn written rules into Constraints form fields (no write) |
+| `GET`  | `/api/v1/forecast`                      | Spending pace, headroom and busy days ahead                |
+| `GET`  | `/api/v1/calendar/events`               | Upcoming Google Calendar events for proposal prefill       |
+| `POST` | `/api/webhooks/paypal`                  | Receive verified, idempotent PayPal events                 |
 
 ## Proposal and decision flow
 
@@ -53,6 +57,21 @@ POST /proposals/draft { text, currency? }
 ```
 
 The explanation is rejected in favour of the rules if it names a different outcome or price score than the decision has. A drafted price is kept only if the sentence states it. Only decision facts and the typed sentence are sent to Groq, never user ids or emails.
+
+### Agent (Groq)
+
+The agent acts on the user's behalf, but only inside the rules. `POST /agent/shop { need, eventId? }` turns the need into a Channel3 search, keeps new, in-stock offers in the user's currency and within any budget the need states, and picks one. It then creates a proposal with `source: "AGENT"`, records `AGENT_PURCHASE_PROPOSED` (need, query, offers compared, pick, reason, model) and runs the normal evaluation. Payment still needs approval in PayPal. `POST /proposals` never accepts `source: "AGENT"`.
+
+```text
+POST /agent/shop { need, eventId? }
+  -> 200 { status: PROPOSED | NO_OFFERS | OVER_BUDGET | SEARCH_FAILED,
+           brief, candidates, offersFound, pick, reason, proposal, evaluation, decision, source, model }
+GET  /agent/suggestions      -> 200 { suggestions: [{ eventId, eventTitle, startsAt, need, reason }], calendarConfigured, source, model }
+POST /constraints/draft { text } -> 200 { draft: { currency, perPurchase, daily, monthly, timeWindows }, changed, source, model }
+GET  /forecast               -> 200 { level: OK | WATCH | WARN, spentToday, spentThisMonth, projectedMonth, dailyLeft, monthlyLeft, busyEvents, signals, advice, source, model }
+```
+
+Guardrails: the model may only pick one of the listed offers; budgets and amounts count only if the user wrote them; any prose (pick reason, forecast advice) is rejected if it contains a number that is not in the facts. Without `GROQ_API_KEY`, or on an invalid reply, every feature falls back to rule-based logic. `/agent/shop` allows 6 runs a minute per user; the others 20.
 
 ### Calendar prefill
 

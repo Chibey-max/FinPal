@@ -151,3 +151,6 @@ export function formatEventDate(iso: string, timeZone: string) {
 /** Percent of a cap used, clamped to 0-100. */
 export const percentOf = (value: number, cap: number | undefined) =>
   cap ? Math.min(100, Math.max(0, Math.round((value / cap) * 100))) : 0;
+
+export const sourceLabel = (source: "MANUAL" | "CALENDAR" | "AGENT") =>
+  source === "CALENDAR" ? "Calendar" : source === "AGENT" ? "Agent" : "Manual";
