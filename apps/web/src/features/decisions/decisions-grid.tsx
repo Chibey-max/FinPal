@@ -101,9 +101,12 @@ function DecisionCards({
   onPage: (page: number) => void;
   onOpen: (row: DecisionRow) => void;
 }) {
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / DEFAULT_PAGE_SIZE));
   const current = Math.min(page, pageCount);
-  const shown = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const shown = rows.slice(
+    (current - 1) * DEFAULT_PAGE_SIZE,
+    current * DEFAULT_PAGE_SIZE,
+  );
 
   return (
     <div className="decision-cards">
@@ -160,7 +163,7 @@ function DecisionCards({
         page={current}
         pageCount={pageCount}
         total={rows.length}
-        pageSize={PAGE_SIZE}
+        pageSize={DEFAULT_PAGE_SIZE}
         label="decisions"
         onPage={onPage}
       />
@@ -322,6 +325,14 @@ export function DecisionsGrid({
     (node: IRowNode<DecisionRow>) => node.data?.outcome === outcome,
     [outcome],
   );
+  const cardRows = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return rows.filter(
+      (row) =>
+        (outcome === "ALL" || row.outcome === outcome) &&
+        (needle === "" || searchText(row, timeZone).includes(needle)),
+    );
+  }, [outcome, rows, search, timeZone]);
 
   return (
     <section className="card grid-card stack-flush" aria-label="Decisions">
