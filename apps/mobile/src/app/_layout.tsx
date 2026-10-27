@@ -86,7 +86,6 @@ function Shell() {
                 <Stack
                   screenOptions={{
                     headerShown: false,
-                    animation: "fade",
                     contentStyle: { backgroundColor: "transparent" },
                   }}
                 />

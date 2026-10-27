@@ -95,6 +95,7 @@ export function Card({
     return (
       <Pressable
         onPress={onPress}
+        accessibilityRole="button"
         style={({ pressed }) => [
           styles.card,
           pressed && { backgroundColor: colors.cardRaised },
@@ -123,7 +124,12 @@ export function CardHead({
     <View style={styles.cardHead}>
       <Text style={styles.cardTitle}>{title}</Text>
       {action ? (
-        <Pressable onPress={onAction} accessibilityRole="link" hitSlop={10}>
+        <Pressable
+          onPress={onAction}
+          accessibilityRole="link"
+          hitSlop={10}
+          style={{ minHeight: 48, justifyContent: "center" }}
+        >
           <Text style={styles.quietLink}>{action}</Text>
         </Pressable>
       ) : null}
@@ -184,7 +190,11 @@ export function ErrorNotice({
       <Badge label="COULD NOT LOAD" tone="bad" />
       <Text style={styles.body}>{message}</Text>
       {onRetry ? (
-        <Pressable onPress={onRetry} accessibilityRole="button">
+        <Pressable
+          onPress={onRetry}
+          accessibilityRole="button"
+          style={{ minHeight: 48, justifyContent: "center" }}
+        >
           <Text style={styles.link}>Try again</Text>
         </Pressable>
       ) : null}

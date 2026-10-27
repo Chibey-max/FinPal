@@ -4,14 +4,13 @@
     "slug": "finpal",
     "scheme": "finpal",
     "version": "0.1.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#040509",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": true
     },
     "android": {
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -31,11 +30,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "splash": {
-      "backgroundColor": "#040509",
-      "image": "./assets/splash-lockup.png",
-      "resizeMode": "contain"
     }
   }
 }

@@ -281,9 +281,9 @@ function Header({ top, onOpen }: { top: number; onOpen: () => void }) {
           onPress={onOpen}
           accessibilityRole="button"
           style={({ pressed }) => ({
-            height: 36,
+            minHeight: 48,
             paddingHorizontal: s(16),
-            borderRadius: 18,
+            borderRadius: 22,
             borderWidth: 1,
             borderColor: colors.chromeLine,
             backgroundColor: pressed ? colors.chromeActive : colors.chrome,

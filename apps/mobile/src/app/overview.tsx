@@ -1,6 +1,6 @@
 import type { DecisionRow } from "@finpal/contracts";
 import { useRouter, type Href } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 
 import { Button } from "@/components/form";
 import {
@@ -40,6 +40,8 @@ type Summary = {
 
 export default function Overview() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = width < 360;
   const { colors } = useTheme();
   const summary = useApi<Summary>("/api/v1/summary");
   const decisions = useApi<{ rows: DecisionRow[] }>("/api/v1/decisions");
@@ -144,8 +146,8 @@ export default function Overview() {
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <View
         style={{
-          flexDirection: "row",
-          alignItems: "flex-end",
+          flexDirection: compact ? "column" : "row",
+          alignItems: compact ? "stretch" : "flex-end",
           justifyContent: "space-between",
           gap: s(12),
         }}
@@ -155,6 +157,7 @@ export default function Overview() {
           label="New proposal"
           variant="primary"
           onPress={() => router.navigate("/proposals/new")}
+          style={compact ? { alignSelf: "stretch" } : undefined}
         />
       </View>
 
@@ -178,16 +181,20 @@ export default function Overview() {
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: s(12) }}>
         {kpis.map((kpi) => (
-          <Card key={kpi.label} style={{ flexBasis: "47%", flexGrow: 1 }}>
+          <Card
+            key={kpi.label}
+            style={{ flexBasis: compact ? "100%" : "47%", flexGrow: 1 }}
+          >
             <Eyebrow>{kpi.label}</Eyebrow>
             <Text
               style={{
                 fontFamily: font.light,
-                fontSize: ms(36),
+                fontSize: ms(compact ? 34 : kpi.value.length > 9 ? 27 : 36),
                 letterSpacing: -1.1,
               }}
               numberOfLines={1}
               adjustsFontSizeToFit
+              minimumFontScale={0.72}
             >
               {kpi.value}
             </Text>
@@ -229,6 +236,7 @@ export default function Overview() {
             <Pressable
               key={row.decisionId}
               onPress={() => router.push(`/decisions/${row.decisionId}`)}
+              accessibilityRole="button"
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -288,6 +296,7 @@ export default function Overview() {
             <Pressable
               key={action.key}
               onPress={() => router.push(action.href as Href)}
+              accessibilityRole="button"
               style={({ pressed }) => ({
                 gap: s(4),
                 paddingVertical: s(12),

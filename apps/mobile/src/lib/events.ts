@@ -94,6 +94,8 @@ export function summarizeEvent(event: AuditEvent): string {
           text(p.debugId) && `debug ${p.debugId}`,
         ) ?? "PayPal request failed"
       );
+    default:
+      return event.type.replaceAll("_", " ").toLowerCase();
   }
 }
 

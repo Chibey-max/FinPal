@@ -1,4 +1,8 @@
-import type { SpendingConstraints, Weekday } from "@finpal/contracts";
+import type {
+  SpendingConstraints,
+  SpendingConstraintsInput,
+  Weekday,
+} from "@finpal/contracts";
 import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 
@@ -35,6 +39,9 @@ const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: "SUN", label: "Sun" },
 ];
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
+const dayOrder = new Map(
+  WEEKDAYS.map((day, index) => [day.value, index] as const),
+);
 
 // Used when the phone's JavaScript engine cannot list every IANA zone.
 const COMMON_ZONES = [
@@ -72,6 +79,32 @@ const amount = (value: number | undefined) =>
   value === undefined ? "" : value.toFixed(2);
 const optional = (value: string) =>
   value.trim() === "" ? undefined : Number(value);
+
+/** Compare the saved meaning rather than cosmetic number or weekday ordering. */
+function constraintsSignature(input: SpendingConstraintsInput | null) {
+  if (input === null) return "not-configured";
+  return JSON.stringify({
+    timezone: input.timezone,
+    currency: input.currency.toUpperCase(),
+    timeWindows: input.timeWindows.map((window) => ({
+      ...window,
+      days: [...window.days].sort(
+        (a, b) => (dayOrder.get(a) ?? 0) - (dayOrder.get(b) ?? 0),
+      ),
+    })),
+    amountCaps: {
+      perPurchase: Number(input.amountCaps.perPurchase),
+      daily:
+        input.amountCaps.daily === undefined
+          ? null
+          : Number(input.amountCaps.daily),
+      monthly:
+        input.amountCaps.monthly === undefined
+          ? null
+          : Number(input.amountCaps.monthly),
+    },
+  });
+}
 
 type Loaded = { constraints: SpendingConstraints | null; canClear: boolean };
 
@@ -140,6 +173,39 @@ function Form({
   const [currency, setCurrency] = useState(initial?.currency ?? "USD");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [savedSignature, setSavedSignature] = useState(() =>
+    constraintsSignature(initial),
+  );
+
+  const currentInput = useMemo<SpendingConstraintsInput | null>(
+    () =>
+      enabled
+        ? {
+            timezone,
+            currency,
+            timeWindows: [{ days, start, end }, ...extraWindows],
+            amountCaps: {
+              perPurchase: Number(perPurchase),
+              daily: optional(daily),
+              monthly: optional(monthly),
+            },
+          }
+        : null,
+    [
+      currency,
+      daily,
+      days,
+      enabled,
+      end,
+      extraWindows,
+      monthly,
+      perPurchase,
+      start,
+      timezone,
+    ],
+  );
+  const currentSignature = constraintsSignature(currentInput);
+  const isDirty = currentSignature !== savedSignature;
 
   const zones = useMemo(() => {
     const all = timeZones();
@@ -149,7 +215,17 @@ function Form({
   // Clear field errors as soon as the user edits.
   useEffect(
     () => setErrors({}),
-    [timezone, days, start, end, perPurchase, daily, monthly, currency],
+    [
+      enabled,
+      timezone,
+      days,
+      start,
+      end,
+      perPurchase,
+      daily,
+      monthly,
+      currency,
+    ],
   );
 
   const crosses = end < start;
@@ -162,21 +238,9 @@ function Form({
     try {
       await apiRequest("/api/v1/constraints", {
         method: "PUT",
-        body: {
-          constraints: enabled
-            ? {
-                timezone,
-                currency,
-                timeWindows: [{ days, start, end }, ...extraWindows],
-                amountCaps: {
-                  perPurchase: Number(perPurchase),
-                  daily: optional(daily),
-                  monthly: optional(monthly),
-                },
-              }
-            : null,
-        },
+        body: { constraints: currentInput },
       });
+      setSavedSignature(currentSignature);
       toast(
         enabled
           ? "Constraints saved. They apply to new proposals."
@@ -336,6 +400,7 @@ function Form({
         label={enabled ? "Save constraints" : "Clear constraints"}
         variant="primary"
         busy={saving}
+        disabled={!isDirty}
         onPress={save}
       />
     </>

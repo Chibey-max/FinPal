@@ -14,11 +14,10 @@ export function ThemeToggle() {
       accessibilityLabel={
         scheme === "dark" ? "Switch to light mode" : "Switch to dark mode"
       }
-      hitSlop={6}
       style={({ pressed }) => ({
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         borderWidth: 1,
         borderColor: colors.chromeLine,
         backgroundColor: pressed ? colors.chromeActive : colors.chrome,

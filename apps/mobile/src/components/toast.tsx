@@ -64,6 +64,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toast && tone ? (
         <Animated.View
           pointerEvents="none"
+          accessibilityRole="alert"
+          accessibilityLiveRegion={
+            toast.tone === "bad" ? "assertive" : "polite"
+          }
           style={{
             position: "absolute",
             left: s(16),

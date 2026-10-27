@@ -112,11 +112,10 @@ export function TopBar() {
               }}
               accessibilityRole="button"
               accessibilityLabel="Sign out"
-              hitSlop={6}
               style={({ pressed }) => ({
-                width: 36,
-                height: 36,
-                borderRadius: 18,
+                width: 48,
+                height: 48,
+                borderRadius: 24,
                 borderWidth: 1,
                 borderColor: colors.chromeLine,
                 backgroundColor: pressed ? colors.chromeActive : colors.chrome,
@@ -159,6 +158,7 @@ export function TopBar() {
                 gap: 6,
                 paddingHorizontal: s(14),
                 paddingVertical: s(8),
+                minHeight: 48,
                 borderRadius: 999,
                 borderWidth: 1,
                 borderColor: active ? colors.divider : "transparent",

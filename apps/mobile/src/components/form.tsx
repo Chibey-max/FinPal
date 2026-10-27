@@ -54,7 +54,7 @@ export function Button({
       accessibilityState={{ disabled: off, busy }}
       style={({ pressed }) => [
         {
-          minHeight: variant === "text" ? 36 : 46,
+          minHeight: 48,
           paddingHorizontal: variant === "text" ? s(8) : s(22),
           flexDirection: "row",
           gap: s(9),
@@ -233,6 +233,8 @@ export function ChipRow<T extends string>({
                   : "transparent",
                 paddingHorizontal: s(13),
                 paddingVertical: s(7),
+                minHeight: 44,
+                justifyContent: "center",
               }}
             >
               <Text
@@ -300,6 +302,7 @@ export function SelectField({
           borderRadius: 14,
           paddingHorizontal: s(14),
           paddingVertical: s(12),
+          minHeight: 48,
         }}
       >
         <Text style={{ fontSize: ms(15) }}>{value}</Text>
@@ -358,6 +361,8 @@ export function SelectField({
                 style={({ pressed }) => ({
                   paddingHorizontal: s(20),
                   paddingVertical: s(13),
+                  minHeight: 48,
+                  justifyContent: "center",
                   backgroundColor: pressed ? colors.chrome : "transparent",
                 })}
               >
