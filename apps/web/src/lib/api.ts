@@ -10,7 +10,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isMockMode, MOCK_USER, type AppUser } from "@/lib/data-source";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  createServerSupabaseClient,
+  getBearerToken,
+} from "@/lib/supabase/server";
 
 export function apiError(
   status: number,
@@ -25,7 +28,9 @@ export function apiError(
 export async function getApiUser(): Promise<AppUser | null> {
   if (isMockMode()) return MOCK_USER;
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.getUser();
+  // A bearer token is verified with Supabase Auth; otherwise the cookie session.
+  const token = await getBearerToken();
+  const { data, error } = await supabase.auth.getUser(token ?? undefined);
   return error || !data.user
     ? null
     : { id: data.user.id, email: data.user.email ?? null };

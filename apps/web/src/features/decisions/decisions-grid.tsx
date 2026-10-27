@@ -65,6 +65,112 @@ function PaymentCell({ data }: Cell<"paymentStatus">) {
   );
 }
 
+/** What the grid's quick search matches: the text a row shows. */
+function searchText(row: DecisionRow, timeZone: string) {
+  return [
+    shortId("decision", row.decisionId),
+    formatWhen(row.decidedAt, timeZone),
+    row.productName,
+    formatMoney(row.amount, row.currency),
+    scoreLabel(row.qualityScore),
+    row.source === "CALENDAR" ? "Calendar" : "Manual",
+    row.reviewStatus ? `REVIEW · ${row.reviewStatus}` : row.outcome,
+    row.paymentStatus ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+/**
+ * The same decisions as a list of cards, for phones where the table would
+ * need sideways scrolling. Filtered and paged like the grid; CSS shows one or
+ * the other.
+ */
+function DecisionCards({
+  rows,
+  selectedId,
+  timeZone,
+  page,
+  onPage,
+  onOpen,
+}: {
+  rows: DecisionRow[];
+  selectedId: string | null;
+  timeZone: string;
+  page: number;
+  onPage: (page: number) => void;
+  onOpen: (row: DecisionRow) => void;
+}) {
+  const pageCount = Math.max(1, Math.ceil(rows.length / DEFAULT_PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const shown = rows.slice(
+    (current - 1) * DEFAULT_PAGE_SIZE,
+    current * DEFAULT_PAGE_SIZE,
+  );
+
+  return (
+    <div className="decision-cards">
+      {shown.length ? (
+        <ul className="decision-card-list">
+          {shown.map((row) => (
+            <li key={row.decisionId}>
+              <button
+                type="button"
+                className="decision-card"
+                aria-current={
+                  row.decisionId === selectedId ? "true" : undefined
+                }
+                onClick={() => onOpen(row)}
+              >
+                <span className="decision-card__line">
+                  <span className="decision-card__name">{row.productName}</span>
+                  <span className="mono">
+                    {formatMoney(row.amount, row.currency)}
+                  </span>
+                </span>
+                <span className="decision-card__line">
+                  <span className="chip" data-tone={outcomeTone[row.outcome]}>
+                    {row.reviewStatus
+                      ? `REVIEW · ${row.reviewStatus}`
+                      : row.outcome}
+                  </span>
+                  <span
+                    className="mono small"
+                    data-tone={scoreTone[row.qualityScore]}
+                  >
+                    {scoreLabel(row.qualityScore)}
+                  </span>
+                </span>
+                <span className="decision-card__line mono small ink4">
+                  <span>
+                    {shortId("decision", row.decisionId)} ·{" "}
+                    {formatWhen(row.decidedAt, timeZone)}
+                  </span>
+                  {row.paymentStatus ? (
+                    <span data-tone={paymentTone[row.paymentStatus]}>
+                      {row.paymentStatus}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="decision-cards__empty">No decisions match this search.</p>
+      )}
+      <Pagination
+        page={current}
+        pageCount={pageCount}
+        total={rows.length}
+        pageSize={DEFAULT_PAGE_SIZE}
+        label="decisions"
+        onPage={onPage}
+      />
+    </div>
+  );
+}
+
 /**
  * Decisions dashboard on AG Grid: quick search, outcome filter, sortable and
  * filterable columns, paged with the shared pagination control. Selecting a
@@ -94,6 +200,7 @@ export function DecisionsGrid({
   const apiRef = useRef<GridApi<DecisionRow> | null>(null);
   const [search, setSearch] = useState("");
   const [outcome, setOutcome] = useState<DecisionOutcome | "ALL">("ALL");
+  const [cardPage, setCardPage] = useState(1);
   const [paging, setPaging] = useState({
     page: 1,
     pageCount: 1,
@@ -218,6 +325,14 @@ export function DecisionsGrid({
     (node: IRowNode<DecisionRow>) => node.data?.outcome === outcome,
     [outcome],
   );
+  const cardRows = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return rows.filter(
+      (row) =>
+        (outcome === "ALL" || row.outcome === outcome) &&
+        (needle === "" || searchText(row, timeZone).includes(needle)),
+    );
+  }, [outcome, rows, search, timeZone]);
 
   return (
     <section className="card grid-card stack-flush" aria-label="Decisions">
@@ -228,7 +343,10 @@ export function DecisionsGrid({
           placeholder="Search product, outcome, ID…"
           aria-label="Search decisions"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setCardPage(1);
+          }}
         />
         <div
           className="segmented segmented--quiet"
@@ -242,6 +360,7 @@ export function DecisionsGrid({
               aria-pressed={outcome === option.key}
               onClick={() => {
                 setOutcome(option.key);
+                setCardPage(1);
                 // AG Grid reads external filters lazily.
                 requestAnimationFrame(() => apiRef.current?.onFilterChanged());
               }}
@@ -251,6 +370,14 @@ export function DecisionsGrid({
           ))}
         </div>
       </div>
+      <DecisionCards
+        rows={cardRows}
+        selectedId={selectedId}
+        timeZone={timeZone}
+        page={cardPage}
+        onPage={setCardPage}
+        onOpen={open}
+      />
       <div className="grid-scroll">
         <div className="grid-inner grid-inner--decisions">
           <AgGridReact<DecisionRow>

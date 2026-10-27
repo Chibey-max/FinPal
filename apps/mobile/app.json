@@ -4,13 +4,32 @@
     "slug": "finpal",
     "scheme": "finpal",
     "version": "0.1.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#040509",
-    "ios": { "supportsTablet": false },
-    "android": { "predictiveBackGestureEnabled": false },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true }
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "predictiveBackGestureEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#040509",
+          "image": "./assets/splash-lockup.png",
+          "imageWidth": 220,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
