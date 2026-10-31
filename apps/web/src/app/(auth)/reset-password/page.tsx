@@ -7,8 +7,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "New password · FinPal" };
 
 /**
- * Reached from the reset email. The token in the link is only used when the
- * form is submitted, so an email scanner opening the link can't use it up.
+ * Reached from the reset email, through /auth/callback, with a recovery
+ * session. A custom email template can link here directly with a token, which
+ * is only used when the form is submitted.
  */
 export default async function ResetPasswordPage({
   searchParams,

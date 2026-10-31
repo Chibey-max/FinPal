@@ -46,7 +46,9 @@ Tokens can still end if a user removes access in their Google account, doesn't u
 
 ### Password reset emails
 
-The reset template must link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`, so the token is only used when the person submits the form. Otherwise email scanners that open links use it up. Add `<app-url>/reset-password` to the Supabase redirect URLs. Supabase's built-in email service sends only a few emails an hour and always shows its own sender name; set up custom SMTP in Supabase to change that.
+Reset links use Supabase's standard email and go through `/auth/callback`. Add `<app-url>/auth/callback` to the Supabase redirect URLs. On the free plan with the built-in email service, Supabase allows about 2 emails an hour, shows its own sender name, and doesn't allow template changes. The link's token is used when it opens, so opening it twice, or an email scanner opening it first, shows "expired"; request a new one.
+
+With custom SMTP or a paid plan, the template can be changed. Linking to `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery` means the token is only used when the form is submitted, which avoids the scanner problem. The app already supports this.
 
 ### 5. Render
 

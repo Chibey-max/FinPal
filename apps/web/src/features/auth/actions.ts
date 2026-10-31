@@ -121,7 +121,9 @@ export async function requestPasswordReset(
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/reset-password`,
+    // Through the callback, which turns the email's code into a recovery
+    // session. Supabase's default email can't be customized on the free plan.
+    redirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
   });
   if (error && /rate limit|too many/i.test(error.message)) {
     return { error: friendlyAuthError(error.message) };
@@ -143,9 +145,9 @@ const newPasswordSchema = z
 const EXPIRED = "This reset link has expired. Request a new one to continue.";
 
 /**
- * Sets a new password. The email's token is only used here, when the person
- * submits, not when the link opens: email scanners open links, which would
- * otherwise use it up and show "expired" to the real person.
+ * Sets a new password, using the recovery session from the email link. With a
+ * custom email template (docs/operations.md) the link carries a token instead,
+ * used only here on submit, so email scanners opening the link can't spend it.
  */
 export async function updatePassword(
   _previous: AuthFormState,
