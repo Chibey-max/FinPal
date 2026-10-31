@@ -5,11 +5,7 @@ import {
   Pagination,
   paginate,
 } from "@/components/pagination";
-import {
-  formatMoney,
-  formatWhen,
-  isOpenPayment,
-} from "@/features/app/present";
+import { formatMoney, formatWhen, isOpenPayment } from "@/features/app/present";
 import { DecisionActions } from "@/features/decisions/decision-actions";
 import { needsYou } from "@/features/purchases/needs-you";
 import { requireUser } from "@/lib/auth";
@@ -55,7 +51,9 @@ export default async function ApprovalsPage({
                 >
                   {row.productName}
                 </Link>
-                <span className="small ink3 approval-row__why">{row.reason}</span>
+                <span className="small ink3 approval-row__why">
+                  {row.reason}
+                </span>
                 <span className="small ink4">
                   {formatWhen(row.decidedAt, timeZone)}
                 </span>
