@@ -14,7 +14,7 @@ import { createInMemoryAudit, createInMemoryPayments } from "./in-memory";
 type Owned<T> = T & { userId: string };
 
 /**
- * In-memory stand-in for the Supabase tables, with the same relations:
+ * In-memory stand-in for the database tables, with the same relations:
  * decision -> evaluation -> proposal, and every row owned by a user.
  */
 export function createInMemoryDb(clock: () => Date) {

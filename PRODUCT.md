@@ -25,7 +25,7 @@ Users sign in, configure constraints, create a proposal manually or from calenda
 ## Capabilities and Constraints
 
 - Next.js application with shared TypeScript contracts and backend domain rules.
-- Supabase authentication, PostgreSQL, and row-level security.
+- Email-and-password accounts with server-side sessions, on PostgreSQL (Render Postgres).
 - Channel3 comparable offers and deterministic quality scoring.
 - Outcomes are `AUTO_APPROVE`, `MANUAL_REVIEW`, or `BLOCK`.
 - Payments follow `CREATED → APPROVED → AUTHORIZED → CAPTURED`, with `AUTHORIZED → VOIDED`.

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   toDecisionRecord,
   toDecisionRow,
-} from "../../src/repositories/supabase/supabase-dashboard-repository";
+} from "../../src/repositories/postgres/postgres-dashboard-repository";
 
-// Shaped like a PostgREST response for decisionRowSelect.
+// Shaped like a nested decision row from the dashboard query.
 function rawRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -83,17 +83,6 @@ describe("toDecisionRow", () => {
       paymentId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
       paymentStatus: "CAPTURED",
     });
-  });
-
-  it("accepts embedded relations returned as single-item arrays", () => {
-    const base = rawRow();
-    const row = toDecisionRow({
-      ...base,
-      evaluations: [
-        { ...base.evaluations, proposals: [base.evaluations.proposals] },
-      ],
-    });
-    expect(row.productName).toBe("Desk lamp");
   });
 
   it("keeps a null median for insufficient data", () => {

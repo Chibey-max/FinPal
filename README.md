@@ -29,7 +29,7 @@ See [`docs/architecture.md`](docs/architecture.md) for the decision table, Quali
 | Route                | What it shows                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------------------------- |
 | `/`                  | Landing page                                                                                        |
-| `/login`             | Sign in or create an account; password reset at `/forgot-password` and `/reset-password`            |
+| `/login`             | Sign in or create an account (email and password)                                                   |
 | `/app`               | Overview: spend against caps, items needing attention, recent decisions                             |
 | `/app/agent`         | Shopping agent: describe a need, it finds and submits an offer; calendar ideas and spending outlook |
 | `/app/proposals/new` | New proposal, with presets and "Describe it" sentence entry                                         |
@@ -47,7 +47,7 @@ A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decision
 | Service          | Used for                                                                            | Required                       |
 | ---------------- | ----------------------------------------------------------------------------------- | ------------------------------ |
 | PayPal Sandbox   | Orders v2: create, authorize, capture, void, and webhooks                           | Yes (live mode)                |
-| Supabase         | Auth, Postgres, row-level security                                                  | Yes (live mode)                |
+| PostgreSQL       | All records, accounts and sessions (Render Postgres in production)                  | Yes (live mode)                |
 | Channel3         | Comparable offers for the price check                                               | Yes (live mode)                |
 | KERNEL           | Merchant trust check                                                                | No; `NOT_CHECKED` without it   |
 | Google Calendar  | Events for proposal prefill (OAuth refresh token)                                   | No                             |
@@ -62,14 +62,14 @@ A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decision
 - `packages/contracts`: shared zod schemas, enums and API contracts.
 - `packages/ui`: design tokens and shared presentation pieces.
 - `packages/config`: shared TypeScript and test configuration.
-- `supabase`: SQL migrations, seed data and local Supabase configuration.
+- `db`: SQL migrations (`db/migrations`) and the one-off Supabase import script.
 - `tests`: placeholders for cross-package suites. Unit and integration tests live inside each package.
 - `infra`: Dockerfile; `render.yaml` holds the Render blueprint.
 - `docs`: product, architecture, API, security and operations documentation.
 
 ## Getting started
 
-Requirements: Node.js 22+ and pnpm 11+. A local database also needs Docker and the Supabase CLI.
+Requirements: Node.js 22+ and pnpm 11+. A local database also needs Docker (or any Postgres 15+).
 
 ### Quick start (mock data, no keys)
 
@@ -78,17 +78,17 @@ pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`. With no Supabase URL set, FinPal runs in **mock mode**: the real decision and payment logic on in-memory data, with simulated PayPal Sandbox, Channel3, KERNEL and calendar, and you are signed in as a demo user. The **Demo path** menu in the app walks through approve, review and block.
+Open `http://localhost:3000`. With no `DATABASE_URL` set, FinPal runs in **mock mode**: the real decision and payment logic on in-memory data, with simulated PayPal Sandbox, Channel3, KERNEL and calendar, and you are signed in as a demo user. The **Demo path** menu in the app walks through approve, review and block.
 
 ### Live mode
 
 ```bash
 cp .env.example apps/web/.env.local   # Next.js only reads env files from apps/web
-pnpm db:start                         # local Supabase in Docker, or use a hosted project
-pnpm dev
+docker run -d --name finpal-db -p 5432:5432 -e POSTGRES_PASSWORD=pw postgres:17-alpine
+pnpm dev                              # applies db/migrations on start
 ```
 
-Fill `apps/web/.env.local` with the Supabase URL and keys, PayPal Sandbox credentials, and `CHANNEL3_API_KEY`. KERNEL, Google Calendar and Groq are optional; each feature falls back safely without its keys. `FINPAL_DATA_SOURCE=mock|live` overrides the default. Production always runs live unless this is set explicitly.
+Fill `apps/web/.env.local` with `DATABASE_URL` (here `postgres://postgres:pw@localhost:5432/postgres`), PayPal Sandbox credentials, and `CHANNEL3_API_KEY`. Create an account on `/login`. KERNEL, Google Calendar and Groq are optional; each feature falls back safely without its keys. `FINPAL_DATA_SOURCE=mock|live` overrides the default. Production always runs live unless this is set explicitly.
 
 Server secrets are only read on the server. Never commit `.env` files. See [`docs/security.md`](docs/security.md).
 
@@ -108,7 +108,7 @@ CodeQL runs on every pull request.
 
 ## Deployment
 
-Render deploys the Docker image from `render.yaml` with `FINPAL_DATA_SOURCE=live`. Supabase project setup, auth redirect URLs, the Google OAuth token and the live integration checklist are in [`docs/operations.md`](docs/operations.md).
+Render deploys the Docker image and a Postgres database from `render.yaml`, with `FINPAL_DATA_SOURCE=live`; the server applies migrations on start. Setup, the Supabase data import, password resets, the Google OAuth token and the live integration checklist are in [`docs/operations.md`](docs/operations.md).
 
 ## Known limitations
 
@@ -124,6 +124,6 @@ The full list is in [`docs/design.md`](docs/design.md#21a-known-limitations). Th
 - [`docs/architecture.md`](docs/architecture.md): system design, decision table, Quality Score, state machine
 - [`docs/design.md`](docs/design.md): product design, known limitations, Sandbox disclosure
 - [`docs/api.md`](docs/api.md): `/api/v1` endpoints and payloads
-- [`docs/security.md`](docs/security.md): secrets, RLS, audit log, LLM rules
+- [`docs/security.md`](docs/security.md): secrets, sessions, data access, audit log, LLM rules
 - [`docs/operations.md`](docs/operations.md): environments, setup, live integration checklist
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): read before adding features

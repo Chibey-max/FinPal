@@ -3,27 +3,24 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { isRateLimited } from "@/lib/api";
 import { safeNextPath } from "@/lib/auth";
 import { isMockMode } from "@/lib/data-source";
-import { getPublicEnv } from "@/lib/env";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { endSession, getAuthService, setSessionCookie } from "@/lib/session";
 
 export interface AuthFormState {
   error?: string;
   message?: string;
   /** Which field the error is about, so the form can mark it invalid. */
-  field?: "email" | "password" | "confirm";
+  field?: "email" | "password";
 }
 
-const email = z.email("Enter a valid email address.");
-const password = z
-  .string()
-  .min(8, "Use at least 8 characters.")
-  .max(72, "Use at most 72 characters.");
-
 const credentialsSchema = z.object({
-  email,
-  password,
+  email: z.email("Enter a valid email address."),
+  password: z
+    .string()
+    .min(8, "Use at least 8 characters.")
+    .max(72, "Use at most 72 characters."),
   next: z.string().optional(),
 });
 
@@ -40,29 +37,11 @@ function firstIssue(error: z.ZodError): AuthFormState {
   const field = issue?.path[0];
   return {
     error: issue?.message ?? "Check the form and try again.",
-    field:
-      field === "email" || field === "password" || field === "confirm"
-        ? field
-        : undefined,
+    field: field === "email" || field === "password" ? field : undefined,
   };
 }
 
-// Supabase's wording is technical; these read better on the form.
-function friendlyAuthError(message: string): string {
-  if (/invalid login credentials/i.test(message)) {
-    return "That email and password don't match.";
-  }
-  if (/email not confirmed/i.test(message)) {
-    return "Confirm your email first. We sent you a link when you signed up.";
-  }
-  if (/already registered|already been registered/i.test(message)) {
-    return "An account with that email already exists. Sign in instead.";
-  }
-  if (/rate limit|too many/i.test(message)) {
-    return "Too many attempts. Wait a minute and try again.";
-  }
-  return message;
-}
+const TOO_MANY = "Too many attempts. Wait a few minutes and try again.";
 
 export async function signIn(
   _previous: AuthFormState,
@@ -71,13 +50,17 @@ export async function signIn(
   const parsed = parseCredentials(formData);
   if (!parsed.success) return firstIssue(parsed.error);
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-  if (error) return { error: friendlyAuthError(error.message) };
+  // Slows password guessing against one account (per server process).
+  const key = `sign-in:${parsed.data.email.toLowerCase()}`;
+  if (isRateLimited(key, 10, 15 * 60_000)) return { error: TOO_MANY };
 
+  const session = await getAuthService().signIn(
+    parsed.data.email,
+    parsed.data.password,
+  );
+  if (!session) return { error: "That email and password don't match." };
+
+  await setSessionCookie(session.token, session.expiresAt);
   redirect(safeNextPath(parsed.data.next));
 }
 
@@ -88,88 +71,28 @@ export async function signUp(
   const parsed = parseCredentials(formData);
   if (!parsed.success) return firstIssue(parsed.error);
 
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signUp({
+  if (isRateLimited("sign-up", 30, 60 * 60_000)) return { error: TOO_MANY };
+
+  const result = await getAuthService().signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/auth/callback`,
-    },
+    displayName: null,
   });
-  if (error) return { error: friendlyAuthError(error.message) };
-
-  // With email confirmation disabled (local dev), Supabase returns a session.
-  if (data.session) redirect(safeNextPath(parsed.data.next));
-  return {
-    message: `Check ${parsed.data.email} for a confirmation link to finish signing up.`,
-  };
-}
-
-/**
- * Emails a password reset link. Answers the same way whether or not the
- * address has an account, so the form cannot be used to discover accounts.
- */
-export async function requestPasswordReset(
-  _previous: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  const parsed = email.safeParse(formData.get("email"));
-  if (!parsed.success) {
-    return { error: "Enter a valid email address.", field: "email" };
+  if (!result.ok) {
+    return result.reason === "EMAIL_TAKEN"
+      ? {
+          error: "An account with that email already exists. Sign in instead.",
+          field: "email",
+        }
+      : { error: "Use at least 8 characters.", field: "password" };
   }
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
-  });
-  if (error && /rate limit|too many/i.test(error.message)) {
-    return { error: friendlyAuthError(error.message) };
-  }
-  if (error) console.error("Password reset request failed", error.message);
-
-  return {
-    message: `If ${parsed.data} has an account, a reset link is on its way. It expires in an hour.`,
-  };
-}
-
-const newPasswordSchema = z
-  .object({ password, confirm: z.string() })
-  .refine((value) => value.password === value.confirm, {
-    message: "The passwords don't match.",
-    path: ["confirm"],
-  });
-
-/** Sets a new password using the recovery session from the email link. */
-export async function updatePassword(
-  _previous: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  const parsed = newPasswordSchema.safeParse({
-    password: formData.get("password"),
-    confirm: formData.get("confirm"),
-  });
-  if (!parsed.success) return firstIssue(parsed.error);
-
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) {
-    return {
-      error: "This reset link has expired. Request a new one to continue.",
-    };
-  }
-  const { error } = await supabase.auth.updateUser({
-    password: parsed.data.password,
-  });
-  if (error) {
-    return { error: friendlyAuthError(error.message), field: "password" };
-  }
-
-  redirect("/app?password=updated");
+  await setSessionCookie(result.token, result.expiresAt);
+  redirect(safeNextPath(parsed.data.next));
 }
 
 export async function signOut() {
   if (isMockMode()) redirect("/");
-  const supabase = await createServerSupabaseClient();
-  await supabase.auth.signOut();
+  await endSession();
   redirect("/login");
 }

@@ -10,12 +10,12 @@ describe("getDataSource", () => {
     expect(getDataSource({ FINPAL_DATA_SOURCE: "live" })).toBe("live");
   });
 
-  it("uses mock in development until Supabase is configured", () => {
+  it("uses mock in development until a database is configured", () => {
     expect(getDataSource({ NODE_ENV: "development" })).toBe("mock");
     expect(
       getDataSource({
         NODE_ENV: "development",
-        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+        DATABASE_URL: "postgres://localhost:5432/finpal",
       }),
     ).toBe("live");
   });

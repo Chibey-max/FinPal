@@ -11,6 +11,12 @@ export function getServerEnv(): ServerEnv {
   return cached;
 }
 
+/** Only the database URL, so sign-in works before PayPal is configured. */
+export function getDatabaseUrl(): string {
+  return serverEnvSchema.pick({ DATABASE_URL: true }).parse(process.env)
+    .DATABASE_URL;
+}
+
 /** Only the Channel3 key, so price lookups work before PayPal is configured. */
 export function getChannel3ApiKey(): string {
   return serverEnvSchema.pick({ CHANNEL3_API_KEY: true }).parse(process.env)

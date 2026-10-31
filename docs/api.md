@@ -1,6 +1,6 @@
 # API outline
 
-All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. Every `/api/v1` route requires a signed-in Supabase session and only ever sees the caller's own data.
+All product APIs use `/api/v1`. Payload schemas belong in `@finpal/contracts`. Every `/api/v1` route requires a signed-in session (the `finpal_session` cookie) and only ever sees the caller's own data.
 
 | Method | Path                                    | Purpose                                                    |
 | ------ | --------------------------------------- | ---------------------------------------------------------- |
@@ -149,6 +149,6 @@ Event types are listed in `packages/contracts/src/audit.ts`.
 
 ## Decisions (dashboard)
 
-`GET /api/v1/decisions?limit=200` (1-500, default 200) returns `{ "rows": DecisionRow[] }`, newest decision first. Each row joins the decision to its proposal, evaluation and the most recently updated payment attempt; see `decisionRowSchema` in `packages/contracts/src/dashboard.ts`. `paymentStatus` is the exact uppercase state (`CREATED`, `APPROVED`, `AUTHORIZED`, `CAPTURED`, `VOIDED`) or `null` if no payment was started. Reads go through the user's own session, so RLS applies.
+`GET /api/v1/decisions?limit=200` (1-500, default 200) returns `{ "rows": DecisionRow[] }`, newest decision first. Each row joins the decision to its proposal, evaluation and the most recently updated payment attempt; see `decisionRowSchema` in `packages/contracts/src/dashboard.ts`. `paymentStatus` is the exact uppercase state (`CREATED`, `APPROVED`, `AUTHORIZED`, `CAPTURED`, `VOIDED`) or `null` if no payment was started. Rows are filtered to the signed-in user.
 
 `GET /api/v1/decisions/:decisionId` returns `{ proposal, evaluation, decision, payment, events }` (`decisionDetailSchema`): the full Quality Score with reference offers, the constraint check, the structured reasons, the most recent payment attempt (without internal fields) and the audit events of the proposal, evaluation, decision and payment, newest first. `404 DECISION_NOT_FOUND` for another user's decision.

@@ -7,7 +7,7 @@ Browser
   -> apps/web UI
   -> apps/web API route adapters
   -> packages/backend use cases and domain rules
-  -> Supabase / PayPal Sandbox / Channel3 / KERNEL / Google Calendar
+  -> PostgreSQL / PayPal Sandbox / Channel3 / KERNEL / Google Calendar
 ```
 
 `apps/web` owns HTTP and rendering. `packages/backend` owns business rules and server-only integrations. `packages/contracts` owns schemas shared across those boundaries. Route handlers must validate input, authenticate the caller, invoke one use case, and map the result to HTTP.
@@ -80,7 +80,7 @@ Normalization rules:
 2. Sums money already committed (`AUTHORIZED` or `CAPTURED`) today and this month **in the user's timezone**, for the daily and monthly caps.
 3. Runs `checkConstraints()` at the planned purchase time and the Quality Score in parallel, then the merchant trust check (KERNEL visits the cheapest Channel3 offer URL when `KERNEL_API_KEY` is set; otherwise `NOT_CHECKED`).
 4. Applies `decide()` (`packages/backend/src/domain/decision-table.ts`).
-5. Stores the evaluation and decision (service role; users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events. Trust evidence is persisted on `evaluations.trust_evidence`.
+5. Stores the evaluation and decision in one transaction (users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events. Trust evidence is persisted on `evaluations.trust_evidence`.
 
 `MANUAL_REVIEW` decisions become payable after `POST /api/v1/decisions/:id/review` with `APPROVED` (Day 14). Rejection is audited and never payable.
 
@@ -110,7 +110,7 @@ Each decision has structured `reasons` (`code`, `source`: constraints, amount, q
 ## Security posture
 
 - All payments are PayPal Sandbox-only.
-- Merchant credentials and service-role keys are server-only environment variables.
-- Supabase row-level security protects user data.
+- Merchant credentials and the database URL are server-only environment variables.
+- Every repository query is scoped to the signed-in user; sessions are verified against the database on each request.
 - Payment creation requires a unique idempotency key.
 - Audit records are append-only to application roles.

@@ -16,9 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo clean && rm -rf node_modules .turbo",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop",
-    "db:reset": "supabase db reset"
+    "db:migrate": "node --env-file-if-exists=apps/web/.env.local --env-file-if-exists=.env.local packages/backend/scripts/db.ts migrate",
+    "db:set-password": "node --env-file-if-exists=apps/web/.env.local --env-file-if-exists=.env.local packages/backend/scripts/db.ts set-password"
   },
   "devDependencies": {
     "eslint": "9.39.5",

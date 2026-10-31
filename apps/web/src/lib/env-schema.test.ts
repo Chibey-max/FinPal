@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { publicEnvSchema, serverEnvSchema } from "./env-schema";
 
 const serverEnv = {
-  SUPABASE_SERVICE_ROLE_KEY: "service-role",
+  DATABASE_URL: "postgres://localhost:5432/finpal",
   PAYPAL_CLIENT_ID: "client-id",
   PAYPAL_CLIENT_SECRET: "client-secret",
   CHANNEL3_API_KEY: "channel3",
@@ -38,14 +38,20 @@ describe("serverEnvSchema", () => {
   });
 });
 
+describe("serverEnvSchema database", () => {
+  it("requires DATABASE_URL", () => {
+    const result = serverEnvSchema.safeParse({
+      ...serverEnv,
+      DATABASE_URL: undefined,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("publicEnvSchema", () => {
-  it("requires Supabase URL and anon key", () => {
-    expect(publicEnvSchema.safeParse({}).success).toBe(false);
-    expect(
-      publicEnvSchema.safeParse({
-        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
-      }).success,
-    ).toBe(true);
+  it("defaults the app URL for local development", () => {
+    expect(publicEnvSchema.parse({}).NEXT_PUBLIC_APP_URL).toBe(
+      "http://localhost:3000",
+    );
   });
 });

@@ -29,6 +29,6 @@ spacing and radii, `ms()` for font sizes.
 
 ## Not yet built
 
-Sign-in (the API authenticates with Supabase cookies; a bearer-token path is
-needed on the server first), payments, review actions, new proposal, calendar,
+Sign-in (the API authenticates with the `finpal_session` cookie; a
+bearer-token path is needed on the server first), payments, review actions, new proposal, calendar,
 constraints and activity.

@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 import "./auth.css";
 
-/** Sign in, sign up and password reset: one glass card over the backdrop. */
+/** Sign in and sign up: one glass card over the backdrop. */
 export default function AuthLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {

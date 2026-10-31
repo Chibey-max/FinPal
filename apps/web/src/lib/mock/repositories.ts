@@ -23,7 +23,7 @@ import {
 import { getStore, now, type Owned } from "./store";
 
 // In-memory implementations of the backend repository interfaces, with the
-// same ownership rules as the Supabase ones: every read is scoped by user.
+// same ownership rules as the Postgres ones: every read is scoped by user.
 
 function strip<T>(row: Owned<T>): T {
   const copy: Partial<Owned<T>> = { ...row };
@@ -216,7 +216,7 @@ export const decisions: DecisionRepository = {
       currency: proposal.currency,
     };
   },
-  // Compare-and-set like the Supabase repository: only while unreviewed.
+  // Compare-and-set like the Postgres repository: only while unreviewed.
   async setReview(userId, decisionId, patch) {
     const decision = findOwnedDecision(userId, decisionId);
     if (!decision || decision.reviewStatus !== null) return null;

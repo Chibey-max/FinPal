@@ -29,7 +29,7 @@ export interface SimulatedOrder {
   authorizationStatus?: string;
 }
 
-/** Everything mock mode persists, standing in for the Supabase tables. */
+/** Everything mock mode persists, standing in for the Postgres tables. */
 export interface MockStore {
   proposals: Owned<Proposal>[];
   evaluations: Owned<Evaluation>[];

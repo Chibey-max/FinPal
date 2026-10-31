@@ -2,29 +2,37 @@
 
 ## Environments
 
-- **Local, mock:** `FINPAL_DATA_SOURCE=mock` (the default in development until `NEXT_PUBLIC_SUPABASE_URL` is set) runs the real use cases on in-memory data with simulated PayPal Sandbox, Channel3, KERNEL and calendar. No keys needed.
-- **Local, live:** Next.js against a Supabase project (local CLI or hosted) and real Sandbox services.
-- **Production demo:** the Render-hosted Next.js service, `FINPAL_DATA_SOURCE=live`, connected only to sandbox and test services.
+- **Local, mock:** `FINPAL_DATA_SOURCE=mock` (the default in development until `DATABASE_URL` is set) runs the real use cases on in-memory data with simulated PayPal Sandbox, Channel3, KERNEL and calendar. No keys needed.
+- **Local, live:** Next.js against any Postgres 15+ (for example `docker run -p 5432:5432 -e POSTGRES_PASSWORD=pw postgres:17-alpine`) and real Sandbox services.
+- **Production demo:** the Render-hosted Next.js service and Render Postgres, `FINPAL_DATA_SOURCE=live`, connected only to sandbox and test services.
+
+## Database
+
+Postgres holds every record, including accounts and sessions. The schema lives in `db/migrations/*.sql`, applied in name order and recorded in `public.schema_migrations`.
+
+- The server applies pending migrations when it starts (`apps/web/src/instrumentation.ts`), before taking requests, so a Render deploy migrates itself. A failed migration stops the server.
+- `pnpm db:migrate` applies them by hand, using `DATABASE_URL` from the environment or `.env.local`.
+- To change the schema, add a new numbered file (`0002_….sql`). Never edit a migration that has been applied.
+
+Accounts are email and password only; there are no confirmation or reset emails. Passwords are hashed with scrypt, and a session is a random token in an httpOnly cookie whose SHA-256 is stored in `public.sessions` (30 days). To set or reset someone's password:
+
+```bash
+DATABASE_URL='<external database URL>' pnpm db:set-password person@example.com
+```
+
+It prompts for the password without echoing it and signs that account out everywhere.
 
 ## Going live
 
-Do these in order: the PayPal webhook needs the public Render URL, and Render needs the Supabase keys at build time.
+Do these in order: the PayPal webhook needs the public Render URL.
 
-### 1. Supabase
-
-1. Create a project, then from the repository root run `supabase link --project-ref <ref>` and `supabase db push`. This applies the 8 migrations in `supabase/migrations/`.
-2. Check: in the SQL editor, `select version from supabase_migrations.schema_migrations order by version;` lists all 8.
-3. **Authentication → Providers:** enable Email.
-4. **Authentication → URL configuration:** set the Site URL to the Render URL and add `<app-url>/auth/callback` and `<app-url>/reset-password` to the redirect URLs. Until Render exists, use `http://localhost:3000` and update it after step 5.
-5. **Project settings → API:** copy the project URL, the anon key and the service role key.
-
-### 2. PayPal Sandbox
+### 1. PayPal Sandbox
 
 1. In the [developer dashboard](https://developer.paypal.com/dashboard/applications/sandbox), under **Apps & Credentials → Sandbox**, create an app and copy its client ID and secret.
 2. Under **Sandbox accounts**, note a personal (buyer) account and its password, for approving checkouts.
-3. The webhook is registered after the first deploy (step 6).
+3. The webhook is registered after the first deploy (step 5).
 
-### 3. Provider keys
+### 2. Provider keys
 
 | Variable                     | Where                                      | Required                                       |
 | ---------------------------- | ------------------------------------------ | ---------------------------------------------- |
@@ -32,7 +40,7 @@ Do these in order: the PayPal webhook needs the public Render URL, and Render ne
 | `KERNEL_API_KEY`             | KERNEL dashboard                           | No; without it merchant trust is `NOT_CHECKED` |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Groq console; `render.yaml` sets the model | No; without it explanations are rule-based     |
 
-### 4. Google Calendar (optional)
+### 3. Google Calendar (optional)
 
 FinPal needs a **refresh token**: a fixed access token stops working after about an hour.
 
@@ -44,24 +52,36 @@ FinPal needs a **refresh token**: a fixed access token stops working after about
 
 While the consent screen's publishing status is **Testing**, Google expires refresh tokens after **7 days**. Either publish the app (Google shows an "unverified app" warning, which is fine for one demo account), or repeat step 4 within 7 days of the demo.
 
-### 5. Render
+### 4. Render
 
-1. Create a **Blueprint** from `render.yaml` and fill every `sync: false` variable. Set `NEXT_PUBLIC_APP_URL` to the service's `https://….onrender.com` URL.
-2. `NEXT_PUBLIC_*` values are built into the browser bundle, so set them **before** the first deploy, and redeploy after changing them.
+1. In the Render dashboard, **New → Blueprint**, and pick this repository. `render.yaml` creates the `finpal-db` Postgres database and the `finpal-web` service in Frankfurt, and wires `DATABASE_URL` to the database's internal URL.
+2. Fill every `sync: false` variable. Set `NEXT_PUBLIC_APP_URL` to the service's `https://….onrender.com` URL. It is built into the browser bundle, so redeploy after changing it.
 3. Auto-deploy is off. Deploy with **Manual Deploy → Deploy latest commit**. To deploy from CI instead, copy the service's deploy hook URL into a GitHub environment named `production` as the `RENDER_DEPLOY_HOOK_URL` secret; the Deploy workflow then deploys after every green CI run on `main`. Until that secret exists, the workflow's `render` job fails.
-4. Go back to Supabase step 4 and set the real URLs.
+4. The first start creates the schema. The logs show `Applied migration 0001_initial_schema.sql`.
 
-### 6. PayPal webhook (optional)
+Free-tier limits: the web service sleeps after 15 minutes without traffic and takes about a minute to wake (PayPal retries webhooks that time out), and a free database expires 30 days after creation. Upgrade the database before then to keep the data.
+
+**Copying data from the old Supabase project (one-off).** After the first deploy, with Docker running:
+
+```bash
+SOURCE_DATABASE_URL='<Supabase session-pooler connection string>' \
+TARGET_DATABASE_URL='<Render external database URL>' \
+db/import-from-supabase.sh
+```
+
+It copies every FinPal table in one transaction, takes emails from Supabase's `auth.users`, and refuses to run if the target already has users. Passwords cannot be copied, so set each one with `pnpm db:set-password`. The connection strings are under Supabase **Connect** and Render **finpal-db → Connect → External**.
+
+### 5. PayPal webhook (optional)
 
 1. In the Sandbox app, under **Webhooks → Add webhook**, use the URL `https://<render-url>/api/webhooks/paypal` and subscribe to `CHECKOUT.ORDER.APPROVED`, `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED`.
 2. Copy the **Webhook ID** into `PAYPAL_WEBHOOK_ID` on Render. A runtime variable needs a restart, not a rebuild.
 
 Signatures are verified with PayPal. Each event is applied once, keyed by PayPal's event id. Without `PAYPAL_WEBHOOK_ID` the endpoint refuses deliveries, and payment state still advances through the return URL and API calls.
 
-### 7. Smoke test
+### 6. Smoke test
 
 1. `GET /api/health` returns `ok`.
-2. Signing up creates a `public.users` row, and `/app` redirects to `/login` when signed out.
+2. Signing up creates a `public.users` row and signs you in; signing out returns to `/login`, and `/app` redirects there when signed out.
 3. On **Constraints**, save limits, reload, then switch to "Not configured" and save. The row is deleted, and the activity log shows two `CONSTRAINTS_UPDATED` events.
 4. If Google is configured, **Calendar** shows upcoming events.
 
@@ -69,7 +89,7 @@ Signatures are verified with PayPal. Each event is applied once, keyed by PayPal
 
 **Automated, with simulated providers** (`pnpm test`): `packages/backend/tests/integration/end-to-end.test.ts` wires the real use cases and the real PayPal and Channel3 HTTP clients, with only the network and the database simulated. It covers capture, void, cap and Poor-price blocks, Insufficient data, the daily cap across purchases, concurrent duplicate requests, provider outages and rejected credentials.
 
-**Live, against real Supabase, PayPal Sandbox, Channel3 and KERNEL.** Run every row on the deployed app, then record the result and any decision or payment ids. Use constraints of USD, a $100 per-purchase cap, a $150 daily cap, and a time window covering the current time.
+**Live, against Render Postgres, PayPal Sandbox, Channel3 and KERNEL.** Run every row on the deployed app, then record the result and any decision or payment ids. Use constraints of USD, a $100 per-purchase cap, a $150 daily cap, and a time window covering the current time.
 
 | #   | Case                        | Steps                                                                                                                       | Expected                                                                                                                     | Result |
 | --- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------ |

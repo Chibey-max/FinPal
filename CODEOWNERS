@@ -2,6 +2,6 @@
 
 /apps/web/ @Chibey-max
 /packages/backend/ @Chibey-max
-/supabase/ @Chibey-max
+/db/ @Chibey-max
 /.github/ @Chibey-max
 

@@ -209,20 +209,9 @@
   height: 20px;
 }
 
-.auth-link {
-  color: var(--ink3) !important;
-  font-size: 13px;
-  transition: color 0.2s ease;
-}
-.auth-link:hover {
-  color: var(--ink) !important;
-}
 .auth-hint {
   font-size: 12px;
   color: var(--ink5);
-}
-.auth-back {
-  align-self: center;
 }
 
 .auth-feedback {

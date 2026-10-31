@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
-// Shown if a section fails to load, e.g. Supabase is unreachable.
+// Shown if a section fails to load, e.g. the database is unreachable.
 export default function AppError({
   error,
   reset,

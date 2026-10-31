@@ -13,6 +13,6 @@ dist/
 tmp/
 
 
-# Supabase CLI local state (linked project, cached versions)
-supabase/.temp/
-supabase/.branches/
+
+# Supabase CLI local state from before the move to Render Postgres
+supabase/

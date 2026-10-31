@@ -1,7 +1,19 @@
+# Render Blueprint: the Next.js app (Docker) and its Postgres database.
+# Deploy from the Render dashboard: New > Blueprint, pick this repository.
+databases:
+  - name: finpal-db
+    databaseName: finpal
+    user: finpal
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "17"
+
 services:
   - type: web
     name: finpal-web
     runtime: docker
+    plan: free
+    region: frankfurt
     dockerfilePath: ./infra/docker/Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
@@ -12,13 +24,12 @@ services:
       # Real data only. Mock mode must never run in production.
       - key: FINPAL_DATA_SOURCE
         value: live
+      # Internal connection string; the server applies db/migrations on start.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finpal-db
+          property: connectionString
       - key: NEXT_PUBLIC_APP_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: PAYPAL_CLIENT_ID
         sync: false

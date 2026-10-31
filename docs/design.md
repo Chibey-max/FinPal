@@ -83,7 +83,7 @@ The backend owns business rules, external integrations, payment orchestration, i
 
 ### 6.4 External Providers
 
-- **Supabase** provides authentication and PostgreSQL storage.
+- **PostgreSQL** (Render Postgres) stores accounts, sessions and every workflow record.
 - **Channel3** provides comparable product offers used for price evaluation.
 - **PayPal Sandbox** provides the payment order, authorization, capture, and void workflow.
 - **KERNEL** provides a basic merchant trust signal.
@@ -121,7 +121,7 @@ An audit event is an append-only record of an important system action. Audit eve
 
 ### 8.1 Authentication
 
-The user signs in with Supabase Auth. Authenticated requests carry the user's identity to the API. Row-level security and backend ownership checks ensure that one user cannot access another user's records.
+The user signs in with an email and password. FinPal hashes passwords with scrypt and keeps a server-side session, identified by an httpOnly cookie, that every page and API request checks against the database. Backend ownership checks on every query ensure that one user cannot access another user's records.
 
 ### 8.2 Configure Constraints
 
@@ -272,7 +272,7 @@ packages/backend
   ├── Persistence adapters
   └── External-provider clients
           │
-          ├── Supabase Auth and PostgreSQL
+          ├── PostgreSQL (accounts, sessions, records)
           ├── Channel3
           ├── PayPal Sandbox
           ├── KERNEL (merchant trust, when KERNEL_API_KEY is set)
@@ -327,7 +327,7 @@ Shared schemas define the vocabulary used across the UI, API, and backend. They 
 
 ### 12.1 `users`
 
-Represents the application profile associated with a Supabase Auth identity.
+Represents an account: a unique lower-cased email, a scrypt password hash and an optional display name. Sessions live in `sessions`, keyed by the SHA-256 of the cookie token.
 
 ### 12.2 `constraints`
 
@@ -353,7 +353,7 @@ Stores the related decision, PayPal order identifier, amount, currency, idempote
 
 Stores append-only event types, sanitized payloads, ownership information, related entity identifiers, and creation timestamps.
 
-User-facing and backend-generated records include direct ownership data where needed so Supabase row-level security can make simple, reliable access decisions.
+User-facing and backend-generated records include a direct `user_id`, so every repository query can scope to the signed-in user without joins.
 
 ## 13. API Surface
 
@@ -379,9 +379,9 @@ All protected endpoints derive record ownership from the authenticated session r
 
 ## 14. External Integrations
 
-### 14.1 Supabase
+### 14.1 PostgreSQL
 
-Supabase is the source of truth for identity and application data. Authentication identifies the caller, PostgreSQL stores the workflow records, and row-level security provides an additional data-access boundary.
+PostgreSQL is the source of truth for identity and application data. The schema is a set of numbered SQL migrations in `db/migrations`, applied by the server on start. Database checks, an append-only audit trigger and the atomic evaluation function back up the application rules.
 
 ### 14.2 Channel3
 
@@ -415,10 +415,10 @@ AG Grid is used to present decision and audit information in sortable, structure
 
 The minimum security model includes:
 
-- Supabase authentication for protected operations.
-- Row-level security for user-owned database records.
+- Session authentication for protected operations, verified against the database on every request.
+- Ownership filters on every repository query for user-owned records.
 - Backend ownership checks before sensitive operations.
-- Service-role credentials restricted to server-side code.
+- Database credentials restricted to server-side code.
 - PayPal, Channel3, and other provider secrets stored only in environment variables.
 - No user PayPal OAuth tokens.
 - Request validation through shared schemas.
@@ -441,7 +441,7 @@ FinPal fails conservatively around money:
 - Capture and void operations use guarded updates to avoid race-condition outcomes.
 - External provider identifiers and responses are stored only to the degree required for reconciliation and audit.
 
-The evaluation and its decision are stored in one transaction, through the `record_evaluation_with_decision` database function. If the decision insert fails, the evaluation is rolled back too, so an evaluation can never exist without its decision. Only the service role may call the function.
+The evaluation and its decision are stored in one transaction, through the `record_evaluation_with_decision` database function. If the decision insert fails, the evaluation is rolled back too, so an evaluation can never exist without its decision. The function also re-checks that the proposal belongs to the user.
 
 ## 17. Auditability and Explainability
 
@@ -465,12 +465,12 @@ The project uses a monorepo deployment model:
 
 - The Next.js application and API are deployed to Render as the canonical backend deployment target.
 - The frontend may remain on the same Render service or be deployed separately to Vercel if the team chooses.
-- Supabase hosts authentication and PostgreSQL.
+- Render Postgres holds the database; FinPal handles sign-in itself.
 - All external service credentials are provided through deployment environment variables.
 - CI validates formatting, linting, types, tests, and builds.
 - CodeQL provides automated security analysis.
 
-Operational readiness requires configured Supabase, Channel3, and PayPal Sandbox projects plus the corresponding callback URLs and environment variables.
+Operational readiness requires a Postgres database, configured Channel3 and PayPal Sandbox projects, and the corresponding callback URLs and environment variables.
 
 ## 19. Testing Strategy
 
@@ -479,7 +479,7 @@ Testing is organized around risk:
 - Unit tests cover constraint boundaries, time windows, caps, quality thresholds, median calculations, and state transitions.
 - Use-case tests cover proposal evaluation, authorization, capture, void, ownership, and idempotency.
 - API tests cover authentication, validation, status codes, and response contracts.
-- Database tests cover row-level security and append-only audit guarantees.
+- Database tests run the repositories against real Postgres and cover ownership scoping, sessions and append-only audit guarantees.
 - Integration smoke tests should exercise real sandbox services before the demo.
 - End-to-end tests should cover the complete proposal-to-capture path and the blocked/manual-review paths.
 
@@ -489,7 +489,7 @@ The deterministic decision engine is particularly suited to table-driven tests b
 
 The complete core loop and the P1 integrations are implemented and covered by automated tests:
 
-- Supabase authentication, row-level security and eight schema migrations.
+- Email-and-password accounts with database sessions, and the PostgreSQL schema with migrations applied on start.
 - Constraints (time windows, per-purchase, daily and monthly caps), including clearing them.
 - Channel3 comparable offers and the deterministic Quality Score.
 - Decision orchestration with the PRD decision table; the evaluation and decision are stored atomically.
@@ -498,11 +498,11 @@ The complete core loop and the P1 integrations are implemented and covered by au
 - Append-only audit log, AG Grid decisions view, Bryntum calendar, Google Calendar prefill, and the optional Groq assistant.
 - A mock data source that runs the real use cases on in-memory data with simulated providers, for development without keys.
 
-Automated tests use simulated PayPal and Channel3 and an in-memory database. A live run against real Supabase, PayPal Sandbox, Channel3 and KERNEL has not yet been recorded.
+Automated tests use simulated PayPal and Channel3, an in-memory database for use cases, and real Postgres for the repositories (when `TEST_DATABASE_URL` is set). A live run against Render Postgres, PayPal Sandbox, Channel3 and KERNEL has not yet been recorded.
 
 ## 21. Remaining Work
 
-1. Create the hosted Supabase project, apply the migrations, and set the Render environment variables (see `docs/operations.md`).
+1. Deploy the Render blueprint (web service and Postgres), copy the data from Supabase, and set the environment variables (see `docs/operations.md`).
 2. Register the PayPal webhook and set `PAYPAL_WEBHOOK_ID`.
 3. Deploy to Render.
 4. Run the live integration matrix against real services and record the results.
@@ -570,5 +570,4 @@ The central promise of FinPal is not merely that an agent can pay. It is that th
 | Capture                 | PayPal completes an authorized payment                                                      |
 | Void                    | PayPal cancels an authorization before capture                                              |
 | Idempotency             | Repeating the same request safely without creating duplicate effects                        |
-| Row-level security      | Database rules limiting which records an authenticated user may access                      |
 | Audit event             | An immutable record of an important system action                                           |
