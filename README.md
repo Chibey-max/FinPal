@@ -44,7 +44,7 @@ A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decision
 | Supabase         | Auth, Postgres, row-level security                                                  | Yes (live mode)                |
 | Channel3         | Comparable offers for the price check                                               | Yes (live mode)                |
 | KERNEL           | Merchant trust check                                                                | No; `NOT_CHECKED` without it   |
-| Google Calendar  | Events for proposal prefill (OAuth refresh token)                                   | No                             |
+| Google Calendar  | Each user's own events, for suggestions (OAuth)                                     | No                             |
 | Groq             | Shopping agent, calendar ideas, written rules, spending outlook, decision summaries | No; rule-based text without it |
 | AG Grid, Bryntum | Decisions and Activity grids; Calendar                                              | Bundled                        |
 
@@ -109,7 +109,6 @@ Render deploys the Docker image from `render.yaml` with `FINPAL_DATA_SOURCE=live
 The full list is in [`docs/design.md`](docs/design.md#21a-known-limitations). The main points:
 
 - **Refunds:** captured payments can't be refunded.
-- **Shared Google Calendar:** one calendar is shared at the server level; there's no per-user Google connection.
 - **Single instance:** one Render instance is assumed, so there's no shared rate limiter.
 - **Bryntum trial:** the calendar runs on the Bryntum trial, which shows a watermark. Switch the `@bryntum/calendar` alias to the licensed package before a public launch.
 

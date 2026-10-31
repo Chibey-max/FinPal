@@ -17,8 +17,10 @@ export type CalendarEventsQuery = z.infer<typeof calendarEventsQuerySchema>;
 
 export const calendarEventsPageSchema = z.object({
   events: z.array(calendarEventSchema),
-  /** False when Google Calendar is not configured on the server. */
+  /** True when this user's calendar is connected and readable. */
   configured: z.boolean(),
+  /** Google cancelled the connection; the user has to connect again. */
+  needsReconnect: z.boolean().default(false),
 });
 
 export type CalendarEventsPage = z.infer<typeof calendarEventsPageSchema>;

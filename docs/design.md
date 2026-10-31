@@ -515,7 +515,7 @@ Automated tests use simulated PayPal and Channel3 and an in-memory database. A l
 - **Caps are checked at evaluation time.** Daily and monthly totals count `AUTHORIZED` and `CAPTURED` payments. An order that is created but not yet authorized does not count until it is authorized.
 - **No currency conversion.** Channel3 prices only USD, CAD, AUD, GBP, EUR, SEK, CZK and RON; other currencies give Insufficient data, and a proposal in a different currency from the constraints is blocked.
 - **Basic merchant trust.** KERNEL checks that the merchant page loads, not the merchant's reputation.
-- **One shared Google Calendar.** Calendar access uses server-level credentials, not a per-user Google connection. Refresh tokens of Google OAuth apps in "Testing" publishing status expire after 7 days; publish the OAuth app, or reissue the token shortly before the demo.
+- **Google Calendar access can end.** Each user connects their own calendar. Publish the OAuth app so tokens do not expire after 7 days; a user removing access still ends it, and FinPal then offers Reconnect.
 - **Webhooks are optional.** Payment state normally advances through the PayPal return URL and API calls; webhooks apply updates only when `PAYPAL_WEBHOOK_ID` is set.
 - **Single instance.** There is no shared rate limiter; one Render instance is assumed.
 - **Users with audit history cannot be hard-deleted.** Audit events reference users with `on delete restrict` by design.

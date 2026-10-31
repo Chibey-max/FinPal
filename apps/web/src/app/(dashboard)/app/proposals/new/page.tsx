@@ -35,7 +35,7 @@ export default async function NewProposalPage({
   const [spend, events] = await Promise.all([
     getSpendSummary(user.id, constraints),
     params.event
-      ? getCalendarEvents(50).then((page) => page.events)
+      ? getCalendarEvents(user.id, 50).then((page) => page.events)
       : Promise.resolve([]),
   ]);
   const timeZone = constraints?.timezone ?? "America/Los_Angeles";
