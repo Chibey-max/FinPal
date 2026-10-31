@@ -354,6 +354,7 @@ const WEEK_EVENTS = [
     time: "18:30",
     title: "Dad's birthday dinner",
   },
+  { id: "evt_car_service", day: 1, time: "14:00", title: "Car service" },
   { id: "evt_offsite_prep", day: 3, time: "09:00", title: "Team offsite prep" },
   { id: "evt_flight_nyc", day: 5, time: "11:00", title: "Flight to NYC" },
 ];
@@ -378,7 +379,7 @@ export function upcomingMonday(timeZone: string) {
 
 export function calendarEvents(timeZone: string): CalendarEvent[] {
   const monday = upcomingMonday(timeZone);
-  return WEEK_EVENTS.map((event) => ({
+  const timed = WEEK_EVENTS.map((event) => ({
     id: event.id,
     title: event.title,
     startsAt: zonedToDate(
@@ -387,4 +388,13 @@ export function calendarEvents(timeZone: string): CalendarEvent[] {
       timeZone,
     ).toISOString(),
   }));
+  // Birthdays arrive from Google as all-day events: a date with no time.
+  return [
+    ...timed,
+    {
+      id: "evt_mum_birthday",
+      title: "Mum's birthday",
+      startsAt: addDays(monday, 2),
+    },
+  ].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 }
