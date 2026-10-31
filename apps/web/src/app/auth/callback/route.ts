@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // A dead reset link goes to the page that offers a new one, not to sign-in.
+  if (next === "/reset-password") {
+    return NextResponse.redirect(new URL(next, origin));
+  }
+
   const loginUrl = new URL("/login", origin);
   loginUrl.searchParams.set("error", "auth_callback_failed");
   return NextResponse.redirect(loginUrl);
