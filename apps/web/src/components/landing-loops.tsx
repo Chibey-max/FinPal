@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type CSSProperties,
   type RefObject,
 } from "react";
 
@@ -66,54 +65,11 @@ function useLoop(
   return { step: reduced ? count : step, cycle, animate: !reduced };
 }
 
-const STEP_MS = 2200;
-
-export function StepLoop({
-  steps,
-}: {
-  steps: readonly (readonly [string, string, string])[];
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { step, cycle, animate } = useLoop(ref, steps.length, STEP_MS, 1400);
-
-  return (
-    <div
-      ref={ref}
-      className="step-grid"
-      data-reveal
-      style={{ "--step-ms": `${STEP_MS}ms` } as CSSProperties}
-    >
-      {steps.map(([number, title, description], index) => {
-        const state =
-          index < step ? "done" : index === step ? "active" : "todo";
-        return (
-          <article className="step-card" key={number} data-state={state}>
-            <span className="step-card__number">
-              <i aria-hidden />
-              {number}
-            </span>
-            <div>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </div>
-            <span className="step-card__bar" aria-hidden>
-              <span
-                key={`${cycle}-${state}`}
-                data-animate={animate || undefined}
-              />
-            </span>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
 const FLOW_MS = 1700;
 const CAPTIONS = [
-  "FinPal creates the PayPal order",
-  "The buyer approves in PayPal Sandbox",
-  "FinPal authorizes: the money is reserved, not taken",
+  "FinPal creates one PayPal order for your basket",
+  "You approve once in PayPal Sandbox",
+  "FinPal reserves the money",
 ];
 
 export function PaymentFlowLoop() {
@@ -131,8 +87,8 @@ export function PaymentFlowLoop() {
   const caption =
     step >= 3
       ? voided
-        ? "Voided before capture: nothing is taken"
-        : "Captured: the payment completes"
+        ? "Something went wrong, so the money is released: nothing is taken"
+        : "FinPal takes the payment and you're done"
       : CAPTIONS[step];
   const node = (index: number) =>
     index < reached ? "done" : index === reached ? "current" : "todo";
