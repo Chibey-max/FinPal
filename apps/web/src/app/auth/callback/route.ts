@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { appOrigin } from "@/lib/app-origin";
 import { safeNextPath } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Completes email confirmation and magic-link sign-ins (PKCE code exchange).
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = appOrigin(request.nextUrl.origin);
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next"));
 
