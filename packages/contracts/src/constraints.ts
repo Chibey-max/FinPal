@@ -46,6 +46,41 @@ export const amountCapsSchema = z.object({
 
 export type AmountCaps = z.infer<typeof amountCapsSchema>;
 
+/**
+ * Caps must nest: one purchase can't be allowed more than a whole day, or a
+ * day more than a whole month. Returns the field at fault, or null.
+ */
+export function capsOrderProblem(caps: {
+  perPurchase?: number;
+  daily?: number;
+  monthly?: number;
+}): { field: "perPurchase" | "daily"; message: string } | null {
+  const { perPurchase, daily, monthly } = caps;
+  if (perPurchase !== undefined && daily !== undefined && perPurchase > daily) {
+    return {
+      field: "perPurchase",
+      message: "A single purchase can't be more than your daily budget.",
+    };
+  }
+  if (daily !== undefined && monthly !== undefined && daily > monthly) {
+    return {
+      field: "daily",
+      message: "Your daily budget can't be more than your monthly budget.",
+    };
+  }
+  if (
+    perPurchase !== undefined &&
+    monthly !== undefined &&
+    perPurchase > monthly
+  ) {
+    return {
+      field: "perPurchase",
+      message: "A single purchase can't be more than your monthly budget.",
+    };
+  }
+  return null;
+}
+
 function isTimeZone(value: string) {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: value });
@@ -67,6 +102,23 @@ export const spendingConstraintsSchema = z.object({
 });
 
 export type SpendingConstraints = z.infer<typeof spendingConstraintsSchema>;
+
+/**
+ * What a save must satisfy. Separate from the read schema so rows saved
+ * before this rule existed still load and can be corrected.
+ */
+export const saveConstraintsSchema = spendingConstraintsSchema.superRefine(
+  (value, context) => {
+    const problem = capsOrderProblem(value.amountCaps);
+    if (problem) {
+      context.addIssue({
+        code: "custom",
+        message: problem.message,
+        path: ["amountCaps", problem.field],
+      });
+    }
+  },
+);
 export type SpendingConstraintsInput = z.input<
   typeof spendingConstraintsSchema
 >;

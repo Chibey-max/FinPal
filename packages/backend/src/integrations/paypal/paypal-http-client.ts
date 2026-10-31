@@ -222,7 +222,32 @@ export function createPayPalHttpClient(
               amount: {
                 currency_code: input.currency,
                 value: formatPayPalAmount(input.amount, input.currency),
+                ...(input.items?.length
+                  ? {
+                      breakdown: {
+                        item_total: {
+                          currency_code: input.currency,
+                          value: formatPayPalAmount(
+                            input.amount,
+                            input.currency,
+                          ),
+                        },
+                      },
+                    }
+                  : {}),
               },
+              ...(input.items?.length
+                ? {
+                    items: input.items.map((item) => ({
+                      name: item.name.slice(0, 127),
+                      quantity: "1",
+                      unit_amount: {
+                        currency_code: input.currency,
+                        value: formatPayPalAmount(item.amount, input.currency),
+                      },
+                    })),
+                  }
+                : {}),
             },
           ],
           payment_source: {

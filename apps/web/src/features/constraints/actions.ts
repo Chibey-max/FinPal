@@ -1,7 +1,7 @@
 "use server";
 
 import {
-  spendingConstraintsSchema,
+  saveConstraintsSchema,
   type SpendingConstraintsInput,
 } from "@finpal/contracts";
 import { revalidatePath } from "next/cache";
@@ -29,7 +29,7 @@ export async function saveConstraints(
 
   let constraints = null;
   if (input) {
-    const parsed = spendingConstraintsSchema.safeParse(input);
+    const parsed = saveConstraintsSchema.safeParse(input);
     if (!parsed.success) {
       // Key errors by path (e.g. "timeWindows.0.end") so the form can show them inline.
       const fieldErrors: Record<string, string> = {};
@@ -64,8 +64,8 @@ export async function saveConstraints(
     status: "saved",
     saved: constraints,
     message: constraints
-      ? "Constraints saved. They apply to new proposals."
-      : "Constraints cleared. Every new proposal goes to manual review.",
+      ? "Rules saved. The agent follows them from now on."
+      : "Rules cleared. You'll review everything the agent finds.",
     at,
   };
 }
