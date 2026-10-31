@@ -177,7 +177,7 @@ export function ProposalForm({
         },
       );
       startTransition(() => {
-        router.push(`/app/decisions/${result.decision.id}`);
+        router.push(`/app/purchases/${result.decision.id}`);
         router.refresh();
       });
     } catch (caught) {
@@ -368,15 +368,12 @@ export function ProposalForm({
           disabled={pending}
         >
           {pending ? <span className="spinner" aria-hidden /> : null}
-          {pending ? "Evaluating…" : "Evaluate proposal"}
+          {pending ? "Checking…" : "Check against my rules"}
         </LiquidButton>
-        <span className="endpoint">
-          POST /api/v1/proposals → /api/v1/evaluations
-        </span>
       </div>
       <p className="footnote">
         Times are evaluated in {timeZone}.{" "}
-        <Link href="/app/constraints" className="link-quiet">
+        <Link href="/app/rules" className="link-quiet">
           Change timezone
         </Link>
       </p>

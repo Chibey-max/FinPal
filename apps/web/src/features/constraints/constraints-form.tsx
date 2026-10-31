@@ -1,7 +1,8 @@
 "use client";
 
-import type {
-  DraftConstraintsResult,
+import {
+  capsOrderProblem,
+  type DraftConstraintsResult,
   SpendingConstraints,
   SpendingConstraintsInput,
   Weekday,
@@ -14,6 +15,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
+
+import Link from "next/link";
 
 import { useToast } from "@/components/toast";
 import { Select } from "@/components/ui/select";
@@ -33,6 +36,39 @@ const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: "SUN", label: "Sun" },
 ];
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
+const EVERY_DAY: Weekday[] = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const PRESETS = [
+  {
+    label: "Careful",
+    hint: "$50 a purchase, $100 a day, $500 a month, daytime",
+    perPurchase: 50,
+    daily: 100,
+    monthly: 500,
+    days: EVERY_DAY,
+    start: "08:00",
+    end: "20:00",
+  },
+  {
+    label: "Everyday",
+    hint: "$200 a purchase, $400 a day, $2,000 a month",
+    perPurchase: 200,
+    daily: 400,
+    monthly: 2000,
+    days: EVERY_DAY,
+    start: "07:00",
+    end: "23:00",
+  },
+  {
+    label: "Big purchases",
+    hint: "$1,000 a purchase, $1,500 a day, $5,000 a month, weekdays",
+    perPurchase: 1000,
+    daily: 1500,
+    monthly: 5000,
+    days: ["MON", "TUE", "WED", "THU", "FRI"] as Weekday[],
+    start: "09:00",
+    end: "18:00",
+  },
+];
 
 const amount = (value: number | undefined) =>
   value === undefined ? "" : value.toFixed(2);
@@ -174,6 +210,26 @@ export function ConstraintsForm({
     }
   }
 
+  const capsProblem = enabled
+    ? capsOrderProblem({
+        perPurchase: optional(perPurchase),
+        daily: optional(daily),
+        monthly: optional(monthly),
+      })
+    : null;
+  const capsMessage = (field: "perPurchase" | "daily") =>
+    capsProblem?.field === field ? capsProblem.message : undefined;
+
+  function applyPreset(preset: (typeof PRESETS)[number]) {
+    setEnabled(true);
+    setPerPurchase(amount(preset.perPurchase));
+    setDaily(amount(preset.daily));
+    setMonthly(amount(preset.monthly));
+    setDays(preset.days);
+    setStart(preset.start);
+    setEnd(preset.end);
+  }
+
   const crosses = end < start;
   const windowNote = crosses
     ? `Window crosses midnight: allowed from ${start} until ${end} the next day.`
@@ -181,7 +237,7 @@ export function ConstraintsForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isDirty || pending) return;
+    if (!isDirty || pending || capsProblem) return;
     startTransition(() => action(currentInput));
   }
 
@@ -193,9 +249,10 @@ export function ConstraintsForm({
     <form className="constraints-form" onSubmit={submit} noValidate>
       <div className="page-head">
         <div className="page-head__text">
-          <h1>Constraints</h1>
+          <h1>Rules</h1>
           <p>
-            When and how much FinPal may spend. Applied to every new proposal.
+            How much and when the agent may spend. Purchases inside your rules
+            only need your one approval.
           </p>
         </div>
         <button
@@ -212,16 +269,33 @@ export function ConstraintsForm({
           >
             <span />
           </span>
-          {enabled ? "Enforced" : "Not configured"}
+          {enabled ? "On" : "Off"}
         </button>
+      </div>
+
+      <div className="field-group">
+        <span className="eyebrow">Start from a preset</span>
+        <div className="preset-row">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className="preset"
+              title={preset.hint}
+              onClick={() => applyPreset(preset)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <RulesDescriber onDraft={applyDraft} />
 
       {!enabled ? (
         <p className="notice fade-in" data-tone="warn">
-          No constraints configured. This is not unrestricted permission: every
-          proposal goes to manual review.
+          Rules are off. That doesn&apos;t give the agent a free hand:
+          you&apos;ll review everything it finds.
         </p>
       ) : null}
 
@@ -230,7 +304,7 @@ export function ConstraintsForm({
         disabled={!enabled}
         data-off={!enabled || undefined}
       >
-        <legend className="eyebrow">Allowed time window</legend>
+        <legend className="eyebrow">When the agent can spend</legend>
         <div className="field-grid">
           <label className="field">
             <span>Timezone</span>
@@ -299,10 +373,17 @@ export function ConstraintsForm({
               value={perPurchase}
               onChange={(e) => setPerPurchase(e.target.value)}
               aria-invalid={
-                Boolean(errors["amountCaps.perPurchase"]) || undefined
+                Boolean(
+                  capsMessage("perPurchase") ||
+                  errors["amountCaps.perPurchase"],
+                ) || undefined
               }
             />
-            <FieldError message={errors["amountCaps.perPurchase"]} />
+            <FieldError
+              message={
+                capsMessage("perPurchase") ?? errors["amountCaps.perPurchase"]
+              }
+            />
           </label>
           <label className="field">
             <span>Daily</span>
@@ -312,9 +393,14 @@ export function ConstraintsForm({
               value={daily}
               placeholder="No cap"
               onChange={(e) => setDaily(e.target.value)}
-              aria-invalid={Boolean(errors["amountCaps.daily"]) || undefined}
+              aria-invalid={
+                Boolean(capsMessage("daily") || errors["amountCaps.daily"]) ||
+                undefined
+              }
             />
-            <FieldError message={errors["amountCaps.daily"]} />
+            <FieldError
+              message={capsMessage("daily") ?? errors["amountCaps.daily"]}
+            />
           </label>
           <label className="field">
             <span>Monthly</span>
@@ -340,8 +426,8 @@ export function ConstraintsForm({
         </div>
         <span className="small ink4">
           Counted so far: {formatMoney(spentToday, currency)} today,{" "}
-          {formatMoney(spentThisMonth, currency)} this month. Currency
-          mismatches fail closed; FinPal never converts.
+          {formatMoney(spentThisMonth, currency)} this month. A purchase in
+          another currency is blocked; FinPal never converts.
         </span>
       </fieldset>
 
@@ -349,7 +435,7 @@ export function ConstraintsForm({
         type="submit"
         size="xl"
         className="self-start rounded-full"
-        disabled={pending || !isDirty}
+        disabled={pending || !isDirty || Boolean(capsProblem)}
         aria-describedby="constraints-save-hint"
       >
         {pending ? <span className="spinner" aria-hidden /> : null}
@@ -360,18 +446,28 @@ export function ConstraintsForm({
               ? "Saved"
               : "No changes to save"
             : enabled
-              ? "Save constraints"
-              : "Clear constraints"}
+              ? "Save rules"
+              : "Turn rules off"}
       </LiquidButton>
       <span id="constraints-save-hint" className="small ink4">
         {!isDirty
           ? enabled
             ? "Change a rule to enable saving."
-            : "Turn on constraints to configure and save them."
-          : enabled
-            ? "Your changes are not active until you save."
-            : "Saving will clear the current constraints; new proposals will require review."}
+            : "Turn rules on to set them."
+          : capsProblem
+            ? "Fix the budget above to save."
+            : enabled
+              ? "Your changes are not active until you save."
+              : "Saving turns your rules off, so you'll review everything."}
       </span>
+      {state.status === "saved" && !isDirty && state.saved ? (
+        <div className="card rules-next fade-in">
+          <span>Rules saved. What should the agent get you?</span>
+          <LiquidButton asChild size="lg" className="rounded-full">
+            <Link href="/app">Start shopping</Link>
+          </LiquidButton>
+        </div>
+      ) : null}
     </form>
   );
 }

@@ -17,8 +17,8 @@ export function LinkPending() {
 }
 
 /**
- * Plays the page entrance when moving between sections (/app/payments ->
- * /app/activity), but not when only an id changes inside one section, so
+ * Plays the page entrance when moving between sections (/app/purchases ->
+ * /app/rules), but not when only an id changes inside one section, so
  * selecting a row never re-animates the table around it.
  */
 export function SectionTransition({ children }: { children: ReactNode }) {

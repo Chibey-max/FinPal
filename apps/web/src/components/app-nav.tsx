@@ -8,20 +8,14 @@ import { ExpandMoreIcon } from "./icons";
 import { LinkPending } from "./navigation-feedback";
 
 const navItems = [
-  { href: "/app", label: "Overview", exact: true },
-  { href: "/app/agent", label: "Agent" },
-  { href: "/app/calendar", label: "Calendar" },
-  { href: "/app/proposals/new", label: "New proposal" },
-  { href: "/app/decisions", label: "Decisions" },
-  { href: "/app/review", label: "Review queue", badge: "review" },
-  { href: "/app/payments", label: "Payments", badge: "payments" },
-  { href: "/app/activity", label: "Activity" },
-  { href: "/app/constraints", label: "Constraints" },
+  { href: "/app", label: "Agent", exact: true },
+  { href: "/app/purchases", label: "Purchases", badge: true },
+  { href: "/app/rules", label: "Rules" },
 ] as const;
 
 export interface NavBadges {
-  review: number;
-  payments: number;
+  /** Purchases waiting for the person. */
+  purchases: number;
 }
 
 export function AppNav({ badges }: { badges: NavBadges }) {
@@ -41,7 +35,7 @@ export function AppNav({ badges }: { badges: NavBadges }) {
         const active =
           pathname === item.href ||
           (!("exact" in item) && pathname.startsWith(`${item.href}/`));
-        const count = "badge" in item ? badges[item.badge] : 0;
+        const count = "badge" in item ? badges.purchases : 0;
         return (
           <Link
             key={item.href}

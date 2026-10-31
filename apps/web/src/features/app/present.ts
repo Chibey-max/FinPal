@@ -154,3 +154,19 @@ export const percentOf = (value: number, cap: number | undefined) =>
 
 export const sourceLabel = (source: "MANUAL" | "CALENDAR" | "AGENT") =>
   source === "CALENDAR" ? "Calendar" : source === "AGENT" ? "Agent" : "Manual";
+
+/** Plain words for what the rules decided. */
+export const outcomeLabel: Record<DecisionOutcome, string> = {
+  AUTO_APPROVE: "Approved",
+  MANUAL_REVIEW: "Needs review",
+  BLOCK: "Blocked",
+};
+
+export const paymentLabel: Record<PaymentStatus, string> = {
+  CREATED: "Awaiting PayPal",
+  APPROVED: "Finishing",
+  AUTHORIZED: "Finishing",
+  CAPTURED: "Paid",
+  VOIDED: "Cancelled",
+  REFUNDED: "Refunded",
+};

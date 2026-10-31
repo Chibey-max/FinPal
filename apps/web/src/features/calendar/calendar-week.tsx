@@ -52,21 +52,20 @@ export function CalendarWeek({
               {formatEventDate(selected.startsAt, timeZone)}
             </span>
             <span className="small muted">
-              Prefills source, context and evaluation time. You still enter the
-              product name and price.
+              Adds this event to your shopping list, so you can say what you
+              need for it.
             </span>
             <LiquidButton asChild size="lg" className="w-full rounded-full">
               <Link
-                href={`/app/proposals/new?event=${encodeURIComponent(selected.id)}`}
+                href={`/app?need=${encodeURIComponent(`Something for ${selected.title}`)}`}
               >
-                Create proposal from event
+                Shop for this event
               </Link>
             </LiquidButton>
           </div>
         ) : !configured ? (
           <span className="muted">
-            No calendar is connected yet. Proposals can still be created by
-            hand.
+            No calendar is connected yet. Events will show here once it is.
           </span>
         ) : events.length === 0 ? (
           <span className="muted">No upcoming events.</span>
@@ -95,7 +94,7 @@ export function CalendarWeek({
         ) : null}
         {windows.length ? (
           <span className="calendar-legend small ink3">
-            <i aria-hidden /> Shaded hours: spending allowed by your constraints
+            <i aria-hidden /> Shaded hours: spending allowed by your rules
           </span>
         ) : null}
         <span className="footnote">

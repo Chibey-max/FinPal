@@ -3,11 +3,16 @@ import type { DecisionDetail } from "@finpal/contracts";
 import {
   formatMoney,
   formatWhen,
+  outcomeLabel,
   outcomeTone,
   scoreTone,
   shortId,
   trustTone,
 } from "@/features/app/present";
+
+import { describeEvent } from "@/features/activity/describe-event";
+import { PaymentActions } from "@/features/payments/payment-actions";
+import { isMockMode } from "@/lib/data-source";
 
 import { DecisionActions, type DecisionActionState } from "./decision-actions";
 import { DecisionSummary } from "./decision-summary";
@@ -21,11 +26,8 @@ import {
 } from "./evidence";
 
 function actionState(detail: DecisionDetail): DecisionActionState {
-  const { decision, payment } = detail;
+  const { decision } = detail;
   const review = decision.reviewStatus;
-  if (payment) {
-    return { kind: "payment", paymentId: payment.id, status: payment.status };
-  }
   if (decision.outcome === "BLOCK") return { kind: "blocked" };
   if (decision.outcome === "MANUAL_REVIEW") {
     if (review === "REJECTED") return { kind: "rejected" };
@@ -71,7 +73,11 @@ export function DecisionDetailView({
           </h2>
         </div>
         <span className="chip chip-lg" data-tone={tone}>
-          {review ? `REVIEW · ${review}` : decision.outcome}
+          {review === "APPROVED"
+            ? "Approved by you"
+            : review === "REJECTED"
+              ? "Rejected"
+              : outcomeLabel[decision.outcome]}
         </span>
       </div>
       <p className="detail-explanation">{decision.reason}</p>
@@ -177,7 +183,7 @@ export function DecisionDetailView({
 
         <div className="stack-md">
           <section className="card stack-card" aria-labelledby="checks">
-            <h3 id="checks">Constraints and caps</h3>
+            <h3 id="checks">Your rules</h3>
             {checks.map((check) => (
               <div key={check.label} className="check-row">
                 <span className="mono check-row__mark" data-tone={check.tone}>
@@ -209,7 +215,7 @@ export function DecisionDetailView({
             ) : null}
           </section>
           <section className="card stack-card" aria-labelledby="codes">
-            <h3 id="codes">Reason codes</h3>
+            <h3 id="codes">Why, in codes</h3>
             <div className="code-chips">
               {reasonCodes(decision, evaluation).map((code) => (
                 <span key={code} className="code-chip">
@@ -221,7 +227,40 @@ export function DecisionDetailView({
         </div>
       </div>
 
-      <DecisionActions decisionId={decision.id} state={actionState(detail)} />
+      {detail.payment ? (
+        <PaymentActions
+          key={`${detail.payment.id}:${detail.payment.status}`}
+          payment={detail.payment}
+          productName={proposal.productName}
+          sandboxCheckout={isMockMode()}
+        />
+      ) : (
+        <DecisionActions
+          decisionId={decision.id}
+          state={actionState(detail)}
+          productName={proposal.productName}
+          sandbox={isMockMode()}
+        />
+      )}
+
+      {detail.events.length ? (
+        <section className="card stack-card" aria-labelledby="purchase-history">
+          <h3 id="purchase-history">History</h3>
+          <ol className="history-list">
+            {detail.events
+              .slice()
+              .reverse()
+              .map((event) => (
+                <li key={event.id}>
+                  <span className="ink4">
+                    {formatWhen(event.createdAt, timeZone)}
+                  </span>
+                  <span>{describeEvent(event).title}</span>
+                </li>
+              ))}
+          </ol>
+        </section>
+      ) : null}
     </div>
   );
 }
