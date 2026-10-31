@@ -3,26 +3,22 @@ import type { NextConfig } from "next";
 // Pre-/app routes, kept so old links and bookmarks still land somewhere.
 const legacyRoutes: [string, string][] = [
   ["/dashboard", "/app"],
-  ["/approvals", "/app/purchases?view=needs"],
-  ["/calendar", "/app/rules"],
-  ["/proposals/new", "/app"],
+  ["/approvals", "/app/approvals"],
+  ["/calendar", "/app/calendar"],
+  ["/proposals/new", "/app/agent"],
   ["/settings", "/app/rules"],
 ];
 
-// Screens merged into Agent, Purchases and Rules. Not permanent, so they can
-// still change while the app settles.
+// Screens that moved. Not permanent, so they can still change.
 const mergedRoutes: [string, string][] = [
-  ["/app/agent", "/app"],
   ["/app/decisions", "/app/purchases"],
   ["/app/decisions/:id", "/app/purchases/:id"],
-  ["/app/review", "/app/purchases?view=needs"],
+  ["/app/review", "/app/approvals"],
   ["/app/payments", "/app/purchases?view=active"],
-  ["/app/activity", "/app/purchases?view=log"],
   ["/app/constraints", "/app/rules"],
-  ["/app/calendar", "/app/rules"],
 ];
 
-// The Rules page loads Bryntum's obfuscated trial bundle, which can inject
+// The Calendar page loads Bryntum's obfuscated trial bundle, which can inject
 // third-party analytics and call home. This policy confines the signed-in app
 // to our own origin: scripts, connections and styles from 'self' only. It
 // covers all of /app because in-app navigation keeps the first page's policy.

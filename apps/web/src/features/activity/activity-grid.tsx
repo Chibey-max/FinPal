@@ -12,6 +12,7 @@ import { useMemo, useRef, useState } from "react";
 import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
 import { useToast } from "@/components/toast";
 import { gridTheme } from "@/features/app/grid-theme";
+import { useCompact } from "@/features/app/use-compact";
 import { formatWhen, shortId } from "@/features/app/present";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
@@ -83,6 +84,7 @@ export function ActivityGrid({
       }));
   }, [events, filter, timeZone]);
 
+  const compact = useCompact();
   const columns = useMemo<ColDef<Row>[]>(
     () => [
       {
@@ -98,13 +100,14 @@ export function ActivityGrid({
       {
         field: "title",
         headerName: "What happened",
-        width: 250,
+        ...(compact ? { flex: 1, minWidth: 180 } : { width: 250 }),
         cellRenderer: TypeCell,
         // Hover shows the exact recorded type.
         tooltipField: "type",
       },
       {
         field: "entity",
+        hide: compact,
         headerName: "Reference",
         width: 130,
         cellClass: "mono grid-entity",
@@ -112,13 +115,14 @@ export function ActivityGrid({
       {
         field: "detail",
         headerName: "Detail",
+        hide: compact,
         flex: 1,
         minWidth: 240,
         sortable: false,
         tooltipField: "detail",
       },
     ],
-    [],
+    [compact],
   );
 
   async function loadOlder() {

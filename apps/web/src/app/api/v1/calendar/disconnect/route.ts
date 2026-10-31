@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const userId = await getApiUserId();
   if (!userId) return unauthorized();
 
-  const back = new URL("/app/rules", appOrigin(request.nextUrl.origin));
+  const back = new URL("/app/calendar", appOrigin(request.nextUrl.origin));
   try {
     await getCalendarConnectionService()?.disconnect(userId);
     back.searchParams.set("calendar", "disconnected");

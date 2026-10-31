@@ -152,7 +152,7 @@ export function createSpendingForecaster(deps: SpendingForecastDeps = {}) {
 
       const signals = [
         `Spent ${money(spend.spentToday)} today${caps?.daily ? ` of ${money(caps.daily)}` : ""}.`,
-        `Spent ${money(spend.spentThisMonth)} this month${caps?.monthly ? ` of ${money(caps.monthly)}` : ""}, with ${daysLeftInMonth} ${daysLeftInMonth === 1 ? "day" : "days"} left.`,
+        `Spent ${money(spend.spentThisMonth)} this month${caps?.monthly ? ` of ${money(caps.monthly)}` : ""}${daysLeftInMonth === 0 ? ", and today is the last day" : `, with ${daysLeftInMonth} ${daysLeftInMonth === 1 ? "day" : "days"} left`}.`,
       ];
       if (projectedMonth !== null && spend.spentThisMonth > 0) {
         signals.push(

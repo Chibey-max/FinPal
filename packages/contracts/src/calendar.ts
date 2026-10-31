@@ -4,6 +4,7 @@ import { z } from "zod";
 export const calendarEventSchema = z.object({
   id: z.string().min(1).max(200),
   title: z.string().min(1).max(500),
+  /** ISO date-time, or a plain YYYY-MM-DD date for an all-day event. */
   startsAt: z.string(),
 });
 

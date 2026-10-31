@@ -172,7 +172,7 @@ export function AgentDemo() {
           </LiquidButton>
         ) : paid ? (
           <LiquidButton asChild size="lg" className="rounded-full">
-            <Link href="/app">Try it with your own list</Link>
+            <Link href="/app/agent">Try it with your own list</Link>
           </LiquidButton>
         ) : (
           <span />

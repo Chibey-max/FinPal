@@ -1,10 +1,10 @@
 import type { DecisionRow } from "@finpal/contracts";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
+import { ChevronLeftIcon } from "@/components/icons";
 import { FlashToast } from "@/components/toast";
-import { ActivityGrid } from "@/features/activity/activity-grid";
 import { DecisionsGrid } from "@/features/decisions/decisions-grid";
 import { DecisionDetailView } from "@/features/decisions/decisions-screen";
 import { isOpenPayment } from "@/features/app/present";
@@ -13,7 +13,6 @@ import { requireUser } from "@/lib/auth";
 import {
   getAssistantService,
   getDecisionRows,
-  getUserAuditLog,
   getUserConstraints,
   getUserDecisionDetail,
 } from "@/lib/backend";
@@ -26,16 +25,13 @@ export interface PurchasesParams {
 
 const VIEWS = [
   { key: "all", label: "All" },
-  { key: "needs", label: "Needs you" },
   { key: "active", label: "In progress" },
   { key: "done", label: "Done" },
-  { key: "log", label: "Full log" },
 ] as const;
 
 type ViewKey = (typeof VIEWS)[number]["key"];
 
 const inView = (row: DecisionRow, view: ViewKey) => {
-  if (view === "needs") return needsYou(row);
   if (view === "active") return isOpenPayment(row.paymentStatus);
   if (view === "done")
     return !needsYou(row) && !isOpenPayment(row.paymentStatus);
@@ -44,10 +40,8 @@ const inView = (row: DecisionRow, view: ViewKey) => {
 
 const EMPTY: Record<ViewKey, string> = {
   all: "Nothing yet. Give the agent a shopping list to get started.",
-  needs: "Nothing is waiting for you.",
   active: "No payments in progress.",
   done: "Nothing finished yet.",
-  log: "",
 };
 
 function flash(params: PurchasesParams) {
@@ -72,39 +66,20 @@ function flash(params: PurchasesParams) {
   return null;
 }
 
-/** /app/purchases and /app/purchases/[id]: one place for everything bought. */
-export async function PurchasesPage({
-  selectedId,
-  params,
-}: {
-  selectedId: string | null;
-  params: PurchasesParams;
-}) {
-  const user = await requireUser();
-  if (selectedId !== null && !z.uuid().safeParse(selectedId).success) {
-    notFound();
-  }
-  const view: ViewKey = VIEWS.find((v) => v.key === params.view)?.key ?? "all";
+/** /app/purchases: everything the agent found and bought. */
+export async function PurchasesPage({ params }: { params: PurchasesParams }) {
+  // Old links to views that became their own pages.
+  if (params.view === "needs") redirect("/app/approvals");
+  if (params.view === "log") redirect("/app/activity");
 
-  const [rows, constraints, details] = await Promise.all([
+  const user = await requireUser();
+  const view: ViewKey = VIEWS.find((v) => v.key === params.view)?.key ?? "all";
+  const [rows, constraints] = await Promise.all([
     getDecisionRows(user.id),
     getUserConstraints(user.id),
-    getUserDecisionDetail(),
   ]);
-  const detail = selectedId
-    ? await details.getDecisionDetail(user.id, selectedId)
-    : null;
-  if (selectedId && !detail) notFound();
-  const timeZone = constraints?.timezone ?? "UTC";
   const visible = rows.filter((row) => inView(row, view));
-  const log =
-    view === "log"
-      ? await getUserAuditLog().then((audit) =>
-          audit.listActivity(user.id, { limit: 100 }),
-        )
-      : null;
   const message = flash(params);
-  const needsCount = rows.filter(needsYou).length;
 
   return (
     <div className="app-page">
@@ -114,10 +89,7 @@ export async function PurchasesPage({
       <div className="page-head">
         <div className="page-head__text">
           <h1>Purchases</h1>
-          <p>
-            Everything the agent found and bought, why, and what&apos;s waiting
-            for you.
-          </p>
+          <p>Everything the agent found and bought. Open one to see why.</p>
         </div>
         <nav className="segmented" aria-label="Filter purchases">
           {VIEWS.map((option) => (
@@ -132,41 +104,64 @@ export async function PurchasesPage({
               scroll={false}
             >
               {option.label}
-              {option.key === "needs" && needsCount ? (
-                <span className="nav-badge">{needsCount}</span>
-              ) : null}
             </Link>
           ))}
         </nav>
       </div>
 
-      {log ? (
-        <ActivityGrid initial={log} timeZone={timeZone} />
-      ) : visible.length ? (
+      {visible.length ? (
         <DecisionsGrid
           key={view}
           rows={visible}
-          selectedId={selectedId}
-          timeZone={timeZone}
+          selectedId={null}
+          timeZone={constraints?.timezone ?? "UTC"}
         />
       ) : (
         <div className="empty-panel">
           <p>{EMPTY[view]}</p>
           {view === "all" ? (
-            <Link href="/app" className="btn btn-outline">
+            <Link href="/app/agent" className="btn btn-outline">
               Give the agent a list
             </Link>
           ) : null}
         </div>
       )}
+    </div>
+  );
+}
 
-      {detail ? (
-        <DecisionDetailView
-          detail={detail}
-          timeZone={timeZone}
-          summary={getAssistantService().configured}
-        />
+/** /app/purchases/[id]: one purchase, with the evidence behind its outcome. */
+export async function PurchaseDetailPage({
+  id,
+  params,
+}: {
+  id: string;
+  params: PurchasesParams;
+}) {
+  const user = await requireUser();
+  if (!z.uuid().safeParse(id).success) notFound();
+  const [constraints, details] = await Promise.all([
+    getUserConstraints(user.id),
+    getUserDecisionDetail(),
+  ]);
+  const detail = await details.getDecisionDetail(user.id, id);
+  if (!detail) notFound();
+  const message = flash(params);
+
+  return (
+    <div className="app-page">
+      {message ? (
+        <FlashToast message={message.message} tone={message.tone} />
       ) : null}
+      <Link href="/app/purchases" className="back-link">
+        <ChevronLeftIcon />
+        Purchases
+      </Link>
+      <DecisionDetailView
+        detail={detail}
+        timeZone={constraints?.timezone ?? "UTC"}
+        summary={getAssistantService().configured}
+      />
     </div>
   );
 }

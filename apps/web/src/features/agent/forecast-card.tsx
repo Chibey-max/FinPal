@@ -4,7 +4,7 @@ import type { SpendingForecast } from "@finpal/contracts";
 import { useEffect, useState } from "react";
 
 import { AutoAwesomeIcon } from "@/components/icons";
-import { formatEventDate } from "@/features/app/present";
+import { formatEventDate, formatMoney } from "@/features/app/present";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
 const LEVEL = {
@@ -58,14 +58,18 @@ export function ForecastCard({ timeZone }: { timeZone: string }) {
       ) : (
         <div className="fade-in stack-sm">
           <p className="summary-card__text">{forecast.advice}</p>
-          <ul className="forecast-card__signals">
-            {forecast.signals.map((signal) => (
-              <li key={signal}>{signal}</li>
-            ))}
-          </ul>
+          {forecast.projectedMonth !== null && forecast.spentThisMonth > 0 ? (
+            <p className="small ink3">
+              On pace for{" "}
+              <span className="mono ink2">
+                {formatMoney(forecast.projectedMonth, forecast.currency)}
+              </span>{" "}
+              this month.
+            </p>
+          ) : null}
           {forecast.busyEvents.length ? (
             <ul className="forecast-card__events">
-              {forecast.busyEvents.map((event) => (
+              {forecast.busyEvents.slice(0, 3).map((event) => (
                 <li key={event.id}>
                   <span className="chip" data-tone="info">
                     {event.category === "TRAVEL" ? "Travel" : "Celebration"}
