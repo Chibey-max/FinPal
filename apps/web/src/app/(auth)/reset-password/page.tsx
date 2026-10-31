@@ -7,13 +7,21 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "New password · FinPal" };
 
 /**
- * Reached from the reset email via /auth/callback, which exchanges the code
- * for a recovery session. Without that session the link has expired.
+ * Reached from the reset email. The token in the link is only used when the
+ * form is submitted, so an email scanner opening the link can't use it up.
  */
-export default async function ResetPasswordPage() {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token_hash?: string; type?: string }>;
+}) {
+  const { token_hash: tokenHash, type } = await searchParams;
+  if (tokenHash && type === "recovery") {
+    return <ResetPasswordForm tokenHash={tokenHash} />;
+  }
+
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase.auth.getUser();
-
   if (!data.user) {
     return (
       <div className="auth-card__body">

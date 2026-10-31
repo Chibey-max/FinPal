@@ -13,6 +13,8 @@ export function CalendarWeek({
   events,
   windows,
   configured,
+  needsReconnect,
+  canConnect,
   timeZone,
   weekStart,
   firstDate,
@@ -20,8 +22,12 @@ export function CalendarWeek({
   events: CalendarEvent[];
   /** The user's allowed spending windows, shaded on the calendar. */
   windows: TimeWindow[];
-  /** False when no calendar provider is connected on the server. */
+  /** True when this user's calendar is connected. */
   configured: boolean;
+  /** Google cancelled the connection; the user has to connect again. */
+  needsReconnect: boolean;
+  /** False when connecting isn't possible (mock mode or no OAuth client). */
+  canConnect: boolean;
   timeZone: string;
   weekStart: string;
   firstDate: string;
@@ -63,10 +69,29 @@ export function CalendarWeek({
               </Link>
             </LiquidButton>
           </div>
+        ) : needsReconnect ? (
+          <div className="stack-card">
+            <span className="muted">
+              Google ended this calendar connection. Connect it again to see
+              your events.
+            </span>
+            <a href="/api/v1/calendar/connect" className="btn btn-outline">
+              Reconnect Google Calendar
+            </a>
+          </div>
         ) : !configured ? (
-          <span className="muted">
-            No calendar is connected yet. Events will show here once it is.
-          </span>
+          <div className="stack-card">
+            <span className="muted">
+              {canConnect
+                ? "Connect your calendar so the agent can suggest what you might need for upcoming events. FinPal only reads titles and times."
+                : "Calendar connection isn't set up on this server."}
+            </span>
+            {canConnect ? (
+              <a href="/api/v1/calendar/connect" className="btn btn-outline">
+                Connect Google Calendar
+              </a>
+            ) : null}
+          </div>
         ) : events.length === 0 ? (
           <span className="muted">No upcoming events.</span>
         ) : (
@@ -96,6 +121,13 @@ export function CalendarWeek({
           <span className="calendar-legend small ink3">
             <i aria-hidden /> Shaded hours: spending allowed by your rules
           </span>
+        ) : null}
+        {configured && canConnect ? (
+          <form action="/api/v1/calendar/disconnect" method="post">
+            <button type="submit" className="link-quiet">
+              Disconnect Google Calendar
+            </button>
+          </form>
         ) : null}
         <span className="footnote">
           {configured

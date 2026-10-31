@@ -38,6 +38,8 @@ export class GoogleCalendarApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Google cancelled the token: only connecting again can fix it. */
+    readonly revoked = false,
   ) {
     super(message);
     this.name = "GoogleCalendarApiError";
@@ -69,6 +71,7 @@ export function createGoogleCalendarHttpClient(
       throw new GoogleCalendarApiError(
         error.message,
         error.status === 0 ? 0 : 401,
+        error.revoked,
       );
     }
   }

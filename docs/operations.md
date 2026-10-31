@@ -34,15 +34,19 @@ Do these in order: the PayPal webhook needs the public Render URL, and Render ne
 
 ### 4. Google Calendar (optional)
 
-FinPal needs a **refresh token**: a fixed access token stops working after about an hour.
+Each user connects their own calendar from the Rules screen, so the server only needs a Google OAuth client.
 
 1. In Google Cloud, create a project and enable the **Google Calendar API**.
-2. **OAuth consent screen:** choose External, add the scope `https://www.googleapis.com/auth/calendar.readonly`, and add the demo Google account as a test user.
-3. **Credentials → Create OAuth client ID:** choose Web application and add `https://developers.google.com/oauthplayground` as an authorized redirect URI. Copy the client ID and secret.
-4. In the [OAuth Playground](https://developers.google.com/oauthplayground), open the settings (gear), tick **Use your own OAuth credentials**, and paste the client ID and secret. Authorize `https://www.googleapis.com/auth/calendar.readonly` as the demo account, then click **Exchange authorization code for tokens** and copy the **refresh token**.
-5. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` and `GOOGLE_CALENDAR_ID` (`primary`, or a calendar's id).
+2. **OAuth consent screen:** choose External and add the scope `https://www.googleapis.com/auth/calendar.readonly`.
+3. **Publish the app** (Publishing status → **In production**). While it's in "Testing", Google cancels tokens after **7 days**. Once published, tokens don't expire on a timer. Until Google verifies the app, users see an "unverified app" warning and there's a limit of 100 users.
+4. **Credentials → Create OAuth client ID:** choose Web application and add `<app-url>/api/v1/calendar/callback` as an authorized redirect URI (add one for each environment).
+5. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then redeploy. Changing the secret makes stored tokens unreadable, so users would need to reconnect.
 
-While the consent screen's publishing status is **Testing**, Google expires refresh tokens after **7 days**. Either publish the app (Google shows an "unverified app" warning, which is fine for one demo account), or repeat step 4 within 7 days of the demo.
+Tokens can still end if a user removes access in their Google account, doesn't use it for six months, or changes their password in some cases. FinPal then shows **Reconnect** instead of an error.
+
+### Password reset emails
+
+The reset template must link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`, so the token is only used when the person submits the form. Otherwise email scanners that open links use it up. Add `<app-url>/reset-password` to the Supabase redirect URLs. Supabase's built-in email service sends only a few emails an hour and always shows its own sender name; set up custom SMTP in Supabase to change that.
 
 ### 5. Render
 

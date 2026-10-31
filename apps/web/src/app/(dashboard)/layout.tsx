@@ -9,7 +9,6 @@ import { SectionTransition } from "@/components/navigation-feedback";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ToastProvider } from "@/components/toast";
 import { isOpenPayment } from "@/features/app/present";
-import { signOut } from "@/features/auth/actions";
 import { needsYou } from "@/features/purchases/needs-you";
 import { requireUser } from "@/lib/auth";
 import { getDecisionRows } from "@/lib/backend";
@@ -60,7 +59,7 @@ export default async function AppLayout({
               ) : null}
               <ThemeToggle />
               {mock ? null : (
-                <form action={signOut}>
+                <form action="/auth/signout" method="post">
                   <button
                     type="submit"
                     className="icon-button"

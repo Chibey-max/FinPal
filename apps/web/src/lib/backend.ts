@@ -10,11 +10,9 @@ import {
   createSpendingForecaster,
   summarizeHistory,
   createAuditLog,
-  createCalendarEventsService,
+  createCalendarConnectionService,
   createDecisionDetailService,
   createEvaluationService,
-  createGoogleCalendarHttpClient,
-  createGoogleRefreshTokenProvider,
   createGroqHttpClient,
   createKernelHttpClient,
   createKernelTrustChecker,
@@ -24,6 +22,7 @@ import {
   createQualityScoreService,
   createReviewDecisionService,
   createSupabaseAuditEventRepository,
+  createSupabaseCalendarConnectionRepository,
   createSupabaseConstraintsRepository,
   createSupabaseDashboardRepository,
   createSupabaseDecisionRepository,
@@ -37,10 +36,9 @@ import {
   type LlmClient,
   type ShoppingAgent,
   type AuditLog,
-  type CalendarEventsService,
+  type CalendarConnectionService,
   type DashboardRepository,
   type EvaluationService,
-  type GoogleAccessTokenProvider,
   type PaymentService,
   type PaypalWebhookService,
   type ReviewDecisionService,
@@ -55,8 +53,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getComparableOffersService } from "@/lib/channel3";
 import { isMockMode } from "@/lib/data-source";
 import { getPublicEnv } from "@/lib/env";
-import type { ServerEnv } from "@/lib/env-schema";
-import { getGroqEnv, getServerEnv } from "@/lib/env.server";
+import { getGoogleEnv, getGroqEnv, getServerEnv } from "@/lib/env.server";
 import {
   describeConstraints,
   ensureSeeded,
@@ -74,7 +71,6 @@ let serviceDb: SupabaseClient | undefined;
 let paymentService: PaymentService | undefined;
 let evaluationService: EvaluationService | undefined;
 let reviewService: ReviewDecisionService | undefined;
-let calendarService: CalendarEventsService | undefined;
 let webhookService: PaypalWebhookService | undefined;
 let assistantService: AssistantService | undefined;
 
@@ -160,38 +156,25 @@ export function getReviewDecisionService(): ReviewDecisionService {
  * automatically; a fixed access token is a local-testing fallback that stops
  * working after about an hour. Neither: calendar is not configured.
  */
-function googleCalendarAccessToken(
-  env: ServerEnv,
-): GoogleAccessTokenProvider | string | undefined {
-  if (
-    env.GOOGLE_CLIENT_ID &&
-    env.GOOGLE_CLIENT_SECRET &&
-    env.GOOGLE_REFRESH_TOKEN
-  ) {
-    return createGoogleRefreshTokenProvider({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      refreshToken: env.GOOGLE_REFRESH_TOKEN,
-    });
-  }
-  return env.GOOGLE_CALENDAR_ACCESS_TOKEN;
-}
+let calendarConnections: CalendarConnectionService | undefined;
 
-/** Upcoming events for proposal prefill; `configured: false` without Google. */
-export function getCalendarEventsService(): CalendarEventsService {
-  if (isMockMode()) return mockBackend.calendar;
-  if (calendarService) return calendarService;
-  const serverEnv = getServerEnv();
-  const accessToken = googleCalendarAccessToken(serverEnv);
-  calendarService = createCalendarEventsService({
-    calendar: accessToken
-      ? createGoogleCalendarHttpClient({
-          accessToken,
-          calendarId: serverEnv.GOOGLE_CALENDAR_ID,
-        })
-      : undefined,
+/**
+ * Each user's own Google Calendar. Null until the Google OAuth client is
+ * configured, or in mock mode, which has its own sample calendar.
+ */
+export function getCalendarConnectionService(): CalendarConnectionService | null {
+  if (isMockMode()) return null;
+  if (calendarConnections) return calendarConnections;
+  const google = getGoogleEnv();
+  if (!google.GOOGLE_CLIENT_ID || !google.GOOGLE_CLIENT_SECRET) return null;
+  calendarConnections = createCalendarConnectionService({
+    connections: createSupabaseCalendarConnectionRepository(getServiceDb()),
+    clientId: google.GOOGLE_CLIENT_ID,
+    clientSecret: google.GOOGLE_CLIENT_SECRET,
+    redirectUri: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/api/v1/calendar/callback`,
+    onError: (error) => console.error("Google Calendar failed", error),
   });
-  return calendarService;
+  return calendarConnections;
 }
 
 /**
@@ -259,7 +242,7 @@ export function getConstraintsDrafter() {
 /** Purchase ideas from upcoming calendar events, for the user to confirm. */
 export async function getEventSuggestions(userId: string) {
   const [page, history] = await Promise.all([
-    getCalendarEvents(50),
+    getCalendarEvents(userId, 50),
     getPurchaseHistory(userId),
   ]);
   return createCalendarSuggestions({
@@ -293,7 +276,7 @@ export async function getSpendingForecast(userId: string) {
   const constraints = await getUserConstraints(userId);
   const [spend, page, history] = await Promise.all([
     getSpendSummary(userId, constraints),
-    getCalendarEvents(50),
+    getCalendarEvents(userId, 50),
     getPurchaseHistory(userId),
   ]);
   return createSpendingForecaster({
@@ -430,18 +413,22 @@ export async function getSpendSummary(
 }
 
 /**
- * Upcoming calendar events for the Calendar screen and proposal prefill.
- * A provider outage degrades to "configured, no events" rather than an error
- * page: the calendar is only ever a convenience.
+ * This user's upcoming events, for the Rules screen and suggestions. A
+ * provider outage degrades to no events rather than an error page: the
+ * calendar is only ever a convenience.
  */
 export async function getCalendarEvents(
+  userId: string,
   limit = 20,
 ): Promise<CalendarEventsPage> {
+  if (isMockMode()) return mockBackend.calendar.listUpcoming(limit);
+  const service = getCalendarConnectionService();
+  if (!service) return { events: [], configured: false, needsReconnect: false };
   try {
-    return await getCalendarEventsService().listUpcoming(limit);
+    return await service.listUpcoming(userId, limit);
   } catch (error) {
     console.error("Calendar events could not be loaded", error);
-    return { events: [], configured: true };
+    return { events: [], configured: false, needsReconnect: false };
   }
 }
 

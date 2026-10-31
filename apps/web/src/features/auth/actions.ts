@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { safeNextPath } from "@/lib/auth";
-import { isMockMode } from "@/lib/data-source";
 import { getPublicEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -13,6 +12,8 @@ export interface AuthFormState {
   message?: string;
   /** Which field the error is about, so the form can mark it invalid. */
   field?: "email" | "password" | "confirm";
+  /** The reset link has been used: this session finishes the reset. */
+  linkUsed?: boolean;
 }
 
 const email = z.email("Enter a valid email address.");
@@ -120,7 +121,7 @@ export async function requestPasswordReset(
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
+    redirectTo: `${getPublicEnv().NEXT_PUBLIC_APP_URL}/reset-password`,
   });
   if (error && /rate limit|too many/i.test(error.message)) {
     return { error: friendlyAuthError(error.message) };
@@ -139,7 +140,13 @@ const newPasswordSchema = z
     path: ["confirm"],
   });
 
-/** Sets a new password using the recovery session from the email link. */
+const EXPIRED = "This reset link has expired. Request a new one to continue.";
+
+/**
+ * Sets a new password. The email's token is only used here, when the person
+ * submits, not when the link opens: email scanners open links, which would
+ * otherwise use it up and show "expired" to the real person.
+ */
 export async function updatePassword(
   _previous: AuthFormState,
   formData: FormData,
@@ -151,25 +158,30 @@ export async function updatePassword(
   if (!parsed.success) return firstIssue(parsed.error);
 
   const supabase = await createServerSupabaseClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) {
-    return {
-      error: "This reset link has expired. Request a new one to continue.",
-    };
+  const tokenHash = formData.get("tokenHash");
+  if (typeof tokenHash === "string" && tokenHash) {
+    // Never fall back to an existing session here: the password would change
+    // on whichever account is signed in, not the one the link was sent to.
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "recovery",
+    });
+    if (error) return { error: EXPIRED };
+  } else {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return { error: EXPIRED };
   }
+
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,
   });
   if (error) {
-    return { error: friendlyAuthError(error.message), field: "password" };
+    return {
+      error: friendlyAuthError(error.message),
+      field: "password",
+      linkUsed: true,
+    };
   }
 
   redirect("/app?password=updated");
-}
-
-export async function signOut() {
-  if (isMockMode()) redirect("/");
-  const supabase = await createServerSupabaseClient();
-  await supabase.auth.signOut();
-  redirect("/login");
 }

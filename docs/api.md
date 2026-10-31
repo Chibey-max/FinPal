@@ -82,9 +82,9 @@ Guardrails: the model may only pick one of the listed offers; budgets and amount
 
 `POST /baskets { decisionIds, idempotencyKey }` creates one PayPal order for all items, with one `payment_attempts` row per item sharing `basketId`, so caps, audit and dashboard stay per item. It refuses the whole basket if any item isn't payable, or with `422 BASKET_OVER_CAP` if the total exceeds what's left of the daily or monthly cap. After the buyer approves, the return URL (or `POST /baskets/:id/settle`) rechecks the caps, then authorizes and captures. Each step is skipped once done, so a retry after a failure resumes. A void applies to the whole basket, because it shares one authorization.
 
-### Calendar prefill
+### Google Calendar
 
-`GET /api/v1/calendar/events?limit=20` returns `{ events, configured }`. When `GOOGLE_CALENDAR_ACCESS_TOKEN` is unset, `configured` is `false` and `events` is empty. Events expose `id`, `title`, and `startsAt` only — create a proposal with `source: "CALENDAR"` and `sourceEventId` / `proposedFor` yourself; FinPal never infers a product from the title.
+Each user connects their own calendar. `GET /api/v1/calendar/connect` sends them to Google for read-only access, `GET /api/v1/calendar/callback` stores the refresh token encrypted, and `POST /api/v1/calendar/disconnect` cancels access at Google and deletes it. `GET /api/v1/calendar/events?limit=20` returns `{ events, configured, needsReconnect }`, with `id`, `title` and `startsAt` only. If Google cancels a token, `needsReconnect` is true and the app offers Reconnect. A Google outage returns no events rather than an error.
 
 ## Payment flow
 

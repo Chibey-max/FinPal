@@ -23,3 +23,10 @@ export function getGroqEnv() {
     .pick({ GROQ_API_KEY: true, GROQ_MODEL: true })
     .parse(process.env);
 }
+
+/** The Google OAuth client alone, read when someone uses their calendar. */
+export function getGoogleEnv() {
+  return serverEnvSchema
+    .pick({ GOOGLE_CLIENT_ID: true, GOOGLE_CLIENT_SECRET: true })
+    .parse(process.env);
+}
