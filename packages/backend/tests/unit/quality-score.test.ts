@@ -101,7 +101,7 @@ describe("Quality Score v1 bands", () => {
     });
     expect(result.references).toHaveLength(3);
     expect(result.explanation).toBe(
-      "$104.00 is 4.0% above the median of $100.00 across 3 offers (lowest $90.00). Good: within 5% of the median.",
+      "$104.00 is 4.0% above the median of $100.00 across 3 offers (lowest $90.00). Good: no more than 5% above the median.",
     );
   });
 

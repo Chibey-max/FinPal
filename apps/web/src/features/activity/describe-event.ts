@@ -9,19 +9,35 @@ export interface EventDescription {
 }
 
 const titles: Record<AuditEventType, { title: string; tone: EventTone }> = {
-  CONSTRAINTS_UPDATED: { title: "Spending limits updated", tone: "neutral" },
-  PROPOSAL_CREATED: { title: "Proposal created", tone: "neutral" },
+  CONSTRAINTS_UPDATED: { title: "Rules updated", tone: "neutral" },
+  PROPOSAL_CREATED: { title: "Item proposed", tone: "neutral" },
   AGENT_PURCHASE_PROPOSED: { title: "Agent chose an offer", tone: "neutral" },
-  EVALUATION_COMPLETED: { title: "Purchase evaluated", tone: "neutral" },
-  DECISION_RECORDED: { title: "Decision recorded", tone: "neutral" },
-  DECISION_APPROVED: { title: "Approved by reviewer", tone: "success" },
-  DECISION_REJECTED: { title: "Rejected by reviewer", tone: "danger" },
+  EVALUATION_COMPLETED: {
+    title: "Checked against your rules",
+    tone: "neutral",
+  },
+  DECISION_RECORDED: { title: "Decision made", tone: "neutral" },
+  DECISION_APPROVED: { title: "You approved it", tone: "success" },
+  DECISION_REJECTED: { title: "You rejected it", tone: "danger" },
   PAYMENT_CREATED: { title: "PayPal order created", tone: "neutral" },
-  PAYMENT_APPROVED: { title: "Buyer approved in PayPal", tone: "neutral" },
-  PAYMENT_AUTHORIZED: { title: "Payment authorized", tone: "success" },
-  PAYMENT_CAPTURED: { title: "Payment captured", tone: "success" },
-  PAYMENT_VOIDED: { title: "Authorization voided", tone: "warning" },
+  PAYMENT_APPROVED: { title: "You approved in PayPal", tone: "neutral" },
+  PAYMENT_AUTHORIZED: { title: "Money reserved", tone: "success" },
+  PAYMENT_CAPTURED: { title: "Payment taken", tone: "success" },
+  PAYMENT_VOIDED: { title: "Payment cancelled", tone: "warning" },
   PAYPAL_CALL_FAILED: { title: "PayPal request failed", tone: "danger" },
+};
+
+const decisionWords: Record<string, string> = {
+  AUTO_APPROVE: "Approved",
+  MANUAL_REVIEW: "Needs review",
+  BLOCK: "Blocked",
+};
+
+const scoreWords: Record<string, string> = {
+  GOOD: "Good price",
+  FAIR: "Fair price",
+  POOR: "Poor price",
+  INSUFFICIENT_DATA: "Not enough price data",
 };
 
 const decisionTones: Record<string, EventTone> = {
@@ -65,7 +81,9 @@ export function describeEvent(event: AuditEvent): EventDescription {
     case "DECISION_RECORDED": {
       const outcome = text(p.outcome);
       return {
-        title: outcome ? `Decision: ${outcome}` : base.title,
+        title: outcome
+          ? `Decision: ${decisionWords[outcome] ?? outcome}`
+          : base.title,
         tone: (outcome && decisionTones[outcome]) || base.tone,
         detail: text(p.reason),
       };
@@ -143,42 +161,39 @@ export function summarizeEvent(event: AuditEvent): string {
         ) ?? "Agent chose an offer"
       );
     case "EVALUATION_COMPLETED": {
+      const score = text(p.qualityScore);
+      const word = score ? (scoreWords[score] ?? score) : undefined;
       const median = num(p.medianPrice);
       return median !== undefined
-        ? join(text(p.qualityScore), `median ${median.toFixed(2)}`)!
-        : join(
-            text(p.qualityScore),
-            `${num(p.offerCount) ?? 0} usable offers`,
-          )!;
+        ? join(word, `median ${median.toFixed(2)}`)!
+        : join(word, `${num(p.offerCount) ?? 0} usable offers`)!;
     }
     case "DECISION_RECORDED": {
-      const codes = Array.isArray(p.reasonCodes)
-        ? p.reasonCodes.filter(
-            (code): code is string => typeof code === "string",
-          )
-        : [];
+      const outcome = text(p.outcome);
       return (
-        join(text(p.outcome), codes.join(", ") || undefined) ??
-        "Decision recorded"
+        text(p.reason) ??
+        (outcome ? (decisionWords[outcome] ?? outcome) : "Decision made")
       );
     }
     case "DECISION_APPROVED":
-      return `Approved by ${text(p.reviewer) ?? "reviewer"}`;
+      return "You approved it after review";
     case "DECISION_REJECTED":
-      return `Rejected by ${text(p.reviewer) ?? "reviewer"}`;
+      return "You rejected it after review";
     case "PAYMENT_CREATED":
       return (
         join(text(p.paypalOrderId) && `Order ${p.paypalOrderId}`, money(p)) ??
         "PayPal order created"
       );
     case "PAYMENT_APPROVED":
-      return join("Buyer approved in PayPal", text(p.paypalOrderStatus))!;
+      return text(p.paypalOrderId)
+        ? `Order ${p.paypalOrderId}`
+        : "Approved in PayPal";
     case "PAYMENT_AUTHORIZED":
-      return join("Authorization held", money(p))!;
+      return money(p) ? `${money(p)} reserved` : "Money reserved";
     case "PAYMENT_CAPTURED":
-      return money(p) ? `Captured ${money(p)}` : "Captured";
+      return money(p) ? `${money(p)} paid` : "Paid";
     case "PAYMENT_VOIDED":
-      return "Authorization voided before capture";
+      return "Cancelled before payment was taken. Nothing was charged.";
     case "PAYPAL_CALL_FAILED":
       return (
         join(

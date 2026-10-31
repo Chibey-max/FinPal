@@ -142,6 +142,10 @@ export default function HomePage() {
               <span>≤ 105% of median</span>
             </div>
             <div>
+              <b className="score-fair">UNUSUALLY LOW</b>
+              <span>&lt; 50% of median: a person checks it</span>
+            </div>
+            <div>
               <b className="score-fair">FAIR</b>
               <span>&gt; 105% and ≤ 120%</span>
             </div>
@@ -206,6 +210,13 @@ export default function HomePage() {
           <div role="row">
             <span>Any</span>
             <span>Insufficient</span>
+            <span>Any</span>
+            <span>Any</span>
+            <b className="score-fair">MANUAL_REVIEW</b>
+          </div>
+          <div role="row">
+            <span>Any</span>
+            <span>Under 50%</span>
             <span>Any</span>
             <span>Any</span>
             <b className="score-fair">MANUAL_REVIEW</b>

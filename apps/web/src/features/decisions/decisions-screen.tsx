@@ -3,6 +3,7 @@ import type { DecisionDetail } from "@finpal/contracts";
 import {
   formatMoney,
   formatWhen,
+  isUnusuallyLow,
   outcomeLabel,
   outcomeTone,
   scoreTone,
@@ -54,6 +55,10 @@ export function DecisionDetailView({
   const band = priceBand(quality);
   const checks = constraintChecklist(evaluation.constraintCheck);
   const amount = formatMoney(proposal.proposedPrice, proposal.currency);
+  const unusuallyLow = isUnusuallyLow(
+    proposal.proposedPrice,
+    quality.medianPrice,
+  );
 
   return (
     <div className="decision-detail fade-in" key={decision.id}>
@@ -96,7 +101,11 @@ export function DecisionDetailView({
             <span className="mono small ink2">
               median {formatMoney(quality.medianPrice, quality.currency)} ·
               ratio {ratioLabel(quality)} ·{" "}
-              <span data-tone={scoreTone[quality.score]}>{quality.score}</span>
+              <span
+                data-tone={unusuallyLow ? "warn" : scoreTone[quality.score]}
+              >
+                {unusuallyLow ? "UNUSUALLY LOW" : quality.score}
+              </span>
             </span>
           </div>
           {band ? (
