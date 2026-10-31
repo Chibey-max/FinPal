@@ -17,6 +17,7 @@ import { gridTheme } from "@/features/app/grid-theme";
 import {
   formatMoney,
   formatWhen,
+  isUnusuallyLow,
   outcomeLabel,
   outcomeTone,
   paymentLabel,
@@ -34,6 +35,13 @@ type Cell<K extends keyof DecisionRow> = ICellRendererParams<
 
 function QualityCell({ data }: Cell<"qualityScore">) {
   if (!data) return null;
+  if (isUnusuallyLow(data.amount, data.medianPrice)) {
+    return (
+      <span className="mono small" data-tone="warn">
+        UNUSUALLY LOW
+      </span>
+    );
+  }
   return (
     <span className="mono small" data-tone={scoreTone[data.qualityScore]}>
       {scoreLabel(data.qualityScore)}

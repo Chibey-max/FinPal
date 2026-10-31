@@ -24,6 +24,12 @@ export const QUALITY_THRESHOLDS = {
   fairMaxRatio: 1.2,
 } as const;
 
+/**
+ * Below this ratio a price is too good to take on trust: often a scam, a used
+ * item or the wrong product. The score stays GOOD, but it goes to a person.
+ */
+export const UNUSUALLY_LOW_RATIO = 0.5;
+
 /** The deterministic result persisted on each evaluation. */
 export const qualityScoreResultSchema = z.object({
   score: qualityScoreSchema,
@@ -36,6 +42,8 @@ export const qualityScoreResultSchema = z.object({
   lowestPrice: z.number().nullable(),
   /** proposed / median, e.g. 1.04 means 4% above the median. */
   ratioToMedian: z.number().nullable(),
+  /** Under UNUSUALLY_LOW_RATIO, computed exactly. Absent on older results. */
+  unusuallyLow: z.boolean().optional(),
   thresholds: z.object({
     goodMaxRatio: z.number(),
     fairMaxRatio: z.number(),

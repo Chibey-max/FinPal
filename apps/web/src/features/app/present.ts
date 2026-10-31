@@ -6,6 +6,8 @@ import type {
   TrustSignal,
 } from "@finpal/contracts";
 
+import { UNUSUALLY_LOW_RATIO } from "@finpal/contracts";
+
 import { localDate } from "@/lib/zoned";
 
 /**
@@ -170,3 +172,9 @@ export const paymentLabel: Record<PaymentStatus, string> = {
   VOIDED: "Cancelled",
   REFUNDED: "Refunded",
 };
+
+/** Under half the usual price: shown as a warning, not as a good deal. */
+export const isUnusuallyLow = (
+  amount: number,
+  medianPrice: number | null | undefined,
+) => Boolean(medianPrice) && amount < medianPrice! * UNUSUALLY_LOW_RATIO;
