@@ -27,7 +27,9 @@ export default function AuthLayout({
       <main id="main" className="auth-main">
         <div className="auth-card">{children}</div>
         <p className="auth-note">
-          PayPal Sandbox only. No real money moves. Not financial advice.
+          PayPal Sandbox only. No real money moves. Not financial advice.{" "}
+          <Link href="/privacy">Privacy</Link> ·{" "}
+          <Link href="/terms">Terms</Link>
         </p>
       </main>
     </div>
