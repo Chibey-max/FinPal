@@ -8,6 +8,7 @@ import {
   createConstraintsDrafter,
   createShoppingAgent,
   createSpendingForecaster,
+  summarizeHistory,
   createAuditLog,
   createCalendarEventsService,
   createDecisionDetailService,
@@ -134,9 +135,10 @@ export function getPaymentService(): PaymentService {
     }),
     payments: createSupabasePaymentAttemptRepository(db),
     decisions: createSupabaseDecisionRepository(db),
+    constraints: createSupabaseConstraintsRepository(db),
     audit: getServiceAuditLog(),
     returnUrl: `${appUrl}/api/v1/payments/return`,
-    cancelUrl: `${appUrl}/app/payments?payment=cancelled`,
+    cancelUrl: `${appUrl}/app/purchases?payment=cancelled`,
   });
   return paymentService;
 }
@@ -255,25 +257,49 @@ export function getConstraintsDrafter() {
 }
 
 /** Purchase ideas from upcoming calendar events, for the user to confirm. */
-export async function getEventSuggestions() {
-  const page = await getCalendarEvents(50);
+export async function getEventSuggestions(userId: string) {
+  const [page, history] = await Promise.all([
+    getCalendarEvents(50),
+    getPurchaseHistory(userId),
+  ]);
   return createCalendarSuggestions({
     llm: getLlm(),
     onError: reportLlmError,
-  }).suggest(page.events, page.configured);
+  }).suggest(page.events, page.configured, history);
+}
+
+/** Past purchases in the form the agent may see: titles and prices, no ids. */
+export async function getPurchaseHistory(userId: string) {
+  return summarizeHistory(await getDecisionRows(userId));
+}
+
+/** What's left of the daily and monthly caps; null means no cap. */
+export async function getBudgetLeft(
+  userId: string,
+  constraints: SpendingConstraints | null,
+) {
+  const spend = await getSpendSummary(userId, constraints);
+  const caps = constraints?.amountCaps;
+  return {
+    dailyLeft: caps?.daily ? Math.max(0, caps.daily - spend.spentToday) : null,
+    monthlyLeft: caps?.monthly
+      ? Math.max(0, caps.monthly - spend.spentThisMonth)
+      : null,
+  };
 }
 
 /** Pace, headroom and busy days ahead, with a short piece of advice. */
 export async function getSpendingForecast(userId: string) {
   const constraints = await getUserConstraints(userId);
-  const [spend, page] = await Promise.all([
+  const [spend, page, history] = await Promise.all([
     getSpendSummary(userId, constraints),
     getCalendarEvents(50),
+    getPurchaseHistory(userId),
   ]);
   return createSpendingForecaster({
     llm: getLlm(),
     onError: reportLlmError,
-  }).forecast({ constraints, spend, events: page.events });
+  }).forecast({ constraints, spend, events: page.events, history });
 }
 
 /** Verified PayPal webhooks. Live only: mock mode has no PayPal to call back. */

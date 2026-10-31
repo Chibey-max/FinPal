@@ -84,7 +84,10 @@ function ruleExplanation(detail: DecisionDetail): string {
   } else if (decision.reviewStatus === "REJECTED") {
     parts.push("A reviewer rejected it, so it will not be paid.");
   }
-  if (payment) parts.push(`The PayPal payment is ${payment.status}.`);
+  if (payment?.status === "CAPTURED") parts.push("It has been paid.");
+  else if (payment?.status === "VOIDED") {
+    parts.push("The payment was cancelled, so nothing was charged.");
+  } else if (payment) parts.push("The PayPal payment isn't finished yet.");
   return parts
     .map((part) => part.trim())
     .filter(Boolean)
