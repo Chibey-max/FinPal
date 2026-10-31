@@ -8,7 +8,7 @@ Decisions come from fixed, deterministic rules. An LLM may explain a decision in
 
 ## How it works
 
-1. **Propose.** The shopping agent turns a need ("noise-cancelling headphones under $350") into a Channel3 search, picks a real offer and submits it. The user can also enter a purchase by hand, type it as a sentence, or start from a calendar event the agent suggests.
+1. **Propose.** The user drops a shopping list. The agent asks about anything too vague, searches Channel3, weighs offers across the price range against the need and the user's purchase history, and submits its picks. One item can also be entered by hand.
 2. **Evaluate.**
    - **Spending rules:** time windows, per-purchase, daily and monthly caps, and currency. Currencies are never converted.
    - **Price check:** Quality Score v1 compares the price with the median of comparable Channel3 offers.
@@ -20,25 +20,19 @@ Decisions come from fixed, deterministic rules. An LLM may explain a decision in
 
    The evaluation and its decision are saved together in one database transaction.
 
-4. **Pay.** An approved decision creates a PayPal Sandbox order. After the buyer approves it, the payment is authorized, then captured or voided. Each step follows a guarded state machine and uses idempotency keys.
+4. **Pay.** Approved items go into one basket and one PayPal Sandbox order. The buyer approves once; FinPal rechecks the total against the caps, then authorizes and captures. Each step follows a guarded state machine and uses idempotency keys.
 
 See [`docs/architecture.md`](docs/architecture.md) for the decision table, Quality Score thresholds and payment state machine.
 
 ## The app
 
-| Route                | What it shows                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------- |
-| `/`                  | Landing page                                                                                        |
-| `/login`             | Sign in or create an account; password reset at `/forgot-password` and `/reset-password`            |
-| `/app`               | Overview: spend against caps, items needing attention, recent decisions                             |
-| `/app/agent`         | Shopping agent: describe a need, it finds and submits an offer; calendar ideas and spending outlook |
-| `/app/proposals/new` | New proposal, with presets and "Describe it" sentence entry                                         |
-| `/app/decisions`     | All decisions in AG Grid, with each decision's evidence and an AI summary                           |
-| `/app/review`        | Manual review queue: approve or reject                                                              |
-| `/app/payments`      | Payment attempts and their PayPal state                                                             |
-| `/app/calendar`      | Bryntum Calendar week view with spending windows and events                                         |
-| `/app/activity`      | The audit log in a filterable AG Grid                                                               |
-| `/app/constraints`   | Spending rules: windows, caps, currency and timezone                                                |
+| Route            | What it shows                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`              | Landing page with an interactive walkthrough                                                                                              |
+| `/login`         | Sign in or create an account; password reset at `/forgot-password` and `/reset-password`                                                  |
+| `/app`           | **Agent**: drop a shopping list, answer any questions, approve the basket once. Personal suggestions, spend and outlook alongside         |
+| `/app/purchases` | **Purchases**: everything found and bought, filtered by Needs you, In progress and Done, with each item's evidence and the full audit log |
+| `/app/rules`     | **Rules**: caps, spending windows, presets or plain-language entry, and the Bryntum Calendar                                              |
 
 A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decisions and decision detail from the same API. See [`apps/mobile/README.md`](apps/mobile/README.md).
 

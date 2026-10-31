@@ -107,8 +107,14 @@ export default async function NewProposalPage({
       <div className="proposal-layout">
         <div className="stack-lg">
           <div className="page-head__text">
-            <h1>New proposal</h1>
-            <p>Creating a proposal does not create a payment.</p>
+            <h1>Add one item</h1>
+            <p>
+              Enter it yourself and your rules check it. Nothing is paid until
+              you approve.{" "}
+              <Link href="/app" className="link-quiet">
+                Or let the agent shop
+              </Link>
+            </p>
           </div>
           <ProposalForm
             key={params.event ?? params.preset ?? "blank"}
@@ -133,7 +139,7 @@ export default async function NewProposalPage({
               <span className="mono">{rule.v}</span>
             </div>
           ))}
-          <Link href="/app/constraints" className="link-quiet small">
+          <Link href="/app/rules" className="link-quiet small">
             Edit constraints →
           </Link>
         </aside>

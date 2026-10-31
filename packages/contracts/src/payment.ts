@@ -31,6 +31,8 @@ export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export const paymentAttemptSchema = z.object({
   id: z.uuid(),
   decisionId: z.uuid(),
+  /** Set when this item shares one PayPal order with others in a basket. */
+  basketId: z.uuid().nullable(),
   status: paymentStatusSchema,
   amount: z.number().positive(),
   currency: z.string().length(3),
@@ -47,6 +49,26 @@ export const paymentAttemptSchema = z.object({
 
 export type PaymentAttempt = z.infer<typeof paymentAttemptSchema>;
 
+/** Several decisions, one PayPal order, one approval. */
+export const createBasketSchema = z.object({
+  decisionIds: z.array(z.uuid()).min(1).max(10),
+  idempotencyKey: idempotencyKeySchema,
+});
+
+export type CreateBasketInput = z.infer<typeof createBasketSchema>;
+
+export const basketSchema = z.object({
+  id: z.uuid(),
+  total: z.number().positive(),
+  currency: z.string().length(3),
+  status: paymentStatusSchema,
+  paypalOrderId: z.string(),
+  approveUrl: z.string().nullable(),
+  items: z.array(paymentAttemptSchema),
+});
+
+export type Basket = z.infer<typeof basketSchema>;
+
 export const paymentErrorCodeSchema = z.enum([
   "PAYMENT_NOT_FOUND",
   "DECISION_NOT_FOUND",
@@ -59,6 +81,7 @@ export const paymentErrorCodeSchema = z.enum([
   "PAYPAL_DECLINED",
   "PAYPAL_UNAVAILABLE",
   "PAYPAL_AUTH_FAILED",
+  "BASKET_OVER_CAP",
 ]);
 
 export type PaymentErrorCode = z.infer<typeof paymentErrorCodeSchema>;

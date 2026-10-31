@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ToastProvider } from "@/components/toast";
 import { isOpenPayment } from "@/features/app/present";
 import { signOut } from "@/features/auth/actions";
+import { needsYou } from "@/features/purchases/needs-you";
 import { requireUser } from "@/lib/auth";
 import { getDecisionRows } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
@@ -22,10 +23,9 @@ export default async function AppLayout({
   const user = await requireUser();
   const rows = await getDecisionRows(user.id);
   const badges = {
-    review: rows.filter(
-      (row) => row.outcome === "MANUAL_REVIEW" && row.reviewStatus === null,
+    purchases: rows.filter(
+      (row) => needsYou(row) || isOpenPayment(row.paymentStatus),
     ).length,
-    payments: rows.filter((row) => isOpenPayment(row.paymentStatus)).length,
   };
   const mock = isMockMode();
 
@@ -44,9 +44,11 @@ export default async function AppLayout({
               <AppNav badges={badges} />
             </div>
             <div className="app-topbar__tools">
-              <Suspense fallback={<div className="demo-menu" />}>
-                <DemoPath />
-              </Suspense>
+              {mock ? (
+                <Suspense fallback={<div className="demo-menu" />}>
+                  <DemoPath />
+                </Suspense>
+              ) : null}
               {mock ? (
                 <span
                   className="data-chip"

@@ -5,6 +5,7 @@ import { paymentStatusSchema } from "@finpal/contracts";
 
 import {
   DuplicatePaymentAttemptError,
+  type NewPaymentAttempt,
   type PaymentAttemptPatch,
   type PaymentAttemptRecord,
   type PaymentAttemptRepository,
@@ -16,6 +17,8 @@ const rowSchema = z.object({
   id: z.string(),
   user_id: z.string(),
   decision_id: z.string(),
+  // Optional so reads keep working until the baskets migration is applied.
+  basket_id: z.string().nullish(),
   status: paymentStatusSchema,
   amount: z.coerce.number(),
   currency: z.string(),
@@ -37,6 +40,7 @@ export function toPaymentAttemptRecord(row: unknown): PaymentAttemptRecord {
     id: r.id,
     userId: r.user_id,
     decisionId: r.decision_id,
+    basketId: r.basket_id ?? null,
     status: r.status,
     amount: r.amount,
     currency: r.currency,
@@ -69,6 +73,26 @@ function toColumns(patch: PaymentAttemptPatch) {
   return columns;
 }
 
+function toInsert(attempt: NewPaymentAttempt) {
+  return {
+    user_id: attempt.userId,
+    decision_id: attempt.decisionId,
+    // Left out for single payments so they work before the baskets migration.
+    ...(attempt.basketId ? { basket_id: attempt.basketId } : {}),
+    status: attempt.status,
+    amount: attempt.amount,
+    currency: attempt.currency,
+    idempotency_key: attempt.idempotencyKey,
+    paypal_order_id: attempt.paypalOrderId,
+    paypal_order_status: attempt.paypalOrderStatus,
+    paypal_authorization_id: attempt.paypalAuthorizationId,
+    paypal_authorization_status: attempt.paypalAuthorizationStatus,
+    paypal_capture_id: attempt.paypalCaptureId,
+    paypal_capture_status: attempt.paypalCaptureStatus,
+    approve_url: attempt.approveUrl,
+  };
+}
+
 export function createSupabasePaymentAttemptRepository(
   db: SupabaseClient,
 ): PaymentAttemptRepository {
@@ -88,13 +112,34 @@ export function createSupabasePaymentAttemptRepository(
     findById: (userId, id) => findOne(userId, "id", id),
     findByIdempotencyKey: (userId, key) =>
       findOne(userId, "idempotency_key", key),
-    findByPayPalOrderId: (userId, orderId) =>
-      findOne(userId, "paypal_order_id", orderId),
+
+    async findByPayPalOrderId(userId, orderId) {
+      const { data, error } = await table()
+        .select("*")
+        .eq("user_id", userId)
+        .eq("paypal_order_id", orderId)
+        .order("created_at")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? toPaymentAttemptRecord(data) : null;
+    },
+
+    async findByBasketId(userId, basketId) {
+      const { data, error } = await table()
+        .select("*")
+        .eq("user_id", userId)
+        .eq("basket_id", basketId)
+        .order("idempotency_key");
+      if (error) throw error;
+      return (data ?? []).map(toPaymentAttemptRecord);
+    },
 
     async findAnyByPayPalOrderId(paypalOrderId) {
       const { data, error } = await table()
         .select("*")
         .eq("paypal_order_id", paypalOrderId)
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data ? toPaymentAttemptRecord(data) : null;
@@ -104,6 +149,7 @@ export function createSupabasePaymentAttemptRepository(
       const { data, error } = await table()
         .select("*")
         .eq("paypal_authorization_id", paypalAuthorizationId)
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data ? toPaymentAttemptRecord(data) : null;
@@ -137,23 +183,31 @@ export function createSupabasePaymentAttemptRepository(
       return cents / 100;
     },
 
+    async insertMany(attempts) {
+      const { data, error } = await table()
+        .insert(attempts.map(toInsert))
+        .select("*");
+      if (error?.code === UNIQUE_VIOLATION) {
+        throw new DuplicatePaymentAttemptError();
+      }
+      if (error) throw error;
+      return (data ?? []).map(toPaymentAttemptRecord);
+    },
+
+    async updateBasketIfStatus(userId, basketId, expectedStatus, patch) {
+      const { data, error } = await table()
+        .update(toColumns(patch))
+        .eq("user_id", userId)
+        .eq("basket_id", basketId)
+        .eq("status", expectedStatus)
+        .select("*");
+      if (error) throw error;
+      return (data ?? []).map(toPaymentAttemptRecord);
+    },
+
     async insert(attempt) {
       const { data, error } = await table()
-        .insert({
-          user_id: attempt.userId,
-          decision_id: attempt.decisionId,
-          status: attempt.status,
-          amount: attempt.amount,
-          currency: attempt.currency,
-          idempotency_key: attempt.idempotencyKey,
-          paypal_order_id: attempt.paypalOrderId,
-          paypal_order_status: attempt.paypalOrderStatus,
-          paypal_authorization_id: attempt.paypalAuthorizationId,
-          paypal_authorization_status: attempt.paypalAuthorizationStatus,
-          paypal_capture_id: attempt.paypalCaptureId,
-          paypal_capture_status: attempt.paypalCaptureStatus,
-          approve_url: attempt.approveUrl,
-        })
+        .insert(toInsert(attempt))
         .select("*")
         .single();
       if (error?.code === UNIQUE_VIOLATION) {

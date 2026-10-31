@@ -1,3 +1,4 @@
+import type { DecisionRow } from "@finpal/contracts";
 import type { z } from "zod";
 
 import type { LlmClient } from "../integrations/groq/llm-client";
@@ -68,4 +69,64 @@ export function formatMoney(amount: number, currency: string): string {
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
+}
+
+/**
+ * What the agent may know about past purchases: no ids or URLs. Blocked items
+ * are left out: a block can just mean the wrong time of day, which says
+ * nothing about whether the person wants the product.
+ */
+export interface PurchaseHistory {
+  bought: { title: string; price: number; on: string }[];
+  rejected: { title: string; price: number }[];
+  /** Median paid per item, or null with no purchases yet. */
+  typicalPrice: number | null;
+}
+
+const HISTORY_LIMIT = 12;
+
+export function summarizeHistory(rows: DecisionRow[]): PurchaseHistory {
+  const paid = rows.filter(
+    (row) =>
+      row.paymentStatus === "CAPTURED" || row.paymentStatus === "AUTHORIZED",
+  );
+  const prices = paid.map((row) => row.amount).sort((a, b) => a - b);
+  const brief = (row: DecisionRow) => ({
+    title: row.productName.slice(0, 80),
+    price: row.amount,
+  });
+  return {
+    bought: paid.slice(0, HISTORY_LIMIT).map((row) => ({
+      ...brief(row),
+      on: row.decidedAt.slice(0, 10),
+    })),
+    rejected: rows
+      .filter((row) => row.reviewStatus === "REJECTED")
+      .slice(0, HISTORY_LIMIT)
+      .map(brief),
+    typicalPrice: prices.length
+      ? (prices[Math.floor(prices.length / 2)] ?? null)
+      : null,
+  };
+}
+
+export const historyIsEmpty = (history: PurchaseHistory | undefined) =>
+  !history || (!history.bought.length && !history.rejected.length);
+
+/** Runs `task` over `items`, at most `limit` at a time, keeping their order. */
+export async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await task(items[index]!);
+    }
+  };
+  await Promise.all(Array.from({ length: limit }, worker));
+  return results;
 }

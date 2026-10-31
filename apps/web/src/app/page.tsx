@@ -4,41 +4,22 @@ import { HeroStoryController } from "@/components/hero-story-controller";
 import { ArrowForwardIcon, PlayArrowIcon } from "@/components/icons";
 import { LogoMark } from "@/components/logo";
 import { ScrollReveal } from "@/components/scroll-reveal";
-import { PaymentFlowLoop, StepLoop } from "@/components/landing-loops";
+import { AgentDemo } from "@/components/agent-demo";
+import { PaymentFlowLoop } from "@/components/landing-loops";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { LandingNav } from "@/components/landing-nav";
 
 import "./landing.css";
 
-const steps = [
-  [
-    "01",
-    "Constrain",
-    "Allowed time windows, a timezone, daily and monthly caps. No constraints means no automatic approval.",
-  ],
-  [
-    "02",
-    "Propose",
-    "A product, price and currency, entered by hand or prefilled from a calendar event.",
-  ],
-  ["03", "Evaluate", "FinPal checks time windows, caps, price and trust."],
-  ["04", "Decide", "Rules return auto-approve, review or block."],
-  [
-    "05",
-    "Pay and audit",
-    "PayPal Sandbox order, authorize, then capture or void. Every step is logged.",
-  ],
-] as const;
-
 const invariants = [
-  "A proposal is not a payment.",
-  "An evaluation is based on stored evidence.",
-  "A blocked decision can never create a payment attempt.",
-  "Insufficient evidence can never cause automatic approval.",
-  "Currency mismatch never triggers silent conversion.",
-  "The same idempotency key never creates a second order.",
-  "Capture and void cannot both succeed for one authorization.",
-  "Audit records cannot be modified or deleted.",
+  "Finding an item never pays for it. Only your approval does.",
+  "Every decision rests on prices and checks kept on record.",
+  "Anything your rules block can never be paid for.",
+  "Not enough price data? It comes to you, never straight through.",
+  "A different currency is blocked, never quietly converted.",
+  "Pressing pay twice never charges you twice.",
+  "A payment is either taken or released, never both.",
+  "The record of what happened can't be edited or deleted.",
 ] as const;
 
 export default function HomePage() {
@@ -75,7 +56,7 @@ export default function HomePage() {
               </h1>
               <div className="hero-actions">
                 <LiquidButton asChild size="xl" className="rounded-full">
-                  <Link href="/app/proposals/new">Run a proposal</Link>
+                  <Link href="/app">Try the agent</Link>
                 </LiquidButton>
                 <Link
                   className="pill-button pill-button--glass pill-button--lg"
@@ -87,9 +68,9 @@ export default function HomePage() {
               </div>
             </div>
             <p className="hero-summary">
-              FinPal places a policy and evidence layer between a purchase
-              proposal and a payment. It evaluates first, decides second, and
-              pays only when the decision permits it.
+              Give FinPal your shopping list. It finds real offers, checks them
+              against your rules, and asks for your approval once before any
+              money moves.
             </p>
           </div>
           <span className="scroll-hint" data-story="hint">
@@ -123,12 +104,11 @@ export default function HomePage() {
             <div className="second-scene-bottom">
               <div data-story="scene-copy">
                 <p>
-                  Every proposal is checked against your time windows, caps and
-                  the median of at least three Channel3 offers before a PayPal
-                  order can exist.
+                  Every item is checked against your spending rules and at least
+                  three real offers before a PayPal order can exist.
                 </p>
                 <LiquidButton asChild size="lg" className="rounded-full">
-                  <Link href="/app/proposals/new">Try a proposal</Link>
+                  <Link href="/app">Try the agent</Link>
                 </LiquidButton>
               </div>
               <h2 data-story="before-pay">Before You Pay</h2>
@@ -139,23 +119,22 @@ export default function HomePage() {
 
       <section id="loop" className="landing-section">
         <div className="section-heading" data-reveal>
-          <h2>Five steps between an idea and a payment.</h2>
+          <h2>See it work. Hand over a list, approve once.</h2>
           <p className="mono-note">
-            a proposal is not a payment.
+            the agent shops.
             <br />
-            same evidence → same outcome.
+            your rules decide. you approve.
           </p>
         </div>
-        <StepLoop steps={steps} />
+        <AgentDemo />
       </section>
 
       <section id="policy" className="landing-section policy-section">
         <div className="policy-copy" data-reveal>
           <h2>Rules you can read. Outcomes you can predict.</h2>
           <p>
-            The proposed price is compared with the median of at least three
-            usable Channel3 offers, in integer cents. No generative model
-            decides.
+            The price is compared with the middle price of at least three real
+            offers. The AI shops and explains, but the rules decide.
           </p>
           <div className="score-list">
             <div>
@@ -236,17 +215,17 @@ export default function HomePage() {
 
       <section id="payments" className="landing-section payment-section">
         <div className="section-heading" data-reveal>
-          <h2>Reserve the money. Then decide to take it.</h2>
+          <h2>One approval. FinPal does the rest.</h2>
           <p>
-            An authorization can be voided until it is captured. Guarded
-            transitions make sure only one path can succeed.
+            You approve in PayPal, FinPal reserves the money and then takes it.
+            If something goes wrong on the way, the money is released instead.
           </p>
         </div>
         <PaymentFlowLoop />
       </section>
 
       <section id="safety" className="landing-section safety-section">
-        <h2 data-reveal>It fails closed around money.</h2>
+        <h2 data-reveal>When in doubt, your money stays put.</h2>
         <div className="invariant-list" data-reveal>
           {invariants.map((item, index) => (
             <div key={item}>

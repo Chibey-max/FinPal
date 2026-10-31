@@ -8,7 +8,11 @@ import {
   rateLimited,
   unauthorized,
 } from "@/lib/api";
-import { getShoppingAgent, getUserConstraints } from "@/lib/backend";
+import {
+  getPurchaseHistory,
+  getShoppingAgent,
+  getUserConstraints,
+} from "@/lib/backend";
 
 // POST /api/v1/agent/shop  { need, eventId? }
 // The shopping agent turns the need into a Channel3 search, picks an offer
@@ -21,11 +25,15 @@ export async function POST(request: Request) {
 
   try {
     const input = agentShopRequestSchema.parse(await request.json());
-    const constraints = await getUserConstraints(userId);
+    const [constraints, history] = await Promise.all([
+      getUserConstraints(userId),
+      getPurchaseHistory(userId),
+    ]);
     const run = await getShoppingAgent().run(userId, {
       need: input.need,
       eventId: input.eventId,
       currency: constraints?.currency ?? "USD",
+      history,
     });
     return NextResponse.json(run);
   } catch (error) {

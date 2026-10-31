@@ -2,6 +2,7 @@ services:
   - type: web
     name: finpal-web
     runtime: docker
+    plan: free
     dockerfilePath: ./infra/docker/Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
