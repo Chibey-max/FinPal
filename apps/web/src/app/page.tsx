@@ -262,7 +262,10 @@ export default function HomePage() {
             FinPal · PayPal Sandbox only. Not financial, legal or investment
             advice.
           </span>
-          <span>v1 · hackathon build</span>
+          <span>
+            <Link href="/privacy">Privacy</Link> ·{" "}
+            <Link href="/terms">Terms</Link> · v1 hackathon build
+          </span>
         </footer>
       </section>
     </main>
