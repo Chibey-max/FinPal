@@ -16,7 +16,6 @@ import {
   useState,
   useTransition,
   type FormEvent,
-  type ReactNode,
 } from "react";
 
 import { AutoAwesomeIcon } from "@/components/icons";
@@ -30,8 +29,6 @@ import {
 import { CheckoutButton } from "@/features/purchases/checkout-button";
 import { ReviewActions } from "@/features/review/review-actions";
 import { apiRequest, errorMessage } from "@/lib/api-client";
-
-import { ForecastCard } from "./forecast-card";
 
 const EXAMPLES = [
   "Noise-cancelling headphones under $350, a portable charger and an ergonomic office chair",
@@ -79,13 +76,10 @@ export function AgentConsole({
   timeZone,
   sandbox,
   initialList,
-  side,
 }: {
   timeZone: string;
   sandbox: boolean;
   initialList: string;
-  /** Server-rendered cards for the side column (spend, what needs you). */
-  side: ReactNode;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -324,8 +318,6 @@ export function AgentConsole({
           disabled={pending}
           onPick={addSuggestion}
         />
-        {side}
-        <ForecastCard timeZone={timeZone} />
       </aside>
     </div>
   );

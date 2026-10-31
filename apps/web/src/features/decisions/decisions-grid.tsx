@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
+import { useCompact } from "@/features/app/use-compact";
 import { gridTheme } from "@/features/app/grid-theme";
 import {
   formatMoney,
@@ -113,11 +114,13 @@ export function DecisionsGrid({
     [router],
   );
 
+  const compact = useCompact();
   const columns = useMemo<ColDef<DecisionRow>[]>(
     () => [
       {
         headerName: "ID",
         field: "decisionId",
+        hide: compact,
         width: 104,
         valueFormatter: (p) => (p.value ? shortId("decision", p.value) : ""),
         getQuickFilterText: (p) => shortId("decision", p.value),
@@ -126,6 +129,7 @@ export function DecisionsGrid({
       {
         headerName: "Decided",
         field: "decidedAt",
+        hide: compact,
         width: 130,
         sort: "desc",
         valueFormatter: (p) => formatWhen(p.value, timeZone),
@@ -135,14 +139,14 @@ export function DecisionsGrid({
         headerName: "Product",
         field: "productName",
         flex: 1,
-        minWidth: 200,
+        minWidth: compact ? 140 : 200,
         filter: "agTextColumnFilter",
         tooltipField: "productName",
       },
       {
         headerName: "Amount",
         field: "amount",
-        width: 124,
+        width: compact ? 104 : 124,
         type: "rightAligned",
         filter: "agNumberColumnFilter",
         valueFormatter: (p) => formatMoney(p.value, p.data?.currency ?? "USD"),
@@ -151,12 +155,14 @@ export function DecisionsGrid({
       {
         headerName: "Quality",
         field: "qualityScore",
+        hide: compact,
         width: 130,
         cellRenderer: QualityCell,
       },
       {
         headerName: "Source",
         field: "source",
+        hide: compact,
         width: 110,
         valueFormatter: (p) => (p.value ? sourceLabel(p.value) : ""),
         cellClass: "grid-muted",
@@ -164,6 +170,7 @@ export function DecisionsGrid({
       {
         headerName: "Status",
         field: "outcome",
+        hide: compact,
         width: 190,
         cellRenderer: OutcomeCell,
         getQuickFilterText: (p) => (p.data ? outcomeLabel[p.data.outcome] : ""),
@@ -171,11 +178,11 @@ export function DecisionsGrid({
       {
         headerName: "Payment",
         field: "paymentStatus",
-        width: 130,
+        width: 110,
         cellRenderer: PaymentCell,
       },
     ],
-    [timeZone],
+    [timeZone, compact],
   );
 
   // Only update when a number changed: a new object on every grid event

@@ -22,23 +22,30 @@ export function DecisionActions({
   state,
   productName,
   sandbox,
+  bare = false,
 }: {
   decisionId: string;
   state: DecisionActionState;
   productName: string;
   sandbox: boolean;
+  /** Only the controls, without the card and explanation, for list rows. */
+  bare?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
 
+  if (bare && state.kind === "review") {
+    return <ReviewActions decisionId={decisionId} />;
+  }
+
   return (
-    <div className="card action-bar">
+    <div className={bare ? "action-bar--bare" : "card action-bar"}>
       {state.kind === "pay" ? (
         <CheckoutButton
           decisionIds={[decisionId]}
           idempotencyKey={keyFor(decisionId)}
-          label="Approve and pay with PayPal"
+          label={bare ? "Approve and pay" : "Approve and pay with PayPal"}
           summary={productName}
           sandbox={sandbox}
           onPaid={(basket) => {

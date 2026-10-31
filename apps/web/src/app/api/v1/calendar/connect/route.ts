@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   const service = getCalendarConnectionService();
   if (!service) {
-    const back = new URL("/app/rules", appOrigin(request.nextUrl.origin));
+    const back = new URL("/app/calendar", appOrigin(request.nextUrl.origin));
     back.searchParams.set("calendar", "failed");
     return NextResponse.redirect(back);
   }

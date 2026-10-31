@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { FlashToast } from "@/components/toast";
-import { formatEventDate, formatMoney } from "@/features/app/present";
+import { formatEventDate, formatMoney, isAllDay } from "@/features/app/present";
 import { ProposalForm } from "@/features/proposals/proposal-form";
 import {
   PRESETS,
@@ -51,8 +51,12 @@ export default async function NewProposalPage({
     ? {
         id: found.id,
         title: found.title,
-        date: localDate(new Date(found.startsAt), timeZone),
-        time: localTimeOfDay(new Date(found.startsAt), timeZone),
+        date: isAllDay(found.startsAt)
+          ? found.startsAt
+          : localDate(new Date(found.startsAt), timeZone),
+        time: isAllDay(found.startsAt)
+          ? "12:00"
+          : localTimeOfDay(new Date(found.startsAt), timeZone),
         label: formatEventDate(found.startsAt, timeZone),
       }
     : null;
@@ -111,7 +115,7 @@ export default async function NewProposalPage({
             <p>
               Enter it yourself and your rules check it. Nothing is paid until
               you approve.{" "}
-              <Link href="/app" className="link-quiet">
+              <Link href="/app/agent" className="link-quiet">
                 Or let the agent shop
               </Link>
             </p>
@@ -140,7 +144,7 @@ export default async function NewProposalPage({
             </div>
           ))}
           <Link href="/app/rules" className="link-quiet small">
-            Edit constraints →
+            Edit rules →
           </Link>
         </aside>
       </div>

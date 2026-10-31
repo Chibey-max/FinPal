@@ -8,5 +8,5 @@ export default async function PurchasesRoute({
 }: {
   searchParams: Promise<PurchasesParams>;
 }) {
-  return <PurchasesPage selectedId={null} params={await searchParams} />;
+  return <PurchasesPage params={await searchParams} />;
 }

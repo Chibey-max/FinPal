@@ -17,6 +17,7 @@ import { isMockMode } from "@/lib/data-source";
 
 import { DecisionActions, type DecisionActionState } from "./decision-actions";
 import { DecisionSummary } from "./decision-summary";
+import { OfferList } from "./offer-list";
 import {
   constraintChecklist,
   priceBand,
@@ -73,9 +74,9 @@ export function DecisionDetailView({
                 : "manual entry"}{" "}
             · evaluated {formatWhen(decision.decidedAt, timeZone)}
           </span>
-          <h2 className="detail-title">
+          <h1 className="detail-title">
             {proposal.productName} <span className="ink3">{amount}</span>
-          </h2>
+          </h1>
         </div>
         <span className="chip chip-lg" data-tone={tone}>
           {review === "APPROVED"
@@ -86,111 +87,120 @@ export function DecisionDetailView({
         </span>
       </div>
       <p className="detail-explanation">{decision.reason}</p>
-      <AgentChoice detail={detail} />
-      {summary ? (
-        <DecisionSummary key={decision.id} decisionId={decision.id} />
-      ) : null}
-
-      <div className="evidence-grid">
-        <section
-          className="card evidence-card span-2"
-          aria-labelledby="evidence"
-        >
-          <div className="card-head card-head--flush">
-            <h3 id="evidence">Price evidence · Channel3</h3>
-            <span className="mono small ink2">
-              median {formatMoney(quality.medianPrice, quality.currency)} ·
-              ratio {ratioLabel(quality)} ·{" "}
-              <span
-                data-tone={unusuallyLow ? "warn" : scoreTone[quality.score]}
-              >
-                {unusuallyLow ? "UNUSUALLY LOW" : quality.score}
-              </span>
-            </span>
-          </div>
-          {band ? (
-            <div
-              className="band"
-              data-tone={scoreTone[quality.score]}
-              role="img"
-              aria-label={`Proposed ${amount} against a median of ${formatMoney(quality.medianPrice, quality.currency)}: ${quality.score}`}
-            >
-              <div
-                className="band__zone band__zone--good"
-                style={{ width: `${band.goodWidth}%` }}
-              />
-              <div
-                className="band__zone band__zone--fair"
-                style={{
-                  left: `${band.goodWidth}%`,
-                  width: `${band.fairWidth}%`,
-                }}
-              />
-              <div
-                className="band__zone band__zone--poor"
-                style={{ left: `${band.poorLeft}%` }}
-              />
-              {band.dots.map((left, index) => (
-                <div
-                  key={index}
-                  className="band__dot"
-                  style={{ left: `${left}%` }}
-                />
-              ))}
-              <div
-                className="band__median"
-                style={{ left: `${band.median}%` }}
-              />
-              <span
-                className="band__label band__label--median"
-                style={{ left: `${band.median}%` }}
-              >
-                median
-              </span>
-              <div
-                className="band__proposed"
-                style={{ left: `${band.proposed}%` }}
-              />
-              <span
-                className="band__label band__label--proposed"
-                style={{ left: `${band.proposed}%` }}
-              >
-                proposed
+      <div className="detail-grid">
+        <div className="detail-main">
+          <AgentChoice detail={detail} />
+          {summary ? (
+            <DecisionSummary key={decision.id} decisionId={decision.id} />
+          ) : null}
+          <section className="card evidence-card" aria-labelledby="evidence">
+            <div className="card-head card-head--flush">
+              <h3 id="evidence">Price evidence · Channel3</h3>
+              <span className="mono small ink2">
+                median {formatMoney(quality.medianPrice, quality.currency)} ·
+                ratio {ratioLabel(quality)} ·{" "}
+                <span
+                  data-tone={unusuallyLow ? "warn" : scoreTone[quality.score]}
+                >
+                  {unusuallyLow ? "UNUSUALLY LOW" : quality.score}
+                </span>
               </span>
             </div>
-          ) : null}
-          <p className="small ink3 evidence-note">{quality.explanation}</p>
-          <div className="offer-list">
-            {quality.references.map((offer) => (
+            {band ? (
               <div
-                key={`${offer.merchant}|${offer.productId}`}
-                className="offer-row"
+                className="band"
+                data-tone={scoreTone[quality.score]}
+                role="img"
+                aria-label={`Proposed ${amount} against a median of ${formatMoney(quality.medianPrice, quality.currency)}: ${quality.score}`}
               >
-                <a
-                  href={offer.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate"
+                <div
+                  className="band__zone band__zone--good"
+                  style={{ width: `${band.goodWidth}%` }}
+                />
+                <div
+                  className="band__zone band__zone--fair"
+                  style={{
+                    left: `${band.goodWidth}%`,
+                    width: `${band.fairWidth}%`,
+                  }}
+                />
+                <div
+                  className="band__zone band__zone--poor"
+                  style={{ left: `${band.poorLeft}%` }}
+                />
+                {band.dots.map((left, index) => (
+                  <div
+                    key={index}
+                    className="band__dot"
+                    style={{ left: `${left}%` }}
+                  />
+                ))}
+                <div
+                  className="band__median"
+                  style={{ left: `${band.median}%` }}
+                />
+                <span
+                  className="band__label band__label--median"
+                  style={{ left: `${band.median}%` }}
                 >
-                  {offer.merchant}
-                </a>
-                <span className="mono">
-                  {formatMoney(offer.price, offer.currency)}
+                  median
                 </span>
-                <span className="mono small" data-tone="ok">
-                  Usable
+                <div
+                  className="band__proposed"
+                  style={{ left: `${band.proposed}%` }}
+                />
+                <span
+                  className="band__label band__label--proposed"
+                  style={{ left: `${band.proposed}%` }}
+                >
+                  proposed
                 </span>
               </div>
-            ))}
-            {quality.references.length === 0 ? (
-              <span className="muted small">
-                Channel3 returned no comparable offers.
-              </span>
             ) : null}
-          </div>
-        </section>
+            <p className="small ink3 evidence-note">{quality.explanation}</p>
+            <OfferList offers={quality.references} />
+          </section>
+          {detail.events.length ? (
+            <section
+              className="card stack-card"
+              aria-labelledby="purchase-history"
+            >
+              <h3 id="purchase-history">History</h3>
+              <ol className="history-list">
+                {detail.events
+                  .slice()
+                  .reverse()
+                  .map((event) => (
+                    <li key={event.id}>
+                      <span className="ink4">
+                        {formatWhen(event.createdAt, timeZone)}
+                      </span>
+                      <span>{describeEvent(event).title}</span>
+                    </li>
+                  ))}
+              </ol>
+            </section>
+          ) : null}
+        </div>
 
-        <div className="stack-md">
+        <aside className="detail-aside">
+          <div className="detail-actions">
+            {detail.payment ? (
+              <PaymentActions
+                key={`${detail.payment.id}:${detail.payment.status}`}
+                payment={detail.payment}
+                productName={proposal.productName}
+                sandboxCheckout={isMockMode()}
+              />
+            ) : (
+              <DecisionActions
+                decisionId={decision.id}
+                state={actionState(detail)}
+                productName={proposal.productName}
+                sandbox={isMockMode()}
+              />
+            )}
+          </div>
           <section className="card stack-card" aria-labelledby="checks">
             <h3 id="checks">Your rules</h3>
             {checks.map((check) => (
@@ -233,43 +243,8 @@ export function DecisionDetailView({
               ))}
             </div>
           </section>
-        </div>
+        </aside>
       </div>
-
-      {detail.payment ? (
-        <PaymentActions
-          key={`${detail.payment.id}:${detail.payment.status}`}
-          payment={detail.payment}
-          productName={proposal.productName}
-          sandboxCheckout={isMockMode()}
-        />
-      ) : (
-        <DecisionActions
-          decisionId={decision.id}
-          state={actionState(detail)}
-          productName={proposal.productName}
-          sandbox={isMockMode()}
-        />
-      )}
-
-      {detail.events.length ? (
-        <section className="card stack-card" aria-labelledby="purchase-history">
-          <h3 id="purchase-history">History</h3>
-          <ol className="history-list">
-            {detail.events
-              .slice()
-              .reverse()
-              .map((event) => (
-                <li key={event.id}>
-                  <span className="ink4">
-                    {formatWhen(event.createdAt, timeZone)}
-                  </span>
-                  <span>{describeEvent(event).title}</span>
-                </li>
-              ))}
-          </ol>
-        </section>
-      ) : null}
     </div>
   );
 }

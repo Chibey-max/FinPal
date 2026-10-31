@@ -5,56 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ExpandMoreIcon } from "./icons";
-import { LinkPending } from "./navigation-feedback";
-
-const navItems = [
-  { href: "/app", label: "Agent", exact: true },
-  { href: "/app/purchases", label: "Purchases", badge: true },
-  { href: "/app/rules", label: "Rules" },
-] as const;
-
-export interface NavBadges {
-  /** Purchases waiting for the person. */
-  purchases: number;
-}
-
-export function AppNav({ badges }: { badges: NavBadges }) {
-  const pathname = usePathname();
-  const navRef = useRef<HTMLElement>(null);
-
-  // Keep the active pill visible when the nav scrolls horizontally.
-  useEffect(() => {
-    navRef.current
-      ?.querySelector<HTMLElement>('[aria-current="page"]')
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [pathname]);
-
-  return (
-    <nav ref={navRef} aria-label="Main" className="app-nav">
-      {navItems.map((item) => {
-        const active =
-          pathname === item.href ||
-          (!("exact" in item) && pathname.startsWith(`${item.href}/`));
-        const count = "badge" in item ? badges.purchases : 0;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-          >
-            {item.label}
-            <LinkPending />
-            {count ? (
-              <span className="nav-badge" aria-label={`${count} pending`}>
-                {count}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
 
 const scenarios = [
   {

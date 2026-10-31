@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = request.nextUrl;
   const finish = (result: "connected" | "denied" | "failed") => {
-    const back = new URL("/app/rules", appOrigin(request.nextUrl.origin));
+    const back = new URL("/app/calendar", appOrigin(request.nextUrl.origin));
     back.searchParams.set("calendar", result);
     const response = NextResponse.redirect(back);
     response.cookies.delete({ name: STATE_COOKIE, path: "/api/v1/calendar" });

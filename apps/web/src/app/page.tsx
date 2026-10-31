@@ -56,7 +56,7 @@ export default function HomePage() {
               </h1>
               <div className="hero-actions">
                 <LiquidButton asChild size="xl" className="rounded-full">
-                  <Link href="/app">Try the agent</Link>
+                  <Link href="/app/agent">Try the agent</Link>
                 </LiquidButton>
                 <Link
                   className="pill-button pill-button--glass pill-button--lg"
@@ -108,7 +108,7 @@ export default function HomePage() {
                   three real offers before a PayPal order can exist.
                 </p>
                 <LiquidButton asChild size="lg" className="rounded-full">
-                  <Link href="/app">Try the agent</Link>
+                  <Link href="/app/agent">Try the agent</Link>
                 </LiquidButton>
               </div>
               <h2 data-story="before-pay">Before You Pay</h2>

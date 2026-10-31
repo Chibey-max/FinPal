@@ -464,7 +464,7 @@ export function ConstraintsForm({
         <div className="card rules-next fade-in">
           <span>Rules saved. What should the agent get you?</span>
           <LiquidButton asChild size="lg" className="rounded-full">
-            <Link href="/app">Start shopping</Link>
+            <Link href="/app/agent">Start shopping</Link>
           </LiquidButton>
         </div>
       ) : null}

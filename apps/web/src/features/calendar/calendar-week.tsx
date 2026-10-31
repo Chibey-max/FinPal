@@ -4,10 +4,13 @@ import type { CalendarEvent, TimeWindow } from "@finpal/contracts";
 import Link from "next/link";
 import { useState } from "react";
 
+import { Pagination, paginate } from "@/components/pagination";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatEventDate } from "@/features/app/present";
 
 import { BryntumWeek } from "./bryntum-week";
+
+const EVENTS_PER_PAGE = 5;
 
 export function CalendarWeek({
   events,
@@ -33,7 +36,13 @@ export function CalendarWeek({
   firstDate: string;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [requestedPage, setRequestedPage] = useState(1);
   const selected = events.find((event) => event.id === selectedId) ?? null;
+  const { page, pageCount, start, end } = paginate(
+    events.length,
+    requestedPage,
+    EVENTS_PER_PAGE,
+  );
 
   return (
     <div className="split-grid split-grid--wide">
@@ -63,7 +72,7 @@ export function CalendarWeek({
             </span>
             <LiquidButton asChild size="lg" className="w-full rounded-full">
               <Link
-                href={`/app?need=${encodeURIComponent(`Something for ${selected.title}`)}`}
+                href={`/app/agent?need=${encodeURIComponent(`Something for ${selected.title}`)}`}
               >
                 Shop for this event
               </Link>
@@ -101,7 +110,7 @@ export function CalendarWeek({
           // Same events as a plain list: keyboard and screen-reader friendly.
           <div className="stack-sm">
             <span className="eyebrow">Upcoming</span>
-            {events.slice(0, 8).map((event) => (
+            {events.slice(start, end).map((event) => (
               <button
                 key={event.id}
                 type="button"
@@ -115,6 +124,14 @@ export function CalendarWeek({
                 {event.title}
               </button>
             ))}
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              total={events.length}
+              pageSize={EVENTS_PER_PAGE}
+              label="events"
+              onPage={setRequestedPage}
+            />
           </div>
         ) : null}
         {windows.length ? (
@@ -131,8 +148,8 @@ export function CalendarWeek({
         ) : null}
         <span className="footnote">
           {configured
-            ? "Bryntum Calendar · Google Calendar, title and start time only"
-            : "Bryntum Calendar · Google Calendar not connected"}
+            ? "FinPal reads only event titles and start times."
+            : "Google Calendar isn't connected."}
         </span>
       </aside>
     </div>

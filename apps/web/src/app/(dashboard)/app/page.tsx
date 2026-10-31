@@ -1,8 +1,19 @@
+import type { DecisionRow } from "@finpal/contracts";
 import Link from "next/link";
 
 import { FlashToast } from "@/components/toast";
-import { AgentConsole } from "@/features/agent/agent-console";
-import { formatMoney, isOpenPayment, percentOf } from "@/features/app/present";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { ForecastCard } from "@/features/agent/forecast-card";
+import {
+  formatMoney,
+  formatWhen,
+  isOpenPayment,
+  outcomeLabel,
+  outcomeTone,
+  paymentLabel,
+  paymentTone,
+  percentOf,
+} from "@/features/app/present";
 import { needsYou } from "@/features/purchases/needs-you";
 import { requireUser } from "@/lib/auth";
 import {
@@ -10,15 +21,24 @@ import {
   getSpendSummary,
   getUserConstraints,
 } from "@/lib/backend";
-import { isMockMode } from "@/lib/data-source";
 
-export default async function AgentHomePage({
+const status = (row: DecisionRow) =>
+  row.paymentStatus
+    ? {
+        label: paymentLabel[row.paymentStatus],
+        tone: paymentTone[row.paymentStatus],
+      }
+    : row.reviewStatus === "REJECTED"
+      ? { label: "Rejected", tone: "bad" as const }
+      : { label: outcomeLabel[row.outcome], tone: outcomeTone[row.outcome] };
+
+export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ password?: string; need?: string }>;
+  searchParams: Promise<{ password?: string }>;
 }) {
   const user = await requireUser();
-  const { password, need } = await searchParams;
+  const { password } = await searchParams;
   const constraints = await getUserConstraints(user.id);
   const [rows, spend] = await Promise.all([
     getDecisionRows(user.id),
@@ -26,34 +46,65 @@ export default async function AgentHomePage({
   ]);
   const caps = constraints?.amountCaps;
   const { currency } = spend;
-  const waiting =
-    rows.filter(needsYou).length +
-    rows.filter((row) => isOpenPayment(row.paymentStatus)).length;
+  const timeZone = constraints?.timezone ?? "UTC";
+  const waiting = rows.filter(needsYou);
+  const unfinished = rows.filter((row) => isOpenPayment(row.paymentStatus));
+  const paid = rows.filter((row) => row.paymentStatus === "CAPTURED");
+  const leftToday = caps?.daily
+    ? Math.max(0, caps.daily - spend.spentToday)
+    : null;
 
-  const meters = [
+  const kpis = [
     {
-      label: "Today",
-      spent: spend.spentToday,
-      cap: caps?.daily,
+      label: "Left to spend today",
+      value: leftToday === null ? "No limit" : formatMoney(leftToday, currency),
+      sub: caps?.daily
+        ? `${formatMoney(spend.spentToday, currency)} spent of ${formatMoney(caps.daily, currency)}`
+        : "Set a daily budget in Rules",
+      // Fills with what's left, like the meter in the sidebar.
+      percent: caps?.daily
+        ? 100 - percentOf(spend.spentToday, caps.daily)
+        : null,
     },
     {
-      label: "This month",
-      spent: spend.spentThisMonth,
-      cap: caps?.monthly,
+      label: "Spent this month",
+      value: formatMoney(spend.spentThisMonth, currency),
+      sub: caps?.monthly
+        ? `of ${formatMoney(caps.monthly, currency)} budget`
+        : "No monthly budget",
+      percent: percentOf(spend.spentThisMonth, caps?.monthly),
+    },
+    {
+      label: "Waiting on you",
+      value: String(waiting.length + unfinished.length),
+      sub: unfinished.length
+        ? `${unfinished.length} unfinished ${unfinished.length === 1 ? "payment" : "payments"}`
+        : "Reviews and approvals",
+      percent: null,
+    },
+    {
+      label: "Bought",
+      value: String(paid.length),
+      sub: `${rows.length} ${rows.length === 1 ? "item" : "items"} checked in total`,
+      percent: null,
     },
   ];
+
+  const attention = [...waiting, ...unfinished].slice(0, 4);
 
   return (
     <div className="app-page">
       {password === "updated" ? (
         <FlashToast message="Password updated. You're signed in." />
       ) : null}
-      <div className="page-head__text">
-        <h1>What do you need?</h1>
-        <p>
-          Drop your shopping list. The agent finds the best options, your rules
-          check them, and you approve once.
-        </p>
+      <div className="page-head">
+        <div className="page-head__text">
+          <h1>Overview</h1>
+          <p>Your spending, and what needs you today.</p>
+        </div>
+        <LiquidButton asChild size="lg" className="rounded-full">
+          <Link href="/app/agent">Shop with the agent</Link>
+        </LiquidButton>
       </div>
 
       {!constraints ? (
@@ -63,45 +114,98 @@ export default async function AgentHomePage({
         </p>
       ) : null}
 
-      <AgentConsole
-        timeZone={constraints?.timezone ?? "UTC"}
-        sandbox={isMockMode()}
-        initialList={need?.slice(0, 1000) ?? ""}
-        side={
-          <section className="card stack-card" aria-label="Your spending">
-            {meters.map((meter) => (
-              <div key={meter.label} className="spend-meter">
-                <span className="eyebrow">{meter.label}</span>
-                <span className="mono">
-                  {formatMoney(meter.spent, currency)}
-                  {meter.cap ? (
-                    <span className="ink4">
-                      {" "}
-                      of {formatMoney(meter.cap, currency)}
-                    </span>
-                  ) : null}
-                </span>
-                <div className="meter" data-tone="ok">
-                  <div
-                    style={{ width: `${percentOf(meter.spent, meter.cap)}%` }}
-                  />
-                </div>
+      <div className="kpi-grid">
+        {kpis.map((kpi) => (
+          <article key={kpi.label} className="card kpi">
+            <span className="kpi__label">{kpi.label}</span>
+            <span className="kpi__value">{kpi.value}</span>
+            {kpi.percent !== null ? (
+              <div className="meter" data-tone="ok">
+                <div style={{ width: `${kpi.percent}%` }} />
               </div>
-            ))}
-            {waiting ? (
-              <Link href="/app/purchases?view=needs" className="action-tile">
-                <span>
-                  {waiting}{" "}
-                  {waiting === 1 ? "purchase needs" : "purchases need"} you
-                </span>
-                <span className="mono small" data-tone="warn">
-                  Review →
-                </span>
-              </Link>
             ) : null}
+            <span className="kpi__sub">{kpi.sub}</span>
+          </article>
+        ))}
+      </div>
+
+      <div className="dash-grid">
+        <section className="card list-card" aria-labelledby="recent">
+          <header className="card-head">
+            <h2 id="recent">Recent purchases</h2>
+            <Link href="/app/purchases" className="link-quiet">
+              View all
+            </Link>
+          </header>
+          {rows.length ? (
+            rows.slice(0, 7).map((row) => {
+              const { label, tone } = status(row);
+              return (
+                <Link
+                  key={row.decisionId}
+                  href={`/app/purchases/${row.decisionId}`}
+                  className="row-link dash-row"
+                >
+                  <span className="stack-xs dash-row__name">
+                    <span className="truncate">{row.productName}</span>
+                    <span className="small ink4">
+                      {formatWhen(row.decidedAt, timeZone)}
+                    </span>
+                  </span>
+                  <span className="chip" data-tone={tone}>
+                    {label}
+                  </span>
+                  <span className="mono dash-row__amount">
+                    {formatMoney(row.amount, row.currency)}
+                  </span>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="card-empty">
+              <p>Nothing yet. Give the agent your first shopping list.</p>
+              <Link href="/app/agent" className="btn btn-outline">
+                Open the agent
+              </Link>
+            </div>
+          )}
+        </section>
+
+        <div className="stack-lg">
+          <section className="card stack-card" aria-labelledby="attention">
+            <header className="card-head card-head--flush">
+              <h2 id="attention">Needs you</h2>
+              {attention.length ? (
+                <Link href="/app/approvals" className="link-quiet">
+                  View all
+                </Link>
+              ) : null}
+            </header>
+            {attention.length ? (
+              attention.map((row) => (
+                <Link
+                  key={row.decisionId}
+                  href={`/app/purchases/${row.decisionId}`}
+                  className="action-tile"
+                >
+                  <span className="truncate">{row.productName}</span>
+                  <span className="mono small" data-tone="warn">
+                    {isOpenPayment(row.paymentStatus)
+                      ? "Finish payment"
+                      : row.outcome === "MANUAL_REVIEW" && !row.reviewStatus
+                        ? "Review"
+                        : "Ready to pay"}{" "}
+                    · {formatMoney(row.amount, row.currency)}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="muted small">You&apos;re all caught up.</p>
+            )}
           </section>
-        }
-      />
+          <ForecastCard timeZone={timeZone} />
+        </div>
+      </div>
     </div>
   );
 }
