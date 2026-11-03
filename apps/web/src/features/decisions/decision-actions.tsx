@@ -36,7 +36,7 @@ export function DecisionActions({
   const [, startTransition] = useTransition();
 
   if (bare && state.kind === "review") {
-    return <ReviewActions decisionId={decisionId} />;
+    return <ReviewActions decisionId={decisionId} subject={productName} />;
   }
 
   return (
@@ -60,7 +60,7 @@ export function DecisionActions({
             FinPal&apos;s rules want a person to check this before any money
             moves.
           </span>
-          <ReviewActions decisionId={decisionId} />
+          <ReviewActions decisionId={decisionId} subject={productName} />
         </>
       ) : null}
       {state.kind === "blocked" ? (

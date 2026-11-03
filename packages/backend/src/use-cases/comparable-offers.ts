@@ -93,6 +93,7 @@ export function normalizeOffers(
         price: Math.round(offer.price * 100) / 100,
         currency,
         url,
+        imageUrl: product.imageUrl ?? null,
       });
     }
   }

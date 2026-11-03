@@ -4,6 +4,7 @@ import type { PaymentAttempt } from "@finpal/contracts";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatMoney } from "@/features/app/present";
@@ -18,6 +19,8 @@ const NOTE: Record<PaymentAttempt["status"], string> = {
   VOIDED: "Cancelled. Nothing was charged.",
   REFUNDED: "Refunded.",
 };
+
+type ConfirmKind = "finish" | "void" | "paypal";
 
 /**
  * Normally the agent finishes a payment by itself right after PayPal approval.
@@ -36,6 +39,7 @@ export function PaymentActions({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const [confirm, setConfirm] = useState<ConfirmKind | null>(null);
   const [running, setRunning] = useState<"finish" | "void" | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -57,6 +61,7 @@ export function PaymentActions({
       await post("authorize");
       await post("capture");
       toast(`Paid ${amount}.`);
+      setConfirm(null);
     } catch (error) {
       toast(errorMessage(error), "bad");
     } finally {
@@ -70,6 +75,7 @@ export function PaymentActions({
     try {
       await post("void");
       toast("Cancelled. Nothing was charged.");
+      setConfirm(null);
     } catch (error) {
       toast(errorMessage(error), "bad");
     } finally {
@@ -78,7 +84,8 @@ export function PaymentActions({
     }
   }
 
-  function approve() {
+  function goToPaypal() {
+    setConfirm(null);
     if (sandboxCheckout) setCheckoutOpen(true);
     else if (payment.approveUrl) window.location.assign(payment.approveUrl);
     else toast("PayPal did not return a checkout link for this order.", "bad");
@@ -92,7 +99,7 @@ export function PaymentActions({
           type="button"
           size="lg"
           className="rounded-full"
-          onClick={approve}
+          onClick={() => setConfirm("paypal")}
         >
           Approve in PayPal
         </LiquidButton>
@@ -102,13 +109,10 @@ export function PaymentActions({
           type="button"
           size="lg"
           className="rounded-full"
-          onClick={finish}
+          onClick={() => setConfirm("finish")}
           disabled={running !== null}
         >
-          {running === "finish" ? (
-            <span className="spinner" aria-hidden />
-          ) : null}
-          {running === "finish" ? "Finishing…" : "Finish payment"}
+          Finish payment
         </LiquidButton>
       ) : null}
       {status === "AUTHORIZED" ? (
@@ -116,10 +120,10 @@ export function PaymentActions({
           type="button"
           className="btn btn-outline btn-sm"
           data-hover-tone="warn"
-          onClick={cancel}
+          onClick={() => setConfirm("void")}
           disabled={running !== null}
         >
-          {running === "void" ? "Cancelling…" : "Cancel and release the money"}
+          Cancel and release the money
         </button>
       ) : null}
       {payment.basketId &&
@@ -131,6 +135,57 @@ export function PaymentActions({
           item in it.
         </span>
       ) : null}
+
+      <ConfirmDialog
+        open={confirm === "paypal"}
+        title="Open PayPal checkout?"
+        description={
+          <>
+            You&apos;ll review <strong>{productName}</strong> ({amount}) in
+            PayPal. Nothing is charged until you approve there.
+          </>
+        }
+        confirmLabel="Continue to PayPal"
+        tone="ok"
+        onCancel={() => setConfirm(null)}
+        onConfirm={goToPaypal}
+      />
+      <ConfirmDialog
+        open={confirm === "finish"}
+        title="Finish this payment?"
+        description={
+          <>
+            FinPal will capture <strong>{amount}</strong> for {productName}.
+          </>
+        }
+        confirmLabel="Finish payment"
+        busyLabel="Finishing…"
+        tone="ok"
+        busy={running === "finish"}
+        onCancel={() => {
+          if (running === null) setConfirm(null);
+        }}
+        onConfirm={() => void finish()}
+      />
+      <ConfirmDialog
+        open={confirm === "void"}
+        title="Cancel and release the money?"
+        description={
+          <>
+            The reserved <strong>{amount}</strong> for {productName} will be
+            released. Nothing will be charged.
+          </>
+        }
+        confirmLabel="Release the money"
+        busyLabel="Cancelling…"
+        tone="danger"
+        busy={running === "void"}
+        onCancel={() => {
+          if (running === null) setConfirm(null);
+        }}
+        onConfirm={() => void cancel()}
+      />
+
       {checkoutOpen ? (
         <SandboxCheckout
           amount={amount}

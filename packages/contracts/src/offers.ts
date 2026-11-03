@@ -25,6 +25,8 @@ export const comparableOfferSchema = z.object({
   price: z.number().positive(),
   currency: z.string().length(3),
   url: z.string(),
+  /** Product photo when the provider returned one. */
+  imageUrl: z.string().url().nullable().optional(),
 });
 
 export type ComparableOffer = z.infer<typeof comparableOfferSchema>;

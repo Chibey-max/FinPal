@@ -22,9 +22,15 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
         // In-page links (#loop, #policy…) glide, landing below the floating nav.
         anchors: { offset: -88 },
         stopInertiaOnNavigate: true,
-        prevent: (node) =>
-          node.classList.contains("ag-body-viewport") ||
-          node.tagName === "DIALOG",
+        prevent: (node) => {
+          if (!(node instanceof Element)) return false;
+          return Boolean(
+            node.closest("[data-lenis-prevent]") ||
+              node.closest(".ag-body-viewport") ||
+              node.closest(".agent-chat__thread") ||
+              node.closest("dialog"),
+          );
+        },
       }}
     >
       {children}

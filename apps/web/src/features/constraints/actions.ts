@@ -4,7 +4,7 @@ import {
   saveConstraintsSchema,
   type SpendingConstraintsInput,
 } from "@finpal/contracts";
-import { revalidatePath } from "next/cache";
+import { revalidateApp } from "@/lib/revalidate-app";
 
 import { requireUser } from "@/lib/auth";
 import { saveUserConstraints } from "@/lib/backend";
@@ -59,7 +59,7 @@ export async function saveConstraints(
     };
   }
 
-  revalidatePath("/app", "layout");
+  revalidateApp();
   return {
     status: "saved",
     saved: constraints,

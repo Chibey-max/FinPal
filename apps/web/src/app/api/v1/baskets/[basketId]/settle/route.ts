@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { getApiUserId, handleRouteError, unauthorized } from "@/lib/api";
 import { getPaymentService } from "@/lib/backend";
+import { revalidateApp } from "@/lib/revalidate-app";
 
 // POST /api/v1/baskets/:basketId/settle
 // Confirms the approval with PayPal, then authorizes and captures every item.
@@ -18,6 +19,7 @@ export async function POST(
   try {
     const basketId = z.uuid().parse((await params).basketId);
     const basket = await getPaymentService().settleBasket(userId, basketId);
+    revalidateApp();
     return NextResponse.json(basketSchema.parse(basket));
   } catch (error) {
     return handleRouteError(error);

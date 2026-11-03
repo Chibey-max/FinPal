@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Pagination, paginate } from "@/components/pagination";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatEventDate } from "@/features/app/present";
+import { DisconnectCalendarButton } from "@/features/calendar/disconnect-calendar-button";
 
 import { BryntumWeek } from "./bryntum-week";
 
@@ -140,11 +141,7 @@ export function CalendarWeek({
           </span>
         ) : null}
         {configured && canConnect ? (
-          <form action="/api/v1/calendar/disconnect" method="post">
-            <button type="submit" className="link-quiet">
-              Disconnect Google Calendar
-            </button>
-          </form>
+          <DisconnectCalendarButton />
         ) : null}
         <span className="footnote">
           {configured

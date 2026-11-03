@@ -28,7 +28,8 @@ const appPolicy = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "img-src 'self' data: blob:",
+  // https: so Channel3 / CDN product photos can render in the Agent bill.
+  "img-src 'self' data: blob: https:",
   // ws: for the dev server's hot reload.
   "connect-src 'self' ws: wss:",
   "frame-ancestors 'none'",
@@ -41,6 +42,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["@finpal/backend", "@finpal/contracts", "@finpal/ui"],
+  // Soft navigations reuse the last RSC payload for a short window so clicking
+  // between sections does not refetch and flash loading when nothing changed.
+  // Mutations still call router.refresh() / revalidatePath for a fresh view.
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
   // The vendor route reads Bryntum's prebuilt files at runtime; include
   // them in the standalone output.
   outputFileTracingIncludes: {

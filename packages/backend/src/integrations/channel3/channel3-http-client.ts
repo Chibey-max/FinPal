@@ -52,7 +52,37 @@ const productSchema = z.object({
   id: z.string(),
   title: z.string(),
   offers: z.array(z.unknown()).nullish(),
+  image: z.string().nullish(),
+  image_url: z.string().nullish(),
+  imageUrl: z.string().nullish(),
+  thumbnail: z.string().nullish(),
+  images: z.array(z.unknown()).nullish(),
 });
+
+function firstImageUrl(product: z.infer<typeof productSchema>): string | null {
+  const direct = [
+    product.imageUrl,
+    product.image_url,
+    product.image,
+    product.thumbnail,
+  ];
+  for (const value of direct) {
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) return value;
+  }
+  for (const entry of product.images ?? []) {
+    if (typeof entry === "string" && /^https?:\/\//i.test(entry)) return entry;
+    if (entry && typeof entry === "object") {
+      const record = entry as Record<string, unknown>;
+      for (const key of ["url", "src", "image", "image_url"]) {
+        const value = record[key];
+        if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+          return value;
+        }
+      }
+    }
+  }
+  return null;
+}
 
 const searchResponseSchema = z.object({
   products: z.array(z.unknown()),
@@ -86,7 +116,12 @@ function toProduct(raw: unknown): Channel3Product | null {
       },
     ];
   });
-  return { id: product.data.id, title: product.data.title, offers };
+  return {
+    id: product.data.id,
+    title: product.data.title,
+    offers,
+    imageUrl: firstImageUrl(product.data),
+  };
 }
 
 export function createChannel3HttpClient(

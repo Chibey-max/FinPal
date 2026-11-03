@@ -19,8 +19,8 @@ export default async function AgentPage({
       <div className="page-head__text">
         <h1>Agent</h1>
         <p>
-          Drop your shopping list. The agent finds the best options, your rules
-          check them, and you approve once.
+          Type, speak, or snap a photo. The agent finds options, your rules
+          check them, and you approve once — voice and Snap never spend money.
         </p>
       </div>
       {!constraints ? (

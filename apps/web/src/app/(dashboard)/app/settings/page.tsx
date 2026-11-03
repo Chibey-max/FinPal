@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ShortcutsButton } from "@/components/shortcuts-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DisconnectCalendarButton } from "@/features/calendar/disconnect-calendar-button";
 import { requireUser } from "@/lib/auth";
 import {
   getAssistantService,
@@ -81,11 +82,10 @@ export default async function SettingsPage() {
               {calendar.configured ? "Sample data" : "Unavailable"}
             </span>
           ) : calendar.configured ? (
-            <form action="/api/v1/calendar/disconnect" method="post">
-              <button type="submit" className="btn btn-outline btn-sm">
-                Disconnect
-              </button>
-            </form>
+            <DisconnectCalendarButton
+              label="Disconnect"
+              className="btn btn-outline btn-sm"
+            />
           ) : (
             <a
               href="/api/v1/calendar/connect"

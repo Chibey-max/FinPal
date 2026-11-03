@@ -9,6 +9,7 @@ import {
   unauthorized,
 } from "@/lib/api";
 import { getReviewDecisionService } from "@/lib/backend";
+import { revalidateApp } from "@/lib/revalidate-app";
 import { ReviewError } from "@finpal/backend";
 
 // POST /api/v1/decisions/:decisionId/review  { action: "APPROVED" | "REJECTED" }
@@ -28,6 +29,7 @@ export async function POST(
       decisionId,
       action,
     );
+    revalidateApp();
     return NextResponse.json({ decision });
   } catch (error) {
     if (error instanceof ReviewError) {

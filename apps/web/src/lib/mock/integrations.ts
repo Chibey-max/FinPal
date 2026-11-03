@@ -282,6 +282,8 @@ function toProducts(item: CatalogItem): Channel3Product[] {
     return {
       id: productId,
       title: item.title,
+      // Deterministic placeholder so the bill can show a photo in mock mode.
+      imageUrl: `https://picsum.photos/seed/${encodeURIComponent(productId)}/128/128`,
       offers: [
         {
           url:

@@ -20,6 +20,8 @@ export interface Channel3Product {
   id: string;
   title: string;
   offers: Channel3Offer[];
+  /** First usable product image URL, when the provider sent one. */
+  imageUrl?: string | null;
 }
 
 export interface Channel3Client {
