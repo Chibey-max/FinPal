@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { isIosDevice } from "@/lib/ios-perf";
+
 // Port of docs/design_handoff_finpal/reference/fluid-sphere.js. The shader
 // keeps the domain-warped fBm liquid (deep navy, steel blue, warm amber,
 // pale cream), rim light and outer glow. The specular highlights were removed:
@@ -66,6 +68,8 @@ export function FluidSphere({
       alpha: true,
       premultipliedAlpha: false,
       antialias: false,
+      // Avoid continuous GPU present while the tab is covered on Safari.
+      powerPreference: "low-power",
     });
     if (!gl) {
       canvas.dataset.fallback = "true";
@@ -111,13 +115,19 @@ export function FluidSphere({
     );
 
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    const ios = isIosDevice();
+    // iOS: lower pixel density so scroll + WebGL fit a frame.
+    const dprCap = ios ? 1 : 1.5;
     const mouse = [0, 0];
     let target = [0, 0];
     let raf = 0;
+    let paused = false;
     const start = performance.now();
 
+    const heroScrolling = () =>
+      document.documentElement.hasAttribute("data-hero-scrolling");
+
     const draw = () => {
-      // The liquid drifts with the pointer, eased at 0.04 per frame.
       mouse[0]! += (target[0]! - mouse[0]!) * 0.04;
       mouse[1]! += (target[1]! - mouse[1]!) * 0.04;
       const { radius: r, cx: x, cy: y, intensity: i } = props.current;
@@ -136,24 +146,39 @@ export function FluidSphere({
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
     const loop = () => {
+      // Landing hero scroll on iOS: freeze the last frame so Safari can scroll.
+      if (paused || heroScrolling()) {
+        raf = 0;
+        return;
+      }
       draw();
       raf = requestAnimationFrame(loop);
     };
     const run = () => {
       cancelAnimationFrame(raf);
-      if (document.hidden) return;
+      raf = 0;
+      if (document.hidden || paused || heroScrolling()) return;
       if (reduceMotion.matches) draw();
-      else loop();
+      else raf = requestAnimationFrame(loop);
+    };
+    const setPaused = (next: boolean) => {
+      paused = next;
+      if (!next) run();
+      else {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
     };
 
     const resize = () => {
       const box = canvas.getBoundingClientRect();
-      const dpr = Math.min(devicePixelRatio || 1, 1.5);
+      const dpr = Math.min(devicePixelRatio || 1, dprCap);
       canvas.width = Math.max(1, Math.round(box.width * dpr));
       canvas.height = Math.max(1, Math.round(box.height * dpr));
-      if (reduceMotion.matches) draw();
+      if (reduceMotion.matches || paused || heroScrolling()) draw();
     };
     const move = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
       target = [
         event.clientX / innerWidth - 0.5,
         event.clientY / innerHeight - 0.5,
@@ -162,17 +187,38 @@ export function FluidSphere({
 
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    // HeroStoryController toggles data-hero-scrolling on <html> (landing only).
+    const attrObserver = new MutationObserver(() => {
+      if (heroScrolling()) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else {
+        run();
+      }
+    });
+    attrObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-hero-scrolling"],
+    });
     resize();
     addEventListener("pointermove", move, { passive: true });
     document.addEventListener("visibilitychange", run);
     reduceMotion.addEventListener("change", run);
+    // Page hide (iOS tab switch / bfcache) — stop the loop hard.
+    const onPageHide = () => setPaused(true);
+    const onPageShow = () => setPaused(false);
+    addEventListener("pagehide", onPageHide);
+    addEventListener("pageshow", onPageShow);
     run();
     canvas.dataset.ready = "true";
 
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
+      attrObserver.disconnect();
       removeEventListener("pointermove", move);
+      removeEventListener("pagehide", onPageHide);
+      removeEventListener("pageshow", onPageShow);
       document.removeEventListener("visibilitychange", run);
       reduceMotion.removeEventListener("change", run);
       gl.deleteBuffer(buffer);
