@@ -1077,53 +1077,53 @@
     margin-inline: 6px;
     border-radius: 22px;
   }
-  /* Compact mobile pill — !important beats LiquidButton Tailwind heights. */
+  /* Mobile pill — between the old oversized bar and the too-tight shrink. */
   .landing-nav {
-    top: 12px;
+    top: 16px;
     width: max-content;
     min-width: 0;
-    max-width: calc(100% - 20px);
+    max-width: calc(100% - 24px);
   }
   .landing-nav[data-hidden] {
-    transform: translate(-50%, calc(-100% - 36px));
+    transform: translate(-50%, calc(-100% - 40px));
   }
   .landing-nav__bar {
     justify-content: space-between;
-    gap: 6px;
-    padding: 3px 3px 3px 9px;
+    gap: 8px;
+    padding: 5px 5px 5px 12px;
   }
   .landing-nav .logo {
-    gap: 6px;
+    gap: 8px;
   }
   .landing-nav .logo-mark {
-    width: 22px !important;
-    height: 22px !important;
+    width: 28px !important;
+    height: 28px !important;
   }
   .landing-nav .logo-word {
-    font-size: 16px;
+    font-size: 19px;
   }
   .landing-nav__actions {
-    gap: 4px;
+    gap: 6px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px;
-    min-height: 34px;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px;
+    min-height: 42px;
   }
   .landing-nav__actions .theme-button svg,
   .landing-nav__menu svg {
-    width: 15px !important;
-    height: 15px !important;
+    width: 17px !important;
+    height: 17px !important;
   }
   .landing-nav__actions .landing-nav__cta,
   .landing-nav__actions a.landing-nav__cta,
   .landing-nav__actions a {
-    height: 34px !important;
-    min-height: 34px !important;
-    padding-inline: 12px !important;
-    font-size: 13px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding-inline: 16px !important;
+    font-size: 14.5px !important;
   }
   /* Brand on the left, theme toggle and app entry together on the right. The
      section links live in the bottom bar below, so the menu button and the
@@ -1308,32 +1308,32 @@
    phones at its normal spacing: tighten it so it always fits. */
 @media (max-width: 400px) {
   .landing-nav__bar {
-    gap: 4px;
-    padding: 2px 2px 2px 8px;
+    gap: 6px;
+    padding: 4px 4px 4px 10px;
   }
   .landing-nav__actions {
-    gap: 3px;
+    gap: 5px;
   }
   .landing-nav .logo-mark {
-    width: 20px !important;
-    height: 20px !important;
+    width: 26px !important;
+    height: 26px !important;
   }
   .landing-nav .logo-word {
-    font-size: 15px;
+    font-size: 17px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px;
-    min-height: 32px;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px;
+    min-height: 40px;
   }
   .landing-nav__actions .landing-nav__cta,
   .landing-nav__actions a {
-    height: 32px !important;
-    min-height: 32px !important;
-    padding-inline: 10px !important;
-    font-size: 12.5px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding-inline: 14px !important;
+    font-size: 14px !important;
   }
   /* The step labels beside the flow diagram's nodes: smaller and closer. */
   .flow__branch {
@@ -1349,35 +1349,35 @@
 /* The very narrowest phones (320px): the header's contents still have to fit. */
 @media (max-width: 340px) {
   .landing-nav__bar {
-    gap: 3px;
-    padding: 2px 2px 2px 7px;
+    gap: 5px;
+    padding: 4px 4px 4px 9px;
   }
   .landing-nav .logo-mark {
-    width: 18px !important;
-    height: 18px !important;
+    width: 24px !important;
+    height: 24px !important;
   }
   .landing-nav .logo {
-    gap: 5px;
+    gap: 6px;
   }
   .landing-nav .logo-word {
-    font-size: 14px;
+    font-size: 16px;
   }
   .landing-nav__actions {
-    gap: 2px;
+    gap: 4px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 30px !important;
-    height: 30px !important;
-    min-width: 30px;
-    min-height: 30px;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px;
+    min-height: 38px;
   }
   .landing-nav__actions .landing-nav__cta,
   .landing-nav__actions a {
-    height: 30px !important;
-    min-height: 30px !important;
-    padding-inline: 9px !important;
-    font-size: 12px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding-inline: 12px !important;
+    font-size: 13px !important;
   }
 }
 

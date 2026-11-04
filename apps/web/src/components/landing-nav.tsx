@@ -73,7 +73,7 @@ export function LandingNav() {
             className="landing-brand"
             onClick={() => setOpen(false)}
           >
-            <Logo size={22} />
+            <Logo size={24} />
           </Link>
           <nav
             className="landing-nav__links"
@@ -105,7 +105,7 @@ export function LandingNav() {
             </button>
             <LiquidButton
               asChild
-              size="sm"
+              size="default"
               className="landing-nav__cta rounded-full"
             >
               <Link href="/app">Open app</Link>
