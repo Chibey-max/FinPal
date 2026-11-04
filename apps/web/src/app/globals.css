@@ -280,6 +280,7 @@
   transform: scale(0.92);
 }
 .theme-button svg {
+  display: block;
   grid-area: 1 / 1;
   width: 16px;
   height: 16px;

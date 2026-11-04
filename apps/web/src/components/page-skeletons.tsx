@@ -104,8 +104,8 @@ export function ApprovalsSkeleton() {
               <div className="skeleton skeleton-line" style={{ width: "80%", height: 12 }} />
               <div className="skeleton skeleton-line" style={{ width: "30%", height: 10 }} />
             </div>
-            <div className="skeleton skeleton-line" style={{ width: 72, height: 18 }} />
-            <div className="skeleton skeleton-btn" />
+            <div className="skeleton skeleton-line skeleton-approval-chip" style={{ width: 72, height: 18 }} />
+            <div className="skeleton skeleton-btn skeleton-approval-act" />
           </div>
         ))}
       </section>

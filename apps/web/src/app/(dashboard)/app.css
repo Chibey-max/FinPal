@@ -271,14 +271,21 @@ p[data-tone] {
 }
 
 .icon-button {
+  box-sizing: border-box;
   width: 32px;
   height: 32px;
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
   border: 1px solid var(--w12);
   border-radius: 999px;
   background: var(--panel);
   color: var(--ink3);
+  line-height: 0;
+  appearance: none;
+  -webkit-appearance: none;
   transition:
     color 0.2s ease,
     border-color 0.2s ease;
@@ -288,8 +295,11 @@ p[data-tone] {
   border-color: var(--w18);
 }
 .icon-button svg {
-  width: 15px;
-  height: 15px;
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin: 0;
 }
 
 /* ------------------------------------------------------------- content */
@@ -1278,6 +1288,7 @@ select.input option {
 .agent-ask--compose {
   border-top: 1px solid var(--w08);
   background: var(--panels);
+  overflow: visible;
 }
 .agent-ask__toolbar {
   display: flex;
@@ -1291,8 +1302,126 @@ select.input option {
   align-items: center;
   gap: 8px;
 }
+.agent-snap {
+  position: relative;
+  display: inline-flex;
+}
 .agent-snap[data-busy] {
   opacity: 0.85;
+}
+.agent-snap__menu {
+  /* Open upward — Snap sits in the compose footer, which clips downward. */
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid var(--w12);
+  border-radius: 14px;
+  background: var(--panels);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+.agent-snap__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink2);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-snap__option:hover,
+.agent-snap__option:focus-visible {
+  background: var(--w08);
+  color: var(--ink);
+  outline: none;
+}
+.agent-snap__option svg {
+  flex: none;
+  color: var(--ink3);
+}
+.agent-mic svg {
+  display: block;
+  flex: none;
+}
+.agent-camera {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px
+    max(16px, env(safe-area-inset-bottom));
+  background: var(--veil);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.agent-camera__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(420px, 100%);
+  padding: 14px;
+  border: 1px solid var(--w12);
+  border-radius: 18px;
+  background: var(--panels);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+.agent-camera__stage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  background: #0a0a0a;
+}
+.agent-camera__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.agent-camera__status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--ink3);
+  font-size: 14px;
+}
+.agent-camera__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.agent-camera__shutter {
+  min-height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.agent-camera__shutter:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .sr-only {
   position: absolute;
@@ -1860,6 +1989,61 @@ select.input option {
   }
 }
 @media (max-width: 720px) {
+  /* Latest Agent features: page-scroll the bill — don't trap Pay in a nested pane. */
+  .agent-chat {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .agent-chat__thread {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 14px 14px 8px;
+  }
+  .agent-ask {
+    padding: 14px;
+  }
+  .agent-ask__hint {
+    display: none;
+  }
+  .agent-ask__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .agent-ask__actions .liquid-button,
+  .agent-ask__actions [data-slot="button"] {
+    width: 100%;
+  }
+  .agent-ask__actions .link-quiet {
+    align-self: center;
+  }
+  .agent-ask__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .agent-ask__tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .agent-ask__tools .agent-snap,
+  .agent-ask__tools .agent-mic {
+    width: 100%;
+  }
+  .agent-ask__tools .agent-mic {
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+  .preset {
+    min-height: 40px;
+    padding: 10px 14px;
+  }
+  .agent-bill {
+    overflow: visible;
+  }
   .agent-bill__head,
   .agent-bill__group,
   .agent-bill__flags,
@@ -1884,6 +2068,109 @@ select.input option {
   .agent-bill__amount {
     grid-column: 4;
     grid-row: 2;
+  }
+  .agent-bill__actions .btn,
+  .agent-bill__actions .liquid-button {
+    transform: none;
+  }
+  .agent-bill__foot {
+    bottom: 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .agent-offers > li {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+  }
+  .agent-offers > li > :nth-child(1) {
+    grid-row: 1 / 3;
+  }
+  .agent-offers > li > :nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .agent-offers > li > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .agent-offers > li > :nth-child(4) {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .segmented {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .segmented::-webkit-scrollbar {
+    display: none;
+  }
+  .skeleton-grid-head {
+    display: none;
+  }
+  .skeleton-agent-chat {
+    min-height: 0;
+  }
+  .skeleton-panel--calendar {
+    height: min(420px, 55vh);
+  }
+}
+@media (max-width: 520px) {
+  .agent-bill__row {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .agent-bill__check,
+  .agent-bill__check-spacer {
+    width: 20px;
+    height: 20px;
+    margin-top: 8px;
+  }
+  .agent-bill__thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  .agent-bill__row > .chip {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    justify-self: start;
+    margin-top: 2px;
+  }
+  .agent-bill__amount {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+  }
+  .agent-bill__actions,
+  .agent-bill__more {
+    margin-left: 0;
+  }
+  .confirm-dialog__card {
+    gap: 18px;
+    padding: 20px 16px max(16px, env(safe-area-inset-bottom));
+  }
+  .confirm-dialog__copy {
+    max-height: min(40vh, 240px);
+    overflow-y: auto;
+  }
+  .confirm-dialog__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .confirm-dialog__actions .btn,
+  .confirm-dialog__actions [data-slot="button"] {
+    width: 100%;
+  }
+  .skeleton-approval-row {
+    flex-wrap: wrap;
+  }
+  .skeleton-approval-row .skeleton-btn {
+    width: 100%;
   }
 }
 .agent-done {
@@ -3422,7 +3709,7 @@ select.input option {
     align-items: center;
     gap: 8px;
     min-height: 52px;
-    padding: 6px 10px;
+    padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
     border-bottom: 1px solid var(--w08);
     background: var(--panels);
   }
@@ -3441,8 +3728,8 @@ select.input option {
   }
   .app-tools {
     position: fixed;
-    top: 6px;
-    right: 10px;
+    top: calc(6px + env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
     z-index: 25;
     min-height: 40px;
     padding: 0;
@@ -3484,6 +3771,12 @@ select.input option {
   }
   .dash-row .chip {
     display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -3560,16 +3853,21 @@ select.input option {
   flex: none;
   width: 32px;
   height: 32px;
+  padding: 0;
   border: none;
   border-radius: 8px;
   background: none;
   color: var(--ink4);
   font-size: 18px;
+  line-height: 0;
   cursor: pointer;
   transition:
     color 0.15s ease,
     background-color 0.15s ease,
     transform 0.2s var(--ease-out);
+}
+.side__toggle svg {
+  display: block;
 }
 .side__toggle:hover {
   background: var(--w05);

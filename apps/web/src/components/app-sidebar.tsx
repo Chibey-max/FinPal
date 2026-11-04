@@ -22,7 +22,6 @@ import {
 } from "./app-shortcuts";
 import {
   CalendarMonthIcon,
-  CloseIcon,
   DashboardIcon,
   HistoryIcon,
   LogoutIcon,
@@ -284,7 +283,20 @@ export function AppSidebar({
             aria-label="Close menu"
             onClick={() => setOpen(false)}
           >
-            <CloseIcon />
+            {/* Geometric X — Material CloseIcon sits optically off-center in 32px circles. */}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+            >
+              <path d="M3.5 3.5 10.5 10.5" />
+              <path d="M10.5 3.5 3.5 10.5" />
+            </svg>
           </button>
         </div>
 

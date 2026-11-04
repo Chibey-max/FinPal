@@ -22,6 +22,10 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AutoAwesomeIcon } from "@/components/icons";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import {
+  readAgentSession,
+  writeAgentSession,
+} from "@/features/agent/agent-session";
 import { SnapSearchButton } from "@/features/agent/snap-search";
 import { VoiceDictationButton } from "@/features/agent/voice-dictation";
 import {
@@ -162,6 +166,7 @@ export function AgentConsole({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [hydrated, setHydrated] = useState(false);
   const [list, setList] = useState(initialList);
   const [pending, setPending] = useState(false);
   const [step, setStep] = useState(0);
@@ -173,6 +178,30 @@ export function AgentConsole({
   const resultRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+
+  // Restore the last Agent thread from this device after refresh.
+  useEffect(() => {
+    const saved = readAgentSession();
+    if (saved) {
+      if (!initialList) setList(saved.list);
+      setTurns(saved.turns);
+      setRuns(saved.runs);
+      setPaid(saved.paid);
+      setExcluded(new Set(saved.excluded));
+    }
+    setHydrated(true);
+  }, [initialList]);
+
+  useEffect(() => {
+    if (!hydrated || pending) return;
+    writeAgentSession({
+      list,
+      turns,
+      runs,
+      paid,
+      excluded: [...excluded],
+    });
+  }, [hydrated, pending, list, turns, runs, paid, excluded]);
 
   useEffect(() => {
     if (!pending) return;
@@ -537,7 +566,7 @@ export function AgentConsole({
             maxLength={1000}
             disabled={pending}
           />
-          <div className="form-actions">
+          <div className="form-actions agent-ask__actions">
             <LiquidButton
               type="submit"
               size="xl"
@@ -556,7 +585,10 @@ export function AgentConsole({
                   ? "Shop this list"
                   : "Let the agent shop"}
             </LiquidButton>
-            <span className="small ink4 agent-ask__hint">
+            <span
+              className="small ink4 agent-ask__hint"
+              title="Enter to shop · Snap a product · Say stop to end voice"
+            >
               Enter to shop · Snap a product · Say “stop” to end voice
             </span>
             <Link href="/app/proposals/new" className="link-quiet">

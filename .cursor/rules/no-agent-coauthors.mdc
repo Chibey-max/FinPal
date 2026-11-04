@@ -1,0 +1,12 @@
+---
+description: Never attribute commits or PRs to Cursor or any AI agent
+alwaysApply: true
+---
+
+# No agent co-authors
+
+Never add Cursor, Claude, Copilot, or any AI agent as a co-author, author, committer, or trailer on git commits, pull requests, or changelogs.
+
+- Do not include `Co-authored-by:` (or similar) trailers for agents or tools
+- If a hook or tool inserts an agent co-author, strip it before finishing (rewrite the commit without that trailer)
+- Commits and PRs must be attributed only to the human user / their configured git identity
