@@ -206,6 +206,7 @@ export function DecisionsGrid({
   const router = useRouter();
   const apiRef = useRef<GridApi<DecisionRow> | null>(null);
   const [search, setSearch] = useState("");
+  const [cardPage, setCardPage] = useState(1);
   const [paging, setPaging] = useState({
     page: 1,
     pageCount: 1,
@@ -219,6 +220,12 @@ export function DecisionsGrid({
     },
     [router],
   );
+
+  const cardRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return rows;
+    return rows.filter((row) => searchText(row, timeZone).includes(query));
+  }, [rows, search, timeZone]);
 
   const compact = useCompact();
   const columns = useMemo<ColDef<DecisionRow>[]>(
