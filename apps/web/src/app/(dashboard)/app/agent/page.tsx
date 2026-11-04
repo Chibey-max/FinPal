@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AgentConsole } from "@/features/agent/agent-console";
+import { TransferConsole } from "@/features/agent/transfer-console";
 import { requireUser } from "@/lib/auth";
 import { getUserConstraints } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
@@ -29,6 +30,7 @@ export default async function AgentPage({
           the agent finds. <Link href="/app/rules">Set your rules →</Link>
         </p>
       ) : null}
+      <TransferConsole sandbox={isMockMode()} />
       <AgentConsole
         timeZone={constraints?.timezone ?? "UTC"}
         sandbox={isMockMode()}

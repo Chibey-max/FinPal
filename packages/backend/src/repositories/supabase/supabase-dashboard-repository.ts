@@ -60,6 +60,8 @@ const rowSchema = z.object({
           proposed_price: z.coerce.number(),
           currency: z.string(),
           source: proposalSourceSchema,
+          // Optional so reads keep working until the transfers migration is applied.
+          recipient_email: z.string().nullish(),
           created_at: z.string(),
         }),
       ),
@@ -73,7 +75,7 @@ export const decisionRowSelect = `
   id, outcome, reason, reasons, decided_at, review_status,
   evaluations!inner (
     id, quality_score, explanation, median_price, offer_count, trust_signal,
-    proposals!inner ( id, product_name, proposed_price, currency, source, created_at )
+    proposals!inner ( * )
   ),
   payment_attempts ( id, status, updated_at )
 `;
@@ -99,6 +101,7 @@ export function toDecisionRow(raw: unknown): DecisionRow {
     amount: proposal.proposed_price,
     currency: proposal.currency,
     source: proposal.source,
+    recipientEmail: proposal.recipient_email ?? null,
     proposalCreatedAt: proposal.created_at,
     evaluationId: evaluation.id,
     qualityScore: evaluation.quality_score,
@@ -140,6 +143,8 @@ const detailRowSchema = z.object({
           currency: z.string(),
           source: proposalSourceSchema,
           source_event_id: z.string().nullable(),
+          // Optional so reads keep working until the transfers migration is applied.
+          recipient_email: z.string().nullish(),
           proposed_for: z.string().nullable(),
           created_at: z.string(),
         }),
@@ -157,10 +162,7 @@ export const decisionDetailSelect = `
   evaluations!inner (
     id, proposal_id, quality_result, constraint_check, trust_signal,
     trust_evidence, created_at,
-    proposals!inner (
-      id, product_name, proposed_price, currency, source, source_event_id,
-      proposed_for, created_at
-    )
+    proposals!inner ( * )
   ),
   payment_attempts ( * )
 `;
@@ -183,6 +185,7 @@ export function toDecisionRecord(raw: unknown): DecisionRecord {
       source: proposal.source,
       sourceEventId: proposal.source_event_id,
       proposedFor: proposal.proposed_for,
+      recipientEmail: proposal.recipient_email ?? null,
       createdAt: proposal.created_at,
     }),
     evaluation: evaluationSchema.parse({

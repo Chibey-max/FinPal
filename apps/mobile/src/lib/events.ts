@@ -86,6 +86,10 @@ export function summarizeEvent(event: AuditEvent): string {
       return money(p) ? `Captured ${money(p)}` : "Captured";
     case "PAYMENT_VOIDED":
       return "Authorization voided before capture";
+    case "PAYMENT_RETURNED":
+      return money(p) ? `${money(p)} returned to you` : "Money returned to you";
+    case "AGENT_TRANSFER_REQUESTED":
+      return join(text(p.recipientEmail), money(p)) ?? "Transfer requested";
     case "PAYPAL_CALL_FAILED":
       return (
         join(

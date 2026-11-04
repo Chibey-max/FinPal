@@ -13,6 +13,8 @@ const proposalSchema = z.object({
   product_name: z.string(),
   proposed_price: z.coerce.number(),
   currency: z.string(),
+  // Optional so reads keep working until the transfers migration is applied.
+  recipient_email: z.string().nullish(),
 });
 
 // PostgREST embeds a many-to-one relation as an object; accept arrays too.
@@ -81,7 +83,7 @@ export function createSupabaseDecisionRepository(
       const { data, error } = await db
         .from("decisions")
         .select(
-          "id, user_id, outcome, review_status, evaluations!inner(proposals!inner(product_name, proposed_price, currency))",
+          "id, user_id, outcome, review_status, evaluations!inner(proposals!inner(*))",
         )
         .eq("id", decisionId)
         .eq("user_id", userId)
@@ -99,6 +101,7 @@ export function createSupabaseDecisionRepository(
         productName: proposal.product_name,
         amount: proposal.proposed_price,
         currency: proposal.currency,
+        recipientEmail: proposal.recipient_email ?? null,
       };
     },
 

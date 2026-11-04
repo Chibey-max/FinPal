@@ -27,7 +27,7 @@ describe("payment state machine", () => {
 
   it("rejects skipping states", () => {
     expect(canTransitionPayment("CREATED", "AUTHORIZED")).toBe(false);
-    expect(canTransitionPayment("APPROVED", "CAPTURED")).toBe(false);
+    expect(canTransitionPayment("CREATED", "CAPTURED")).toBe(false);
   });
 
   it("treats VOIDED and REFUNDED as terminal", () => {

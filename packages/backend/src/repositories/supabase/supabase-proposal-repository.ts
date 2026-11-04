@@ -13,6 +13,8 @@ const rowSchema = z.object({
   source: proposalSourceSchema,
   source_event_id: z.string().nullable(),
   proposed_for: z.string().nullable(),
+  // Optional so reads keep working until the transfers migration is applied.
+  recipient_email: z.string().nullish(),
   created_at: z.string(),
 });
 
@@ -26,12 +28,10 @@ function toProposal(raw: unknown): Proposal {
     source: row.source,
     sourceEventId: row.source_event_id,
     proposedFor: row.proposed_for,
+    recipientEmail: row.recipient_email ?? null,
     createdAt: row.created_at,
   };
 }
-
-const columns =
-  "id, product_name, proposed_price, currency, source, source_event_id, proposed_for, created_at";
 
 export function createSupabaseProposalRepository(
   db: SupabaseClient,
@@ -48,8 +48,11 @@ export function createSupabaseProposalRepository(
           source: input.source,
           source_event_id: input.sourceEventId ?? null,
           proposed_for: input.proposedFor ?? null,
+          ...(input.recipientEmail
+            ? { recipient_email: input.recipientEmail }
+            : {}),
         })
-        .select(columns)
+        .select("*")
         .single();
       if (error) throw error;
       return toProposal(data);
@@ -58,7 +61,7 @@ export function createSupabaseProposalRepository(
     async findById(userId, id) {
       const { data, error } = await db
         .from("proposals")
-        .select(columns)
+        .select("*")
         .eq("user_id", userId)
         .eq("id", id)
         .maybeSingle();

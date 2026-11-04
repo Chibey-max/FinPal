@@ -42,6 +42,7 @@ export const proposals: ProposalRepository = {
       source: input.source,
       sourceEventId: input.sourceEventId ?? null,
       proposedFor: input.proposedFor ?? null,
+      recipientEmail: input.recipientEmail ?? null,
       createdAt: now().toISOString(),
     };
     getStore().proposals.push(row);
@@ -258,6 +259,7 @@ export const decisions: DecisionRepository = {
       productName: proposal.productName,
       amount: proposal.proposedPrice,
       currency: proposal.currency,
+      recipientEmail: proposal.recipientEmail ?? null,
     };
   },
   // Compare-and-set like the Supabase repository: only while unreviewed.
@@ -318,6 +320,7 @@ export const dashboard: DashboardRepository = {
             amount: proposal.proposedPrice,
             currency: proposal.currency,
             source: proposal.source,
+            recipientEmail: proposal.recipientEmail ?? null,
             proposalCreatedAt: proposal.createdAt,
             evaluationId: evaluation.id,
             qualityScore: evaluation.quality.score,

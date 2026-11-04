@@ -95,6 +95,7 @@ const stateEvents: Partial<Record<AuditEvent["type"], PaymentStatus>> = {
   PAYMENT_AUTHORIZED: "AUTHORIZED",
   PAYMENT_CAPTURED: "CAPTURED",
   PAYMENT_VOIDED: "VOIDED",
+  PAYMENT_RETURNED: "REFUNDED",
 };
 
 export default function PaymentDetail() {
@@ -271,7 +272,9 @@ function Detail({
       });
       setCheckoutOpen(false);
       toast(
-        `Buyer approved in PayPal. FinPal confirmed the order and authorized ${amount}.`,
+        payment.payeeEmail
+          ? `Approved in PayPal. ${amount} sent to ${payment.payeeEmail}.`
+          : `Buyer approved in PayPal. FinPal confirmed the order and authorized ${amount}.`,
       );
     } catch (error) {
       setCheckoutOpen(false);
@@ -290,6 +293,18 @@ function Detail({
         >
           {shortId("pay", payment.id)} · PayPal order {payment.paypalOrderId}
         </Text>
+        {payment.payeeEmail && status === "REFUNDED" ? (
+          <Text style={{ color: colors.ink3, fontSize: ms(14) }}>
+            This didn't reach {payment.payeeEmail}, so the money came back to
+            you.
+          </Text>
+        ) : payment.payeeEmail && status === "CAPTURED" ? (
+          <Text style={{ color: colors.ink3, fontSize: ms(14) }}>
+            {payment.paypalCaptureStatus === "PENDING"
+              ? `Sent. PayPal is holding it until ${payment.payeeEmail} claims it.`
+              : `Sent to ${payment.payeeEmail}.`}
+          </Text>
+        ) : null}
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View style={{ flexShrink: 1, gap: s(4) }}>
             <Title>{amount}</Title>

@@ -188,3 +188,44 @@ export const spendingForecastSchema = z.object({
 });
 
 export type SpendingForecast = z.infer<typeof spendingForecastSchema>;
+
+/**
+ * Sending money by voice or text: "send $100 to someone@example.com". Parsing
+ * writes nothing. The user confirms the amount and recipient, the normal rules
+ * decide, and PayPal approval is still required.
+ */
+export const transferParseRequestSchema = z.object({
+  text: z.string().trim().min(3).max(300),
+});
+
+export const transferDraftSchema = z.object({
+  amount: z.number().positive().nullable(),
+  currency: z.string().length(3),
+  recipientEmail: z.string().nullable(),
+  /** What is still needed, or null when both amount and recipient were found. */
+  question: z.string().nullable(),
+});
+
+export type TransferDraft = z.infer<typeof transferDraftSchema>;
+
+export const transferRequestSchema = z.object({
+  /** The words the agent acted on, kept in the audit trail. */
+  text: z.string().trim().min(3).max(300),
+  amount: z
+    .number()
+    .positive()
+    .max(1_000_000)
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+      message: "Use at most two decimal places.",
+    }),
+  currency: z
+    .string()
+    .length(3)
+    .transform((value) => value.toUpperCase()),
+  recipientEmail: z
+    .email()
+    .max(254)
+    .transform((value) => value.toLowerCase()),
+});
+
+export type TransferRequest = z.infer<typeof transferRequestSchema>;

@@ -25,6 +25,7 @@ const NAV: {
   { label: "Overview", href: "/overview", prefix: "/overview" },
   { label: "Calendar", href: "/calendar", prefix: "/calendar" },
   { label: "New proposal", href: "/proposals/new", prefix: "/proposals" },
+  { label: "Send money", href: "/transfer", prefix: "/transfer" },
   { label: "Decisions", href: "/decisions", prefix: "/decisions" },
   {
     label: "Review queue",

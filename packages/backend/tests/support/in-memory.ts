@@ -199,6 +199,21 @@ export function createFakePayPal() {
         captureStatus: "COMPLETED",
       }));
     },
+    captureOrder: (orderId, requestId) => {
+      calls.push("captureOrder");
+      return idempotent(requestId, () => {
+        const order = orders.get(orderId);
+        if (order?.status !== "APPROVED") {
+          throw new PayPalApiError("Not approved", 422, "ORDER_NOT_APPROVED");
+        }
+        order.status = "COMPLETED";
+        return {
+          orderStatus: "COMPLETED",
+          captureId: `CAPTURE-${orderId}`,
+          captureStatus: "PENDING",
+        };
+      });
+    },
     voidAuthorization: (_authorizationId, requestId) => {
       calls.push("voidAuthorization");
       return idempotent(requestId, () => ({ authorizationStatus: "VOIDED" }));

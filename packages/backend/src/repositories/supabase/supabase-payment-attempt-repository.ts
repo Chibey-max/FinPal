@@ -19,6 +19,8 @@ const rowSchema = z.object({
   decision_id: z.string(),
   // Optional so reads keep working until the baskets migration is applied.
   basket_id: z.string().nullish(),
+  // Optional so reads keep working until the transfers migration is applied.
+  payee_email: z.string().nullish(),
   status: paymentStatusSchema,
   amount: z.coerce.number(),
   currency: z.string(),
@@ -41,6 +43,7 @@ export function toPaymentAttemptRecord(row: unknown): PaymentAttemptRecord {
     userId: r.user_id,
     decisionId: r.decision_id,
     basketId: r.basket_id ?? null,
+    payeeEmail: r.payee_email ?? null,
     status: r.status,
     amount: r.amount,
     currency: r.currency,
@@ -79,6 +82,7 @@ function toInsert(attempt: NewPaymentAttempt) {
     decision_id: attempt.decisionId,
     // Left out for single payments so they work before the baskets migration.
     ...(attempt.basketId ? { basket_id: attempt.basketId } : {}),
+    ...(attempt.payeeEmail ? { payee_email: attempt.payeeEmail } : {}),
     status: attempt.status,
     amount: attempt.amount,
     currency: attempt.currency,

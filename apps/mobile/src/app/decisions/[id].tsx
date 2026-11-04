@@ -129,37 +129,45 @@ function Detail({
         ))}
       </Card>
 
-      <Card>
-        <Eyebrow>Price quality</Eyebrow>
-        <Badge
-          label={scoreLabel(quality.score)}
-          tone={scoreTone[quality.score]}
-        />
-        {explained ? null : (
-          <Text
-            style={{ color: colors.ink2, fontSize: ms(14), lineHeight: ms(20) }}
-          >
-            {quality.explanation}
-          </Text>
-        )}
-        <Row
-          label="Median price"
-          value={formatMoney(quality.medianPrice, quality.currency)}
-        />
-        <Row
-          label="Lowest price"
-          value={formatMoney(quality.lowestPrice, quality.currency)}
-        />
-        <Row label="Offers compared" value={String(quality.offerCount)} />
-      </Card>
+      {!proposal.recipientEmail ? (
+        <Card>
+          <Eyebrow>Price quality</Eyebrow>
+          <Badge
+            label={scoreLabel(quality.score)}
+            tone={scoreTone[quality.score]}
+          />
+          {explained ? null : (
+            <Text
+              style={{
+                color: colors.ink2,
+                fontSize: ms(14),
+                lineHeight: ms(20),
+              }}
+            >
+              {quality.explanation}
+            </Text>
+          )}
+          <Row
+            label="Median price"
+            value={formatMoney(quality.medianPrice, quality.currency)}
+          />
+          <Row
+            label="Lowest price"
+            value={formatMoney(quality.lowestPrice, quality.currency)}
+          />
+          <Row label="Offers compared" value={String(quality.offerCount)} />
+        </Card>
+      ) : null}
 
-      <Card>
-        <Eyebrow>Merchant trust</Eyebrow>
-        <Badge
-          label={evaluation.trustSignal}
-          tone={trustTone[evaluation.trustSignal]}
-        />
-      </Card>
+      {!proposal.recipientEmail ? (
+        <Card>
+          <Eyebrow>Merchant trust</Eyebrow>
+          <Badge
+            label={evaluation.trustSignal}
+            tone={trustTone[evaluation.trustSignal]}
+          />
+        </Card>
+      ) : null}
 
       <Card>
         <Eyebrow>Payment</Eyebrow>

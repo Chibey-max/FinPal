@@ -85,7 +85,9 @@ export interface PurchaseHistory {
 
 const HISTORY_LIMIT = 12;
 
-export function summarizeHistory(rows: DecisionRow[]): PurchaseHistory {
+export function summarizeHistory(allRows: DecisionRow[]): PurchaseHistory {
+  // Money sent to a person says nothing about what someone likes to buy.
+  const rows = allRows.filter((row) => !row.recipientEmail);
   const paid = rows.filter(
     (row) =>
       row.paymentStatus === "CAPTURED" || row.paymentStatus === "AUTHORIZED",

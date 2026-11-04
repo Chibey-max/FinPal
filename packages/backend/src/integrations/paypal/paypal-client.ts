@@ -8,6 +8,11 @@ export interface CreatePayPalOrderInput {
   description: string;
   /** Line items shown at PayPal checkout; their prices must sum to `amount`. */
   items?: { name: string; amount: number }[];
+  /**
+   * Pays this address instead of FinPal's merchant account. PayPal only allows
+   * that with an immediate capture, so the order is settled by captureOrder.
+   */
+  payeeEmail?: string;
   requestId: string;
   returnUrl: string;
   cancelUrl: string;
@@ -28,6 +33,10 @@ export interface PayPalAuthorization {
 export interface PayPalCapture {
   captureId: string;
   captureStatus: string;
+}
+
+export interface PayPalOrderCapture extends PayPalCapture {
+  orderStatus: string;
 }
 
 export interface VerifyWebhookSignatureInput {
@@ -51,6 +60,8 @@ export interface PayPalClient {
     authorizationId: string,
     requestId: string,
   ): Promise<PayPalCapture>;
+  /** Settles an approved order created with a payeeEmail. */
+  captureOrder(orderId: string, requestId: string): Promise<PayPalOrderCapture>;
   voidAuthorization(
     authorizationId: string,
     requestId: string,

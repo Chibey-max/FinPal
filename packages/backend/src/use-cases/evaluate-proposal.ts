@@ -1,13 +1,15 @@
-import type {
-  ComparableOffer,
-  CreateProposalInput,
-  Proposal,
-  ProposalEvaluation,
-  TrustSignal,
+import {
+  QUALITY_THRESHOLDS,
+  type ComparableOffer,
+  type CreateProposalInput,
+  type Proposal,
+  type ProposalEvaluation,
+  type QualityScoreResult,
+  type TrustSignal,
 } from "@finpal/contracts";
 
 import { checkConstraints } from "../domain/constraints";
-import { decide } from "../domain/decision-table";
+import { decide, decideTransfer } from "../domain/decision-table";
 import { localDayRange, localMonthRange } from "../domain/zoned-time";
 import type { KernelClient } from "../integrations/kernel/kernel-client";
 import type { ConstraintsRepository } from "../repositories/constraints-repository";
@@ -68,6 +70,23 @@ export function createKernelTrustChecker(
   };
 }
 
+/** A person has no market price: recorded as such, and never scored. */
+function transferQuality(proposal: Proposal): QualityScoreResult {
+  return {
+    score: "INSUFFICIENT_DATA",
+    explanation: "A transfer to a person has no market price to compare.",
+    proposedPrice: proposal.proposedPrice,
+    currency: proposal.currency,
+    offerCount: 0,
+    medianPrice: null,
+    lowestPrice: null,
+    ratioToMedian: null,
+    thresholds: QUALITY_THRESHOLDS,
+    offerStatus: "INSUFFICIENT_OFFERS",
+    references: [],
+  };
+}
+
 export class EvaluationError extends Error {
   constructor(
     readonly code: "PROPOSAL_NOT_FOUND",
@@ -118,6 +137,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
     /**
      * Runs constraints, Quality Score and merchant trust, applies the
      * decision table, then stores and audits the evaluation and decision.
+     * A transfer to a person is checked against the constraints only.
      * Re-evaluating a proposal records a new evaluation; history is kept.
      */
     async evaluateProposal(
@@ -132,6 +152,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
       // Time windows are checked at the planned purchase time, if any.
       const at = proposal.proposedFor ? new Date(proposal.proposedFor) : now();
       const constraints = await deps.constraints.get(userId);
+      const isTransfer = Boolean(proposal.recipientEmail);
 
       // Quality first so KERNEL can visit a Channel3 merchant URL.
       const [constraintCheck, quality] = await Promise.all([
@@ -167,17 +188,23 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
               });
             })()
           : null,
-        deps.quality.score({
-          productName: proposal.productName,
-          proposedPrice: proposal.proposedPrice,
-          currency: proposal.currency,
-        }),
+        isTransfer
+          ? transferQuality(proposal)
+          : deps.quality.score({
+              productName: proposal.productName,
+              proposedPrice: proposal.proposedPrice,
+              currency: proposal.currency,
+            }),
       ]);
 
-      const trustResult = await trust.check(proposal, quality.references);
+      const trustResult: MerchantTrustCheckResult = isTransfer
+        ? { signal: "NOT_CHECKED", evidence: { reason: "transfer_to_person" } }
+        : await trust.check(proposal, quality.references);
       const trustSignal = trustResult.signal;
 
-      const decision = decide({ constraintCheck, quality, trust: trustSignal });
+      const decision = isTransfer
+        ? decideTransfer(constraintCheck)
+        : decide({ constraintCheck, quality, trust: trustSignal });
 
       const recorded = await deps.evaluations.record({
         userId,
@@ -196,6 +223,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
         type: "EVALUATION_COMPLETED",
         payload: {
           proposalId: proposal.id,
+          transfer: isTransfer,
           qualityScore: quality.score,
           explanation: quality.explanation,
           medianPrice: quality.medianPrice,

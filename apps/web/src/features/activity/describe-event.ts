@@ -12,6 +12,10 @@ const titles: Record<AuditEventType, { title: string; tone: EventTone }> = {
   CONSTRAINTS_UPDATED: { title: "Rules updated", tone: "neutral" },
   PROPOSAL_CREATED: { title: "Item proposed", tone: "neutral" },
   AGENT_PURCHASE_PROPOSED: { title: "Agent chose an offer", tone: "neutral" },
+  AGENT_TRANSFER_REQUESTED: {
+    title: "You asked the agent to send money",
+    tone: "neutral",
+  },
   EVALUATION_COMPLETED: {
     title: "Checked against your rules",
     tone: "neutral",
@@ -24,6 +28,7 @@ const titles: Record<AuditEventType, { title: string; tone: EventTone }> = {
   PAYMENT_AUTHORIZED: { title: "Money reserved", tone: "success" },
   PAYMENT_CAPTURED: { title: "Payment taken", tone: "success" },
   PAYMENT_VOIDED: { title: "Payment cancelled", tone: "warning" },
+  PAYMENT_RETURNED: { title: "Money returned to you", tone: "warning" },
   PAYPAL_CALL_FAILED: { title: "PayPal request failed", tone: "danger" },
 };
 
@@ -104,6 +109,8 @@ export function describeEvent(event: AuditEvent): EventDescription {
       return { ...base, detail: text(p.paypalOrderId) };
     case "PAYMENT_VOIDED":
       return { ...base, detail: text(p.paypalAuthorizationId) };
+    case "PAYMENT_RETURNED":
+      return { ...base, detail: join(text(p.payeeEmail), money(p)) };
     case "PAYPAL_CALL_FAILED":
       return {
         title: text(p.operation) ? `PayPal ${p.operation} failed` : base.title,
@@ -160,7 +167,11 @@ export function summarizeEvent(event: AuditEvent): string {
             : undefined,
         ) ?? "Agent chose an offer"
       );
+    case "AGENT_TRANSFER_REQUESTED":
+      return join(text(p.recipientEmail), money(p)) ?? "Transfer requested";
     case "EVALUATION_COMPLETED": {
+      if (p.transfer === true)
+        return "Your spending rules only: no price to compare";
       const score = text(p.qualityScore);
       const word = score ? (scoreWords[score] ?? score) : undefined;
       const median = num(p.medianPrice);
@@ -194,6 +205,10 @@ export function summarizeEvent(event: AuditEvent): string {
       return money(p) ? `${money(p)} paid` : "Paid";
     case "PAYMENT_VOIDED":
       return "Cancelled before payment was taken. Nothing was charged.";
+    case "PAYMENT_RETURNED":
+      return money(p)
+        ? `${money(p)} came back: the transfer didn't reach ${text(p.payeeEmail) ?? "the recipient"}`
+        : "The transfer didn't reach the recipient";
     case "PAYPAL_CALL_FAILED":
       return (
         join(

@@ -48,6 +48,7 @@ describe("toDecisionRow", () => {
       amount: 50,
       currency: "USD",
       source: "MANUAL",
+      recipientEmail: null,
       proposalCreatedAt: "2026-10-23T09:59:00+00:00",
       evaluationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       qualityScore: "GOOD",

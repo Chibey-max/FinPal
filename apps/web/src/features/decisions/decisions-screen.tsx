@@ -70,7 +70,9 @@ export function DecisionDetailView({
             {proposal.source === "CALENDAR"
               ? "calendar-assisted"
               : proposal.source === "AGENT"
-                ? "chosen by the agent"
+                ? proposal.recipientEmail
+                  ? "sent by the agent"
+                  : "chosen by the agent"
                 : "manual entry"}{" "}
             · evaluated {formatWhen(decision.decidedAt, timeZone)}
           </span>
@@ -93,73 +95,75 @@ export function DecisionDetailView({
           {summary ? (
             <DecisionSummary key={decision.id} decisionId={decision.id} />
           ) : null}
-          <section className="card evidence-card" aria-labelledby="evidence">
-            <div className="card-head card-head--flush">
-              <h3 id="evidence">Price evidence · Channel3</h3>
-              <span className="mono small ink2">
-                median {formatMoney(quality.medianPrice, quality.currency)} ·
-                ratio {ratioLabel(quality)} ·{" "}
-                <span
-                  data-tone={unusuallyLow ? "warn" : scoreTone[quality.score]}
-                >
-                  {unusuallyLow ? "UNUSUALLY LOW" : quality.score}
-                </span>
-              </span>
-            </div>
-            {band ? (
-              <div
-                className="band"
-                data-tone={scoreTone[quality.score]}
-                role="img"
-                aria-label={`Proposed ${amount} against a median of ${formatMoney(quality.medianPrice, quality.currency)}: ${quality.score}`}
-              >
-                <div
-                  className="band__zone band__zone--good"
-                  style={{ width: `${band.goodWidth}%` }}
-                />
-                <div
-                  className="band__zone band__zone--fair"
-                  style={{
-                    left: `${band.goodWidth}%`,
-                    width: `${band.fairWidth}%`,
-                  }}
-                />
-                <div
-                  className="band__zone band__zone--poor"
-                  style={{ left: `${band.poorLeft}%` }}
-                />
-                {band.dots.map((left, index) => (
-                  <div
-                    key={index}
-                    className="band__dot"
-                    style={{ left: `${left}%` }}
-                  />
-                ))}
-                <div
-                  className="band__median"
-                  style={{ left: `${band.median}%` }}
-                />
-                <span
-                  className="band__label band__label--median"
-                  style={{ left: `${band.median}%` }}
-                >
-                  median
-                </span>
-                <div
-                  className="band__proposed"
-                  style={{ left: `${band.proposed}%` }}
-                />
-                <span
-                  className="band__label band__label--proposed"
-                  style={{ left: `${band.proposed}%` }}
-                >
-                  proposed
+          {!proposal.recipientEmail ? (
+            <section className="card evidence-card" aria-labelledby="evidence">
+              <div className="card-head card-head--flush">
+                <h3 id="evidence">Price evidence · Channel3</h3>
+                <span className="mono small ink2">
+                  median {formatMoney(quality.medianPrice, quality.currency)} ·
+                  ratio {ratioLabel(quality)} ·{" "}
+                  <span
+                    data-tone={unusuallyLow ? "warn" : scoreTone[quality.score]}
+                  >
+                    {unusuallyLow ? "UNUSUALLY LOW" : quality.score}
+                  </span>
                 </span>
               </div>
-            ) : null}
-            <p className="small ink3 evidence-note">{quality.explanation}</p>
-            <OfferList offers={quality.references} />
-          </section>
+              {band ? (
+                <div
+                  className="band"
+                  data-tone={scoreTone[quality.score]}
+                  role="img"
+                  aria-label={`Proposed ${amount} against a median of ${formatMoney(quality.medianPrice, quality.currency)}: ${quality.score}`}
+                >
+                  <div
+                    className="band__zone band__zone--good"
+                    style={{ width: `${band.goodWidth}%` }}
+                  />
+                  <div
+                    className="band__zone band__zone--fair"
+                    style={{
+                      left: `${band.goodWidth}%`,
+                      width: `${band.fairWidth}%`,
+                    }}
+                  />
+                  <div
+                    className="band__zone band__zone--poor"
+                    style={{ left: `${band.poorLeft}%` }}
+                  />
+                  {band.dots.map((left, index) => (
+                    <div
+                      key={index}
+                      className="band__dot"
+                      style={{ left: `${left}%` }}
+                    />
+                  ))}
+                  <div
+                    className="band__median"
+                    style={{ left: `${band.median}%` }}
+                  />
+                  <span
+                    className="band__label band__label--median"
+                    style={{ left: `${band.median}%` }}
+                  >
+                    median
+                  </span>
+                  <div
+                    className="band__proposed"
+                    style={{ left: `${band.proposed}%` }}
+                  />
+                  <span
+                    className="band__label band__label--proposed"
+                    style={{ left: `${band.proposed}%` }}
+                  >
+                    proposed
+                  </span>
+                </div>
+              ) : null}
+              <p className="small ink3 evidence-note">{quality.explanation}</p>
+              <OfferList offers={quality.references} />
+            </section>
+          ) : null}
           {detail.events.length ? (
             <section
               className="card stack-card"
@@ -215,24 +219,26 @@ export function DecisionDetailView({
               </div>
             ))}
           </section>
-          <section
-            className="card stack-card stack-card--tight"
-            aria-labelledby="trust"
-          >
-            <h3 id="trust">Merchant trust · KERNEL</h3>
-            <span
-              className="mono"
-              data-tone={trustTone[evaluation.trustSignal]}
+          {!proposal.recipientEmail ? (
+            <section
+              className="card stack-card stack-card--tight"
+              aria-labelledby="trust"
             >
-              {evaluation.trustSignal}
-            </span>
-            <span className="small ink4">
-              {trustDetail[evaluation.trustSignal]}
-            </span>
-            {trustEvidence ? (
-              <span className="mono small ink4">{trustEvidence}</span>
-            ) : null}
-          </section>
+              <h3 id="trust">Merchant trust · KERNEL</h3>
+              <span
+                className="mono"
+                data-tone={trustTone[evaluation.trustSignal]}
+              >
+                {evaluation.trustSignal}
+              </span>
+              <span className="small ink4">
+                {trustDetail[evaluation.trustSignal]}
+              </span>
+              {trustEvidence ? (
+                <span className="mono small ink4">{trustEvidence}</span>
+              ) : null}
+            </section>
+          ) : null}
           <section className="card stack-card" aria-labelledby="codes">
             <h3 id="codes">Why, in codes</h3>
             <div className="code-chips">

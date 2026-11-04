@@ -87,6 +87,25 @@ export const paypal: PayPalClient = {
       }
       return { captureId: paypalId(), captureStatus: "COMPLETED" };
     }),
+  // As in Sandbox: money for an address with no PayPal account waits, pending.
+  captureOrder: (orderId, requestId) =>
+    replayable(`capture-order:${requestId}`, () => {
+      const found = order(orderId);
+      if (found.status !== "APPROVED") {
+        throw new PayPalApiError(
+          "The buyer has not approved the order.",
+          422,
+          "ORDER_NOT_APPROVED",
+          `dbg-${paypalId().slice(0, 12).toLowerCase()}`,
+        );
+      }
+      found.status = "COMPLETED";
+      return {
+        orderStatus: "COMPLETED",
+        captureId: paypalId(),
+        captureStatus: "PENDING",
+      };
+    }),
   voidAuthorization: (authorizationId, requestId) =>
     replayable(`void:${requestId}`, () => {
       for (const found of getStore().orders.values()) {

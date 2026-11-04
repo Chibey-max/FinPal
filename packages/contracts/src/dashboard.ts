@@ -29,6 +29,8 @@ export const decisionRowSchema = z.object({
   amount: z.number(),
   currency: z.string().length(3),
   source: proposalSourceSchema,
+  /** Set when this row sends money to a person rather than buying something. */
+  recipientEmail: z.string().nullish(),
   proposalCreatedAt: z.string(),
 
   evaluationId: z.uuid(),

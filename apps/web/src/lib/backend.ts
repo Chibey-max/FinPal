@@ -7,6 +7,7 @@ import {
   createCalendarSuggestions,
   createConstraintsDrafter,
   createShoppingAgent,
+  createTransferAgent,
   createSpendingForecaster,
   summarizeHistory,
   createAuditLog,
@@ -35,6 +36,7 @@ import {
   type AssistantService,
   type LlmClient,
   type ShoppingAgent,
+  type TransferAgent,
   type AuditLog,
   type CalendarConnectionService,
   type DashboardRepository,
@@ -233,6 +235,27 @@ export function getShoppingAgent(): ShoppingAgent {
     onError: reportLlmError,
   });
   return shoppingAgent;
+}
+
+let transferAgent: TransferAgent | undefined;
+
+/** Understands "send $100 to ..."; the normal rules still decide. */
+export function getTransferAgent(): TransferAgent {
+  if (isMockMode()) {
+    return createTransferAgent({
+      llm: getLlm(),
+      evaluation: mockBackend.evaluation,
+      audit: mockBackend.audit,
+      onError: reportLlmError,
+    });
+  }
+  transferAgent ??= createTransferAgent({
+    llm: getLlm(),
+    evaluation: getEvaluationService(),
+    audit: getServiceAuditLog(),
+    onError: reportLlmError,
+  });
+  return transferAgent;
 }
 
 export function getConstraintsDrafter() {

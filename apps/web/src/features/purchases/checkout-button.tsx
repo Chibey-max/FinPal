@@ -18,6 +18,7 @@ export function CheckoutButton({
   idempotencyKey,
   label,
   summary,
+  payee,
   sandbox,
   onPaid,
   disabled,
@@ -27,6 +28,8 @@ export function CheckoutButton({
   label: string;
   /** What's being paid for, shown in the simulated checkout. */
   summary: string;
+  /** Who receives the money, when it isn't FinPal's merchant. */
+  payee?: string;
   sandbox: boolean;
   onPaid: (basket: Basket) => void;
   disabled?: boolean;
@@ -94,6 +97,7 @@ export function CheckoutButton({
         <SandboxCheckout
           amount={formatMoney(basket.total, basket.currency)}
           summary={summary}
+          payee={payee}
           orderId={basket.paypalOrderId}
           onCancel={() => {
             setBasket(null);
@@ -110,12 +114,14 @@ export function CheckoutButton({
 export function SandboxCheckout({
   amount,
   summary,
+  payee = "FinPal Sandbox Merchant",
   orderId,
   onCancel,
   onApprove,
 }: {
   amount: string;
   summary: string;
+  payee?: string;
   orderId: string;
   onCancel: () => void;
   onApprove: () => void | Promise<void>;
@@ -150,7 +156,7 @@ export function SandboxCheckout({
           <span className="sandbox-card__tag">SANDBOX</span>
         </div>
         <div className="sandbox-card__amount">
-          <span>Pay FinPal Sandbox Merchant</span>
+          <span>Pay {payee}</span>
           <strong>{amount}</strong>
           <span>
             {summary} · order {orderId}

@@ -16,14 +16,16 @@ export const createProposalSchema = z.object({
   sourceEventId: z.string().max(200).optional(),
   /** When the purchase is planned; time windows are checked at this time. */
   proposedFor: z.iso.datetime({ offset: true }).optional(),
+  /** Set only by the transfer agent: this proposal sends money to a person. */
+  recipientEmail: z.email().optional(),
 });
 
 export type CreateProposalInput = z.infer<typeof createProposalSchema>;
 
 /** What POST /api/v1/proposals accepts: only people create MANUAL or CALENDAR. */
-export const createProposalRequestSchema = createProposalSchema.extend({
-  source: z.enum(["MANUAL", "CALENDAR"]),
-});
+export const createProposalRequestSchema = createProposalSchema
+  .extend({ source: z.enum(["MANUAL", "CALENDAR"]) })
+  .omit({ recipientEmail: true });
 
 export const proposalSchema = z.object({
   id: z.uuid(),
@@ -33,6 +35,8 @@ export const proposalSchema = z.object({
   source: proposalSourceSchema,
   sourceEventId: z.string().nullable(),
   proposedFor: z.string().nullable(),
+  /** Who receives the money when this is a transfer rather than a purchase. */
+  recipientEmail: z.string().nullish(),
   createdAt: z.string(),
 });
 

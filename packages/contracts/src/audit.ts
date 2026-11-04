@@ -22,6 +22,8 @@ export const auditEventTypeSchema = z.enum([
   "PROPOSAL_CREATED",
   // the shopping agent chose an offer and submitted the proposal
   "AGENT_PURCHASE_PROPOSED",
+  // the agent understood a command to send money, and the user confirmed it
+  "AGENT_TRANSFER_REQUESTED",
   "EVALUATION_COMPLETED",
   "DECISION_RECORDED",
   "DECISION_APPROVED",
@@ -32,6 +34,8 @@ export const auditEventTypeSchema = z.enum([
   "PAYMENT_AUTHORIZED",
   "PAYMENT_CAPTURED",
   "PAYMENT_VOIDED",
+  // a transfer never reached the recipient, so PayPal gave the money back
+  "PAYMENT_RETURNED",
   // third-party failures, with the provider's debug id
   "PAYPAL_CALL_FAILED",
 ]);

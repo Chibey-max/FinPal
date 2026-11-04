@@ -13,6 +13,8 @@ export interface PayableDecision {
   productName: string;
   amount: number;
   currency: string;
+  /** Set when this decision pays a person rather than a merchant. */
+  recipientEmail?: string | null;
 }
 
 export interface DecisionReviewPatch {

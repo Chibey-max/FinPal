@@ -104,4 +104,94 @@ describe("paypal webhook service", () => {
     expect(payments.rows[0]!.status).toBe("APPROVED");
     expect(audit.types()).toEqual(["PAYMENT_APPROVED"]);
   });
+
+  describe("a transfer waiting to be claimed", () => {
+    const orderId = "ORDER-T";
+    async function transfer(payeeEmail: string | null = "someone@example.com") {
+      return payments.insert({
+        userId,
+        decisionId,
+        basketId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        payeeEmail,
+        idempotencyKey: "transfer-key",
+        status: "CAPTURED",
+        amount: 100,
+        currency: "USD",
+        paypalOrderId: orderId,
+        paypalOrderStatus: "COMPLETED",
+        paypalAuthorizationId: payeeEmail ? null : "AUTH-1",
+        paypalAuthorizationStatus: null,
+        paypalCaptureId: "CAP-1",
+        paypalCaptureStatus: "PENDING",
+        approveUrl: null,
+      });
+    }
+    const captureEvent = (eventType: string, status: string, id = "EVT-C") => ({
+      id,
+      event_type: eventType,
+      resource_type: "capture",
+      resource: {
+        id: "CAP-1",
+        status,
+        supplementary_data: { related_ids: { order_id: orderId } },
+      },
+    });
+    const windowAround = [
+      new Date(Date.now() - 86_400_000),
+      new Date(Date.now() + 86_400_000),
+    ] as const;
+
+    it("records that the recipient claimed it", async () => {
+      const row = await transfer();
+      await service().handle(
+        headers,
+        captureEvent("PAYMENT.CAPTURE.COMPLETED", "COMPLETED"),
+      );
+      expect(await payments.findById(userId, row.id)).toMatchObject({
+        status: "CAPTURED",
+        paypalCaptureStatus: "COMPLETED",
+      });
+    });
+
+    it.each([
+      ["PAYMENT.CAPTURE.DENIED", "DENIED"],
+      ["PAYMENT.CAPTURE.REVERSED", "REVERSED"],
+    ])("gives the budget back on %s", async (eventType, status) => {
+      const row = await transfer();
+      expect(await payments.sumCommitted(userId, "USD", ...windowAround)).toBe(
+        100,
+      );
+      await service().handle(headers, captureEvent(eventType, status));
+      expect(await payments.findById(userId, row.id)).toMatchObject({
+        status: "REFUNDED",
+        paypalCaptureStatus: status,
+      });
+      expect(await payments.sumCommitted(userId, "USD", ...windowAround)).toBe(
+        0,
+      );
+      expect(audit.events.map((e) => e.type)).toContain("PAYMENT_RETURNED");
+    });
+
+    it("applies a repeated delivery only once", async () => {
+      await transfer();
+      const event = captureEvent("PAYMENT.CAPTURE.REVERSED", "REVERSED");
+      await service().handle(headers, event);
+      await service().handle(headers, event);
+      expect(
+        audit.events.filter((e) => e.type === "PAYMENT_RETURNED"),
+      ).toHaveLength(1);
+    });
+
+    it("leaves ordinary purchases alone", async () => {
+      const row = await transfer(null);
+      await service().handle(
+        headers,
+        captureEvent("PAYMENT.CAPTURE.REFUNDED", "REFUNDED"),
+      );
+      expect(await payments.findById(userId, row.id)).toMatchObject({
+        status: "CAPTURED",
+        paypalCaptureStatus: "PENDING",
+      });
+    });
+  });
 });

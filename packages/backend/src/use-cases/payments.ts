@@ -249,7 +249,8 @@ export function createPaymentService(deps: PaymentServiceDeps) {
   /**
    * After the buyer approves: confirm with PayPal, authorize, capture. Each
    * step is skipped once done, so a retry after a failure picks up where it
-   * stopped. Rechecks the caps first, since spend may have changed.
+   * stopped. Rechecks the caps first, since spend may have changed. A transfer
+   * has no authorization: its approved order is captured directly.
    */
   async function settle(userId: string, basketId: string) {
     let rows = await getBasketRows(userId, basketId);
@@ -289,6 +290,39 @@ export function createPaymentService(deps: PaymentServiceDeps) {
           basketId,
           paypalOrderId: row.paypalOrderId,
           paypalOrderStatus: order.status,
+        }),
+      );
+    }
+
+    if (has("APPROVED") && first.payeeEmail) {
+      const capture = await callPayPal("captureOrder", entity, () =>
+        paypal.captureOrder(first.paypalOrderId, `capture-${basketId}`),
+      );
+      if (failedCaptureStatuses.has(capture.captureStatus)) {
+        throw new PaymentError(
+          "PAYPAL_DECLINED",
+          "PayPal declined the transfer.",
+          { paypalCaptureStatus: capture.captureStatus },
+        );
+      }
+      rows = await moveBasket(
+        userId,
+        basketId,
+        "APPROVED",
+        {
+          status: "CAPTURED",
+          paypalOrderStatus: capture.orderStatus,
+          paypalCaptureId: capture.captureId,
+          paypalCaptureStatus: capture.captureStatus,
+        },
+        "PAYMENT_CAPTURED",
+        (row) => ({
+          basketId,
+          payeeEmail: row.payeeEmail,
+          paypalCaptureId: capture.captureId,
+          paypalCaptureStatus: capture.captureStatus,
+          amount: row.amount,
+          currency: row.currency,
         }),
       );
     }
@@ -519,6 +553,143 @@ export function createPaymentService(deps: PaymentServiceDeps) {
     throw invalidTransition(current, "AUTHORIZED");
   }
 
+  /**
+   * One PayPal order for several decisions, with one row per item. Retrying
+   * with the same key returns the same basket and creates nothing new.
+   */
+  async function createBasketOrder(input: CreateBasketInput): Promise<Basket> {
+    const { userId, idempotencyKey } = input;
+    const decisionIds = [...new Set(input.decisionIds)];
+    const itemKey = (index: number) => `${idempotencyKey}-${index}`;
+
+    const replay = async () => {
+      const existing = await payments.findByIdempotencyKey(userId, itemKey(0));
+      if (!existing) return null;
+      const rows = existing.basketId
+        ? await payments.findByBasketId(userId, existing.basketId)
+        : [];
+      const same =
+        rows.length === decisionIds.length &&
+        rows.every((row) => decisionIds.includes(row.decisionId));
+      if (!same) {
+        throw new PaymentError(
+          "IDEMPOTENCY_KEY_REUSED",
+          "This idempotency key was already used for a different basket.",
+        );
+      }
+      return toBasket(rows);
+    };
+    const replayed = await replay();
+    if (replayed) return replayed;
+
+    const items: PayableDecision[] = [];
+    for (const decisionId of decisionIds) {
+      const decision = await decisions.findForPayment(userId, decisionId);
+      if (!decision) {
+        throw new PaymentError("DECISION_NOT_FOUND", "Decision not found.");
+      }
+      assertPayable(decision);
+      if (await payments.findActiveByDecisionId(userId, decisionId)) {
+        throw new PaymentError(
+          "DECISION_ALREADY_PAID",
+          `${decision.productName} already has an active payment.`,
+        );
+      }
+      items.push(decision);
+    }
+    const first = items[0];
+    if (!first) {
+      throw new PaymentError("DECISION_NOT_FOUND", "The basket is empty.");
+    }
+    // One PayPal order has one payee, so a transfer can't share a basket.
+    if (items.length > 1 && items.some((item) => item.recipientEmail)) {
+      throw new PaymentError(
+        "DECISION_NOT_PAYABLE",
+        "A transfer to a person has to be paid on its own.",
+      );
+    }
+    const payeeEmail = first.recipientEmail ?? null;
+    const currency = first.currency;
+    if (items.some((item) => item.currency !== currency)) {
+      throw new PaymentError(
+        "DECISION_NOT_PAYABLE",
+        "Items in different currencies can't share one PayPal order.",
+      );
+    }
+    const total =
+      items.reduce((sum, item) => sum + Math.round(item.amount * 100), 0) / 100;
+    await assertWithinCaps(userId, total, currency);
+
+    const order = await callPayPal(
+      "createOrder",
+      { userId, entityType: "decision", entityId: first.decisionId },
+      () =>
+        paypal.createOrder({
+          amount: total,
+          currency,
+          description:
+            items.length === 1
+              ? first.productName
+              : `FinPal basket: ${items.length} items`,
+          ...(payeeEmail
+            ? { payeeEmail }
+            : {
+                items: items.map((item) => ({
+                  name: item.productName,
+                  amount: item.amount,
+                })),
+              }),
+          requestId: `order-${userId}-${idempotencyKey}`,
+          returnUrl: deps.returnUrl,
+          cancelUrl: deps.cancelUrl,
+        }),
+    );
+
+    const basketId = crypto.randomUUID();
+    let rows: PaymentAttemptRecord[];
+    try {
+      rows = await payments.insertMany(
+        items.map((item, index) => ({
+          userId,
+          decisionId: item.decisionId,
+          basketId,
+          payeeEmail,
+          idempotencyKey: itemKey(index),
+          status: "CREATED" as const,
+          amount: item.amount,
+          currency,
+          paypalOrderId: order.orderId,
+          paypalOrderStatus: order.status,
+          paypalAuthorizationId: null,
+          paypalAuthorizationStatus: null,
+          paypalCaptureId: null,
+          paypalCaptureStatus: null,
+          approveUrl: order.approveUrl,
+        })),
+      );
+    } catch (error) {
+      if (!(error instanceof DuplicatePaymentAttemptError)) throw error;
+      const winner = await replay();
+      if (winner) return winner;
+      throw new PaymentError(
+        "DECISION_ALREADY_PAID",
+        "An item in this basket already has an active payment.",
+      );
+    }
+
+    for (const row of rows) {
+      await record(row, "PAYMENT_CREATED", {
+        decisionId: row.decisionId,
+        basketId,
+        paypalOrderId: order.orderId,
+        paypalOrderStatus: order.status,
+        amount: row.amount,
+        currency,
+      });
+    }
+    return toBasket(rows);
+  }
+
   return {
     async getPayment(userId: string, paymentId: string) {
       return getOwned(userId, paymentId);
@@ -528,133 +699,7 @@ export function createPaymentService(deps: PaymentServiceDeps) {
       return toBasket(await getBasketRows(userId, basketId));
     },
 
-    /**
-     * One PayPal order for several decisions, with one row per item. Retrying
-     * with the same key returns the same basket and creates nothing new.
-     */
-    async createBasketOrder(input: CreateBasketInput): Promise<Basket> {
-      const { userId, idempotencyKey } = input;
-      const decisionIds = [...new Set(input.decisionIds)];
-      const itemKey = (index: number) => `${idempotencyKey}-${index}`;
-
-      const replay = async () => {
-        const existing = await payments.findByIdempotencyKey(
-          userId,
-          itemKey(0),
-        );
-        if (!existing) return null;
-        const rows = existing.basketId
-          ? await payments.findByBasketId(userId, existing.basketId)
-          : [];
-        const same =
-          rows.length === decisionIds.length &&
-          rows.every((row) => decisionIds.includes(row.decisionId));
-        if (!same) {
-          throw new PaymentError(
-            "IDEMPOTENCY_KEY_REUSED",
-            "This idempotency key was already used for a different basket.",
-          );
-        }
-        return toBasket(rows);
-      };
-      const replayed = await replay();
-      if (replayed) return replayed;
-
-      const items: PayableDecision[] = [];
-      for (const decisionId of decisionIds) {
-        const decision = await decisions.findForPayment(userId, decisionId);
-        if (!decision) {
-          throw new PaymentError("DECISION_NOT_FOUND", "Decision not found.");
-        }
-        assertPayable(decision);
-        if (await payments.findActiveByDecisionId(userId, decisionId)) {
-          throw new PaymentError(
-            "DECISION_ALREADY_PAID",
-            `${decision.productName} already has an active payment.`,
-          );
-        }
-        items.push(decision);
-      }
-      const first = items[0];
-      if (!first) {
-        throw new PaymentError("DECISION_NOT_FOUND", "The basket is empty.");
-      }
-      const currency = first.currency;
-      if (items.some((item) => item.currency !== currency)) {
-        throw new PaymentError(
-          "DECISION_NOT_PAYABLE",
-          "Items in different currencies can't share one PayPal order.",
-        );
-      }
-      const total =
-        items.reduce((sum, item) => sum + Math.round(item.amount * 100), 0) /
-        100;
-      await assertWithinCaps(userId, total, currency);
-
-      const order = await callPayPal(
-        "createOrder",
-        { userId, entityType: "decision", entityId: first.decisionId },
-        () =>
-          paypal.createOrder({
-            amount: total,
-            currency,
-            description:
-              items.length === 1
-                ? first.productName
-                : `FinPal basket: ${items.length} items`,
-            items: items.map((item) => ({
-              name: item.productName,
-              amount: item.amount,
-            })),
-            requestId: `order-${userId}-${idempotencyKey}`,
-            returnUrl: deps.returnUrl,
-            cancelUrl: deps.cancelUrl,
-          }),
-      );
-
-      const basketId = crypto.randomUUID();
-      let rows: PaymentAttemptRecord[];
-      try {
-        rows = await payments.insertMany(
-          items.map((item, index) => ({
-            userId,
-            decisionId: item.decisionId,
-            basketId,
-            idempotencyKey: itemKey(index),
-            status: "CREATED" as const,
-            amount: item.amount,
-            currency,
-            paypalOrderId: order.orderId,
-            paypalOrderStatus: order.status,
-            paypalAuthorizationId: null,
-            paypalAuthorizationStatus: null,
-            paypalCaptureId: null,
-            paypalCaptureStatus: null,
-            approveUrl: order.approveUrl,
-          })),
-        );
-      } catch (error) {
-        if (!(error instanceof DuplicatePaymentAttemptError)) throw error;
-        const winner = await replay();
-        if (winner) return winner;
-        throw new PaymentError(
-          "DECISION_ALREADY_PAID",
-          "An item in this basket already has an active payment.",
-        );
-      }
-
-      for (const row of rows) {
-        await record(row, "PAYMENT_CREATED", {
-          decisionId: row.decisionId,
-          basketId,
-          paypalOrderId: order.orderId,
-          paypalOrderStatus: order.status,
-          amount: row.amount,
-          currency,
-        });
-      }
-      return toBasket(rows);
-    },
+    createBasketOrder,
 
     /** Approved in PayPal: authorize and capture the whole basket. */
     async settleBasket(userId: string, basketId: string): Promise<Basket> {
@@ -684,6 +729,16 @@ export function createPaymentService(deps: PaymentServiceDeps) {
         throw new PaymentError("DECISION_NOT_FOUND", "Decision not found.");
       }
       assertPayable(decision);
+      // Transfers settle in one step, which is the basket path. Skipping this
+      // would create an ordinary order and pay FinPal's merchant instead.
+      if (decision.recipientEmail) {
+        const basket = await createBasketOrder({
+          userId,
+          decisionIds: [decisionId],
+          idempotencyKey,
+        });
+        return basket.items[0] as PaymentAttemptRecord;
+      }
       if (await payments.findActiveByDecisionId(userId, decisionId)) {
         throw new PaymentError(
           "DECISION_ALREADY_PAID",

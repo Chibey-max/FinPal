@@ -65,6 +65,16 @@ The explanation is rejected in favour of the rules if it names a different outco
 
 The agent acts on the user's behalf, but only inside the rules. `POST /agent/shop { need, eventId? }` turns the need into a Channel3 search, keeps new, in-stock offers in the user's currency and within any budget the need states, and picks one. It then creates a proposal with `source: "AGENT"`, records `AGENT_PURCHASE_PROPOSED` (need, query, offers compared, pick, reason, model) and runs the normal evaluation. Payment still needs approval in PayPal. `POST /proposals` never accepts `source: "AGENT"`.
 
+### Sending money to a person
+
+`POST /agent/transfer/parse { text }` reads a spoken or typed command such as "send $100 to someone@example.com" and returns `{ amount, currency, recipientEmail, question }`. It writes nothing. Rules read the command first; the model only fills gaps, and an address it returns must appear in the words the user said.
+
+`POST /agent/transfer { text, amount, currency, recipientEmail }` is called once the user has confirmed those details. It creates a proposal with `source: "AGENT"` and a `recipientEmail`, records `AGENT_TRANSFER_REQUESTED` (including the words heard) and runs the evaluation. A transfer has no market price or merchant, so `decideTransfer` applies the spending rules only: time windows and per-purchase, daily and monthly caps block it as they would a purchase, and with no rules set it goes to manual review. `POST /proposals` never accepts a recipient.
+
+Paying uses the normal one-approval checkout (`POST /baskets`), alone in its basket. The PayPal order uses `intent: CAPTURE` with the recipient as `payee`, because authorizing an order for someone else's account was refused in Sandbox. After approval the order is captured directly (`APPROVED -> CAPTURED`), so the payment counts toward the caps. A recipient with no PayPal account leaves the capture `PENDING` until they claim it.
+
+The webhook ends that wait. `PAYMENT.CAPTURE.COMPLETED` records the claim. `PAYMENT.CAPTURE.DENIED`, `REVERSED` or `REFUNDED` moves the transfer to `REFUNDED`, records `PAYMENT_RETURNED` and stops it counting toward the caps. Subscribe the PayPal webhook to those four events. Without them a transfer stays `PENDING`, and counted, indefinitely.
+
 ```text
 POST /agent/shop { need, eventId? }
   -> 200 { status: PROPOSED | NO_OFFERS | OVER_BUDGET | SEARCH_FAILED,

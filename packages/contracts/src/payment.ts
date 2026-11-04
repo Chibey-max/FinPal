@@ -33,6 +33,8 @@ export const paymentAttemptSchema = z.object({
   decisionId: z.uuid(),
   /** Set when this item shares one PayPal order with others in a basket. */
   basketId: z.uuid().nullable(),
+  /** Set on a transfer: PayPal pays this address rather than FinPal's merchant. */
+  payeeEmail: z.string().nullish(),
   status: paymentStatusSchema,
   amount: z.number().positive(),
   currency: z.string().length(3),

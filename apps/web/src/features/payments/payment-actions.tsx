@@ -10,6 +10,24 @@ import { formatMoney } from "@/features/app/present";
 import { SandboxCheckout } from "@/features/purchases/checkout-button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
+/** What a transfer's status means for the person waiting on it. */
+function transferNote({
+  status,
+  payeeEmail,
+  paypalCaptureStatus,
+}: PaymentAttempt) {
+  if (!payeeEmail) return null;
+  if (status === "REFUNDED") {
+    return `This didn't reach ${payeeEmail}, so the money came back to you.`;
+  }
+  if (status === "CAPTURED") {
+    return paypalCaptureStatus === "PENDING"
+      ? `Sent. PayPal is holding it until ${payeeEmail} claims it.`
+      : `Sent to ${payeeEmail}.`;
+  }
+  return null;
+}
+
 const NOTE: Record<PaymentAttempt["status"], string> = {
   CREATED: "Waiting for your approval in PayPal.",
   APPROVED: "You approved this in PayPal. FinPal still has to finish it.",
@@ -86,7 +104,7 @@ export function PaymentActions({
 
   return (
     <div className="card action-bar">
-      <span>{NOTE[status]}</span>
+      <span>{transferNote(payment) ?? NOTE[status]}</span>
       {status === "CREATED" ? (
         <LiquidButton
           type="button"

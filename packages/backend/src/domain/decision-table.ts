@@ -224,3 +224,63 @@ export function decide(input: DecisionTableInput): DecisionTableResult {
     reason: summarize("AUTO_APPROVE", reasons),
   };
 }
+
+/**
+ * A transfer to a person has no market price or merchant to check, so only the
+ * user's rules apply: the same block conditions as a purchase, and manual
+ * review whenever every rule can't be confirmed to pass.
+ */
+export function decideTransfer(
+  constraintCheck: ConstraintCheck | null,
+): DecisionTableResult {
+  const blocks = blockReasons({
+    constraintCheck,
+    quality: { score: "INSUFFICIENT_DATA", explanation: "" },
+    trust: "NOT_CHECKED",
+  });
+  if (blocks.length > 0) {
+    return {
+      outcome: "BLOCK",
+      reasons: blocks,
+      reason: summarize("BLOCK", blocks),
+    };
+  }
+
+  const passed =
+    constraintCheck?.constraints === "PASS" &&
+    constraintCheck.amount === "UNDER_CAP";
+  if (!passed) {
+    const reasons: DecisionReason[] = [
+      constraintCheck
+        ? {
+            code: "INSUFFICIENT_DATA",
+            source: "decision",
+            message: "Your spending rules could not be confirmed to pass.",
+          }
+        : {
+            code: "NO_CONSTRAINTS",
+            source: "constraints",
+            message:
+              "No spending limits are set, so this cannot be approved automatically.",
+          },
+    ];
+    return {
+      outcome: "MANUAL_REVIEW",
+      reasons,
+      reason: summarize("MANUAL_REVIEW", reasons),
+    };
+  }
+
+  const reasons: DecisionReason[] = [
+    {
+      code: "ALL_CHECKS_PASSED",
+      source: "decision",
+      message: "Within your spending rules and caps.",
+    },
+  ];
+  return {
+    outcome: "AUTO_APPROVE",
+    reasons,
+    reason: summarize("AUTO_APPROVE", reasons),
+  };
+}

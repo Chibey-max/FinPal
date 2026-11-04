@@ -56,6 +56,19 @@ const captureResponseSchema = z.object({
   status: z.string(),
 });
 
+const orderCaptureResponseSchema = z.object({
+  status: z.string(),
+  purchase_units: z
+    .array(
+      z.object({
+        payments: z.object({
+          captures: z.array(captureResponseSchema).min(1),
+        }),
+      }),
+    )
+    .min(1),
+});
+
 const voidResponseSchema = z.object({ status: z.string() });
 
 const verifyWebhookResponseSchema = z.object({
@@ -215,10 +228,13 @@ export function createPayPalHttpClient(
         method: "POST",
         requestId: input.requestId,
         body: {
-          intent: "AUTHORIZE",
+          intent: input.payeeEmail ? "CAPTURE" : "AUTHORIZE",
           purchase_units: [
             {
               description: input.description.slice(0, 127),
+              ...(input.payeeEmail
+                ? { payee: { email_address: input.payeeEmail } }
+                : {}),
               amount: {
                 currency_code: input.currency,
                 value: formatPayPalAmount(input.amount, input.currency),
@@ -302,6 +318,23 @@ export function createPayPalHttpClient(
         "captureAuthorization",
       );
       return { captureId: body.id, captureStatus: body.status };
+    },
+
+    async captureOrder(orderId, requestId) {
+      const body = required(
+        await request(
+          orderCaptureResponseSchema,
+          `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+          { method: "POST", requestId, body: {} },
+        ),
+        "captureOrder",
+      );
+      const capture = body.purchase_units[0]!.payments.captures[0]!;
+      return {
+        orderStatus: body.status,
+        captureId: capture.id,
+        captureStatus: capture.status,
+      };
     },
 
     async voidAuthorization(authorizationId, requestId) {

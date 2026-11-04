@@ -64,6 +64,13 @@ export type PaypalWebhookService = ReturnType<
   typeof createPaypalWebhookService
 >;
 
+// PayPal gave a transfer's money back, e.g. the recipient never claimed it.
+const returnedCaptureEvents = new Set([
+  "PAYMENT.CAPTURE.DENIED",
+  "PAYMENT.CAPTURE.REVERSED",
+  "PAYMENT.CAPTURE.REFUNDED",
+]);
+
 /**
  * Verifies PayPal webhook signatures and applies known payment state updates
  * idempotently. Unknown event types are acknowledged after recording.
@@ -168,6 +175,43 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
         ? await payments.findAnyByPayPalAuthorizationId(authorizationId)
         : null);
     if (!payment) return;
+
+    // A transfer stays PENDING until the recipient claims it, so this is where
+    // the wait ends. Returned money stops counting toward the caps.
+    if (payment.payeeEmail && payment.status === "CAPTURED") {
+      const paypalCaptureStatus = event.resource?.status?.toUpperCase();
+      if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+        await move(payment, "CAPTURED", {
+          paypalCaptureStatus: paypalCaptureStatus ?? "COMPLETED",
+        });
+        return;
+      }
+      if (returnedCaptureEvents.has(event.event_type)) {
+        const updated = await move(payment, "CAPTURED", {
+          status: "REFUNDED",
+          paypalCaptureStatus:
+            paypalCaptureStatus ?? event.event_type.split(".").at(-1)!,
+        });
+        for (const row of updated) {
+          await audit.record({
+            userId: row.userId,
+            entityType: "payment_attempt",
+            entityId: row.id,
+            type: "PAYMENT_RETURNED",
+            payload: {
+              source: "webhook",
+              eventId: event.id,
+              eventType: event.event_type,
+              payeeEmail: row.payeeEmail,
+              paypalCaptureId: row.paypalCaptureId,
+              amount: row.amount,
+              currency: row.currency,
+            },
+          });
+        }
+        return;
+      }
+    }
 
     // Mirror a subset of PayPal events into FinPal state. Capture/void from
     // the product API remain the primary path; webhooks catch missed updates.
