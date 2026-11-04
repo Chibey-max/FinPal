@@ -88,7 +88,7 @@ describe("Google refresh-token provider", () => {
       .mockResolvedValue(json({ error: "invalid_grant" }, 400));
     const attempt = provider(fetchMock)();
     await expect(attempt).rejects.toBeInstanceOf(GoogleAuthError);
-    await expect(attempt).rejects.toThrow(/revoked or has expired/);
+    await expect(attempt).rejects.toThrow(/cancelled the calendar connection/);
   });
 
   it("retries after a failed refresh instead of caching the failure", async () => {

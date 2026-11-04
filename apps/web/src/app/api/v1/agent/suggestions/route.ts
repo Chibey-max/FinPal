@@ -18,7 +18,7 @@ export async function GET() {
   if (isRateLimited(`suggest:${userId}`, 20, 60_000)) return rateLimited();
 
   try {
-    return NextResponse.json(await getEventSuggestions());
+    return NextResponse.json(await getEventSuggestions(userId));
   } catch (error) {
     return handleRouteError(error);
   }

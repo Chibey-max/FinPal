@@ -40,6 +40,7 @@ export const decisionReasonCodeSchema = z.enum([
   "NO_CONSTRAINTS",
   "INSUFFICIENT_DATA",
   "FAIR_QUALITY",
+  "PRICE_UNUSUALLY_LOW",
   "TRUST_FAILED",
   "TRUST_UNAVAILABLE",
   "TRUST_REQUIRED_FOR_APPROVAL",

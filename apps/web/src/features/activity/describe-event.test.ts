@@ -35,7 +35,7 @@ describe("describeEvent", () => {
         }),
       ),
     ).toEqual({
-      title: "Payment authorized",
+      title: "Money reserved",
       tone: "success",
       detail: "$49.50 · AUTH-1",
     });
@@ -46,7 +46,11 @@ describe("describeEvent", () => {
       describeEvent(
         event("DECISION_RECORDED", { outcome: "BLOCK", reason: "Over cap" }),
       ),
-    ).toEqual({ title: "Decision: BLOCK", tone: "danger", detail: "Over cap" });
+    ).toEqual({
+      title: "Decision: Blocked",
+      tone: "danger",
+      detail: "Over cap",
+    });
   });
 
   it("shows PayPal failure details including the debug id", () => {
@@ -69,7 +73,7 @@ describe("describeEvent", () => {
     expect(
       describeEvent(event("PAYMENT_CAPTURED", { amount: "lots", currency: 5 })),
     ).toEqual({
-      title: "Payment captured",
+      title: "Payment taken",
       tone: "success",
       detail: undefined,
     });
@@ -106,7 +110,7 @@ describe("summarizeEvent", () => {
           medianPrice: 339.99,
         }),
       ),
-    ).toBe("GOOD · median 339.99");
+    ).toBe("Good price · median 339.99");
     expect(
       summarizeEvent(
         event("DECISION_RECORDED", {
@@ -114,7 +118,7 @@ describe("summarizeEvent", () => {
           reasonCodes: ["CONSTRAINTS_FAILED"],
         }),
       ),
-    ).toBe("BLOCK · CONSTRAINTS_FAILED");
+    ).toBe("Blocked");
     expect(
       summarizeEvent(event("CONSTRAINTS_UPDATED", { cleared: true })),
     ).toBe("Constraints cleared");

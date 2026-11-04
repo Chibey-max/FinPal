@@ -1,6 +1,11 @@
+import { FlashToast } from "@/components/toast";
 import { CalendarWeek } from "@/features/calendar/calendar-week";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getUserConstraints } from "@/lib/backend";
+import {
+  getCalendarConnectionService,
+  getCalendarEvents,
+  getUserConstraints,
+} from "@/lib/backend";
 import { addDays, localDate, localWeekday, zonedToDate } from "@/lib/zoned";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -13,37 +18,51 @@ function weekStart(timeZone: string) {
   return index <= 0 ? today : addDays(today, 7 - index);
 }
 
-export default async function CalendarPage() {
+const NOTICES: Record<string, { message: string; tone: "ok" | "bad" }> = {
+  connected: { message: "Google Calendar connected.", tone: "ok" },
+  disconnected: { message: "Google Calendar disconnected.", tone: "ok" },
+  denied: { message: "Google Calendar wasn't connected.", tone: "bad" },
+  failed: {
+    message: "Google Calendar couldn't be connected. Try again.",
+    tone: "bad",
+  },
+};
+
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ calendar?: string }>;
+}) {
   const user = await requireUser();
-  const constraints = await getUserConstraints(user.id);
-  const timeZone = constraints?.timezone ?? "America/Los_Angeles";
-  const { events, configured } = await getCalendarEvents(50);
+  const { calendar } = await searchParams;
+  const notice = calendar ? NOTICES[calendar] : undefined;
+  const [constraints, page] = await Promise.all([
+    getUserConstraints(user.id),
+    getCalendarEvents(user.id, 50),
+  ]);
+  const timeZone = constraints?.timezone ?? "UTC";
   const monday = weekStart(timeZone);
-  const mondayNoon = zonedToDate(monday, "12:00", timeZone);
-  const weekLabel = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(mondayNoon);
 
   return (
     <div className="app-page">
-      <div className="page-head">
-        <div className="page-head__text">
-          <h1>Calendar</h1>
-          <p>
-            Week of {weekLabel}. Events can prefill a proposal&apos;s context
-            and time. They never create a product, price or payment.
-          </p>
-        </div>
+      {notice ? (
+        <FlashToast message={notice.message} tone={notice.tone} />
+      ) : null}
+      <div className="page-head__text">
+        <h1>Calendar</h1>
+        <p>
+          Your events and the hours the agent may spend. Upcoming events help it
+          suggest what you might need.
+        </p>
       </div>
       <CalendarWeek
-        events={events}
+        events={page.events}
         windows={constraints?.timeWindows ?? []}
-        configured={configured}
+        configured={page.configured}
+        needsReconnect={page.needsReconnect}
+        canConnect={getCalendarConnectionService() !== null}
         timeZone={timeZone}
-        weekStart={mondayNoon.toISOString()}
+        weekStart={zonedToDate(monday, "12:00", timeZone).toISOString()}
         firstDate={monday}
       />
     </div>

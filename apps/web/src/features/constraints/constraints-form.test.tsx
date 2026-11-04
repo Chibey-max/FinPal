@@ -48,9 +48,10 @@ describe("ConstraintsForm save state", () => {
     ).toHaveProperty("disabled", true);
 
     fireEvent.click(toggle);
-    expect(
-      screen.getByRole("button", { name: "Save constraints" }),
-    ).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "Save rules" })).toHaveProperty(
+      "disabled",
+      false,
+    );
 
     fireEvent.click(toggle);
     expect(
@@ -67,9 +68,10 @@ describe("ConstraintsForm save state", () => {
 
     const perTransaction = screen.getByLabelText("Per transaction");
     fireEvent.change(perTransaction, { target: { value: "600.00" } });
-    expect(
-      screen.getByRole("button", { name: "Save constraints" }),
-    ).toHaveProperty("disabled", false);
+    expect(screen.getByRole("button", { name: "Save rules" })).toHaveProperty(
+      "disabled",
+      false,
+    );
 
     fireEvent.change(perTransaction, { target: { value: "500.00" } });
     expect(
@@ -83,7 +85,7 @@ describe("ConstraintsForm save state", () => {
     fireEvent.click(screen.getByRole("switch"));
 
     expect(
-      screen.getByRole("button", { name: "Clear constraints" }),
+      screen.getByRole("button", { name: "Turn rules off" }),
     ).toHaveProperty("disabled", false);
   });
 });

@@ -38,6 +38,8 @@ export class GoogleCalendarApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** Google cancelled the token: only connecting again can fix it. */
+    readonly revoked = false,
   ) {
     super(message);
     this.name = "GoogleCalendarApiError";
@@ -69,6 +71,7 @@ export function createGoogleCalendarHttpClient(
       throw new GoogleCalendarApiError(
         error.message,
         error.status === 0 ? 0 : 401,
+        error.revoked,
       );
     }
   }
@@ -126,11 +129,9 @@ export function createGoogleCalendarHttpClient(
       return (parsed.data.items ?? []).flatMap((raw) => {
         const event = eventSchema.safeParse(raw);
         if (!event.success) return [];
-        const startsAt =
-          event.data.start?.dateTime ??
-          (event.data.start?.date
-            ? `${event.data.start.date}T00:00:00.000Z`
-            : null);
+        // All-day events stay a plain date: they have no time or timezone, and
+        // inventing midnight UTC moves them to the wrong day in some zones.
+        const startsAt = event.data.start?.dateTime ?? event.data.start?.date;
         if (!startsAt) return [];
         return [
           {

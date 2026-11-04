@@ -6,6 +6,8 @@ import type {
   TrustSignal,
 } from "@finpal/contracts";
 
+import { UNUSUALLY_LOW_RATIO } from "@finpal/contracts";
+
 import { localDate } from "@/lib/zoned";
 
 /**
@@ -129,7 +131,22 @@ export function formatWhen(
 }
 
 /** "Mon Oct 19 · 10:00" in the zone. */
+export const isAllDay = (startsAt: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(startsAt);
+
 export function formatEventDate(iso: string, timeZone: string) {
+  // An all-day event is a calendar date: showing it in a timezone could move it.
+  if (isAllDay(iso)) {
+    const day = new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })
+      .format(new Date(iso))
+      .replace(",", "");
+    return `${day} · All day`;
+  }
   const date = new Date(iso);
   const day = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -154,3 +171,25 @@ export const percentOf = (value: number, cap: number | undefined) =>
 
 export const sourceLabel = (source: "MANUAL" | "CALENDAR" | "AGENT") =>
   source === "CALENDAR" ? "Calendar" : source === "AGENT" ? "Agent" : "Manual";
+
+/** Plain words for what the rules decided. */
+export const outcomeLabel: Record<DecisionOutcome, string> = {
+  AUTO_APPROVE: "Approved",
+  MANUAL_REVIEW: "Needs review",
+  BLOCK: "Blocked",
+};
+
+export const paymentLabel: Record<PaymentStatus, string> = {
+  CREATED: "Awaiting PayPal",
+  APPROVED: "Finishing",
+  AUTHORIZED: "Finishing",
+  CAPTURED: "Paid",
+  VOIDED: "Cancelled",
+  REFUNDED: "Refunded",
+};
+
+/** Under half the usual price: shown as a warning, not as a good deal. */
+export const isUnusuallyLow = (
+  amount: number,
+  medianPrice: number | null | undefined,
+) => Boolean(medianPrice) && amount < medianPrice! * UNUSUALLY_LOW_RATIO;

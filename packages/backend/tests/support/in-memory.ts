@@ -58,6 +58,49 @@ export function createInMemoryPayments(
         )
         .reduce((total, row) => total + row.amount, 0);
     },
+    async insertMany(attempts) {
+      const clash = attempts.some((attempt) =>
+        rows.some(
+          (row) =>
+            row.idempotencyKey === attempt.idempotencyKey ||
+            (row.decisionId === attempt.decisionId && row.status !== "VOIDED"),
+        ),
+      );
+      if (clash) throw new DuplicatePaymentAttemptError();
+      const at = clock().toISOString();
+      const created = attempts.map((attempt) => {
+        sequence += 1;
+        const record: PaymentAttemptRecord = {
+          ...attempt,
+          id: `00000000-0000-4000-8000-${String(sequence).padStart(12, "0")}`,
+          createdAt: at,
+          updatedAt: at,
+        };
+        rows.push(record);
+        return record;
+      });
+      return created;
+    },
+    async findByBasketId(userId, basketId) {
+      return rows.filter(
+        (row) => row.userId === userId && row.basketId === basketId,
+      );
+    },
+    async updateBasketIfStatus(userId, basketId, expectedStatus, patch) {
+      const at = clock().toISOString();
+      const moved: PaymentAttemptRecord[] = [];
+      rows.forEach((row, index) => {
+        if (
+          row.userId === userId &&
+          row.basketId === basketId &&
+          row.status === expectedStatus
+        ) {
+          rows[index] = { ...row, ...patch, updatedAt: at };
+          moved.push(rows[index]!);
+        }
+      });
+      return moved;
+    },
     async insert(attempt) {
       const duplicate = rows.some(
         (row) =>

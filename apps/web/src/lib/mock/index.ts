@@ -51,10 +51,11 @@ const payment = createPaymentService({
   paypal,
   payments: repo.payments,
   decisions: repo.decisions,
+  constraints: repo.constraints,
   audit,
   // Never visited in mock mode: the UI shows a simulated Sandbox checkout.
   returnUrl: "/api/v1/payments/return",
-  cancelUrl: "/app/payments?payment=cancelled",
+  cancelUrl: "/app/purchases?payment=cancelled",
 });
 
 const review = createReviewDecisionService({

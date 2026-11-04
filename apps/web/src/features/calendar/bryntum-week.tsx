@@ -6,6 +6,8 @@ import type { Calendar, CalendarConfig, EventModel } from "@bryntum/calendar";
 import type { CalendarEvent, TimeWindow } from "@finpal/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { isAllDay } from "@/features/app/present";
+
 import { bryntumUrl } from "./bryntum-assets";
 import "./bryntum-theme.css";
 import { spendingRanges } from "./spending-windows";
@@ -96,6 +98,20 @@ export function BryntumWeek({
   const eventData = useMemo(
     () =>
       events.map((event) => {
+        if (isAllDay(event.startsAt)) {
+          const [year = 0, month = 1, day = 1] = event.startsAt
+            .split("-")
+            .map(Number);
+          return {
+            id: event.id,
+            name: event.title,
+            startDate: new Date(year, month - 1, day),
+            endDate: new Date(year, month - 1, day + 1),
+            allDay: true,
+            readOnly: true,
+            cls: event.id === selectedId ? "fp-event-selected" : "",
+          };
+        }
         const start = new Date(event.startsAt);
         return {
           id: event.id,
@@ -144,7 +160,7 @@ export function BryntumWeek({
           mode: "week",
           modes: {
             day: true,
-            week: true,
+            week: { hourHeight: 64 },
             month: true,
             year: false,
             agenda: true,

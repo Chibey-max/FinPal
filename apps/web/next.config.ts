@@ -15,16 +15,26 @@ if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) {
 // Pre-/app routes, kept so old links and bookmarks still land somewhere.
 const legacyRoutes: [string, string][] = [
   ["/dashboard", "/app"],
-  ["/approvals", "/app/review"],
+  ["/approvals", "/app/approvals"],
   ["/calendar", "/app/calendar"],
-  ["/proposals/new", "/app/proposals/new"],
-  ["/settings", "/app/constraints"],
+  ["/proposals/new", "/app/agent"],
+  ["/settings", "/app/rules"],
 ];
 
-// The calendar page loads Bryntum's obfuscated trial bundle, which can
-// inject third-party analytics and call home. This policy confines that
-// page to our own origin: scripts, connections and styles from 'self' only.
-const calendarPolicy = [
+// Screens that moved. Not permanent, so they can still change.
+const mergedRoutes: [string, string][] = [
+  ["/app/decisions", "/app/purchases"],
+  ["/app/decisions/:id", "/app/purchases/:id"],
+  ["/app/review", "/app/approvals"],
+  ["/app/payments", "/app/purchases?view=active"],
+  ["/app/constraints", "/app/rules"],
+];
+
+// The Calendar page loads Bryntum's obfuscated trial bundle, which can inject
+// third-party analytics and call home. This policy confines the signed-in app
+// to our own origin: scripts, connections and styles from 'self' only. It
+// covers all of /app because in-app navigation keeps the first page's policy.
+const appPolicy = [
   "default-src 'self'",
   // Next's inline bootstrap needs 'unsafe-inline'; dev refresh needs eval.
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -59,8 +69,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/app/calendar",
-        headers: [{ key: "Content-Security-Policy", value: calendarPolicy }],
+        source: "/app/:path*",
+        headers: [{ key: "Content-Security-Policy", value: appPolicy }],
       },
       // Lets apps/mobile's browser preview (another origin) read the API in
       // development. Native apps are not subject to CORS, and production
@@ -86,11 +96,18 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return legacyRoutes.map(([source, destination]) => ({
-      source,
-      destination,
-      permanent: true,
-    }));
+    return [
+      ...legacyRoutes.map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: true,
+      })),
+      ...mergedRoutes.map(([source, destination]) => ({
+        source,
+        destination,
+        permanent: false,
+      })),
+    ];
   },
 };
 

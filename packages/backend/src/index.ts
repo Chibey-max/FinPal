@@ -47,3 +47,6 @@ export * from "./use-cases/calendar-suggestions";
 export * from "./use-cases/constraints-draft";
 export * from "./use-cases/shopping-agent";
 export * from "./use-cases/spending-forecast";
+export * from "./repositories/calendar-connection-repository";
+export * from "./repositories/supabase/supabase-calendar-connection-repository";
+export * from "./use-cases/calendar-connections";

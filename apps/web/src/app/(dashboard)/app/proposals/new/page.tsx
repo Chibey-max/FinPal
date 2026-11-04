@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { FlashToast } from "@/components/toast";
-import { formatEventDate, formatMoney } from "@/features/app/present";
+import { formatEventDate, formatMoney, isAllDay } from "@/features/app/present";
 import { ProposalForm } from "@/features/proposals/proposal-form";
 import {
   PRESETS,
@@ -35,7 +35,7 @@ export default async function NewProposalPage({
   const [spend, events] = await Promise.all([
     getSpendSummary(user.id, constraints),
     params.event
-      ? getCalendarEvents(50).then((page) => page.events)
+      ? getCalendarEvents(user.id, 50).then((page) => page.events)
       : Promise.resolve([]),
   ]);
   const timeZone = constraints?.timezone ?? "America/Los_Angeles";
@@ -51,8 +51,12 @@ export default async function NewProposalPage({
     ? {
         id: found.id,
         title: found.title,
-        date: localDate(new Date(found.startsAt), timeZone),
-        time: localTimeOfDay(new Date(found.startsAt), timeZone),
+        date: isAllDay(found.startsAt)
+          ? found.startsAt
+          : localDate(new Date(found.startsAt), timeZone),
+        time: isAllDay(found.startsAt)
+          ? "12:00"
+          : localTimeOfDay(new Date(found.startsAt), timeZone),
         label: formatEventDate(found.startsAt, timeZone),
       }
     : null;
@@ -107,8 +111,14 @@ export default async function NewProposalPage({
       <div className="proposal-layout">
         <div className="stack-lg">
           <div className="page-head__text">
-            <h1>New proposal</h1>
-            <p>Creating a proposal does not create a payment.</p>
+            <h1>Add one item</h1>
+            <p>
+              Enter it yourself and your rules check it. Nothing is paid until
+              you approve.{" "}
+              <Link href="/app/agent" className="link-quiet">
+                Or let the agent shop
+              </Link>
+            </p>
           </div>
           <ProposalForm
             key={params.event ?? params.preset ?? "blank"}
@@ -133,8 +143,8 @@ export default async function NewProposalPage({
               <span className="mono">{rule.v}</span>
             </div>
           ))}
-          <Link href="/app/constraints" className="link-quiet small">
-            Edit constraints →
+          <Link href="/app/rules" className="link-quiet small">
+            Edit rules →
           </Link>
         </aside>
       </div>

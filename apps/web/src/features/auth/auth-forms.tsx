@@ -247,7 +247,7 @@ export function ForgotPasswordForm() {
   );
 }
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ tokenHash }: { tokenHash?: string }) {
   const [state, action, pending] = useActionState(updatePassword, initial);
   const errorId = useId();
   return (
@@ -257,6 +257,9 @@ export function ResetPasswordForm() {
         <p>You&apos;ll be signed in once it&apos;s saved.</p>
       </div>
       <form action={action} className="auth-form" noValidate>
+        {tokenHash && !state.linkUsed ? (
+          <input type="hidden" name="tokenHash" value={tokenHash} />
+        ) : null}
         <Field
           label="New password"
           name="password"

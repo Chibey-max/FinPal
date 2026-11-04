@@ -19,6 +19,11 @@ export const agentShopRequestSchema = z.object({
 
 export type AgentShopRequest = z.infer<typeof agentShopRequestSchema>;
 
+/** A shopping list in the user's own words, one or several items. */
+export const agentListRequestSchema = z.object({
+  list: z.string().trim().min(3).max(1000),
+});
+
 export const shoppingBriefSchema = z.object({
   /** What to search Channel3 for. */
   query: z.string(),
@@ -45,6 +50,8 @@ export type AgentCandidate = z.infer<typeof agentCandidateSchema>;
 export const agentRunStatusSchema = z.enum([
   /** A proposal was submitted and evaluated. */
   "PROPOSED",
+  /** Too vague to buy; the agent asks `question` before searching. */
+  "NEEDS_DETAIL",
   /** Channel3 found no usable offers for the search. */
   "NO_OFFERS",
   /** Offers exist, but none fit the budget. */
@@ -69,18 +76,29 @@ export const agentRunSchema = z.object({
   proposal: proposalSchema.nullable(),
   evaluation: evaluationSchema.nullable(),
   decision: decisionSchema.nullable(),
+  /** What the agent needs to know, when status is NEEDS_DETAIL. */
+  question: z.string().nullable(),
+  /** Why an approved item is left out of the basket (not enough cap left). */
+  hold: z.string().nullable(),
   source: assistantSourceSchema,
   model: z.string().nullable(),
 });
 
 export type AgentRun = z.infer<typeof agentRunSchema>;
 
+export const agentListResultSchema = z.object({
+  runs: z.array(agentRunSchema),
+});
+
+export type AgentListResult = z.infer<typeof agentListResultSchema>;
+
 // ------------------------------------------------------- calendar agent
 
 export const eventSuggestionSchema = z.object({
-  eventId: z.string(),
-  eventTitle: z.string(),
-  startsAt: z.string(),
+  /** Null when the idea comes from purchase history, not an event. */
+  eventId: z.string().nullable(),
+  eventTitle: z.string().nullable(),
+  startsAt: z.string().nullable(),
   /** A need the user can hand to the shopping agent, e.g. "travel adapter". */
   need: z.string(),
   reason: z.string(),

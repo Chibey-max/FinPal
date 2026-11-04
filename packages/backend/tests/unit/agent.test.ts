@@ -180,7 +180,7 @@ describe("shopping agent", () => {
       need: "headphones",
       currency: "USD",
     });
-    expect(run.reason).toContain("lowest new, in-stock price");
+    expect(run.reason).toContain("mid-priced new, in-stock match");
   });
 
   it("ignores a budget the user never stated", async () => {

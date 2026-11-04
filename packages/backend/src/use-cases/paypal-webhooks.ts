@@ -1,9 +1,14 @@
+import type { PaymentStatus } from "@finpal/contracts";
 import { z } from "zod";
 
 import { canTransitionPayment } from "../domain/payment-state-machine";
 import type { PayPalClient } from "../integrations/paypal/paypal-client";
 import type { AuditLog } from "../services/audit-log";
-import type { PaymentAttemptRepository } from "../repositories/payment-attempt-repository";
+import type {
+  PaymentAttemptPatch,
+  PaymentAttemptRecord,
+  PaymentAttemptRepository,
+} from "../repositories/payment-attempt-repository";
 import type { PaypalWebhookEventRepository } from "../repositories/paypal-webhook-event-repository";
 
 export class WebhookError extends Error {
@@ -125,6 +130,24 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
     },
   };
 
+  // A basket shares one PayPal order, so its items move together.
+  async function move(
+    payment: PaymentAttemptRecord,
+    expected: PaymentStatus,
+    patch: PaymentAttemptPatch,
+  ): Promise<PaymentAttemptRecord[]> {
+    if (payment.basketId) {
+      return payments.updateBasketIfStatus(
+        payment.userId,
+        payment.basketId,
+        expected,
+        patch,
+      );
+    }
+    const updated = await payments.updateIfStatus(payment.id, expected, patch);
+    return updated ? [updated] : [];
+  }
+
   async function applyPaymentEvent(
     event: z.infer<typeof webhookEventSchema>,
   ): Promise<void> {
@@ -152,20 +175,20 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
       event.event_type === "CHECKOUT.ORDER.APPROVED" &&
       canTransitionPayment(payment.status, "APPROVED")
     ) {
-      const updated = await payments.updateIfStatus(payment.id, "CREATED", {
+      const updated = await move(payment, "CREATED", {
         status: "APPROVED",
         paypalOrderStatus: event.resource?.status ?? "APPROVED",
       });
-      if (updated) {
+      for (const row of updated) {
         await audit.record({
-          userId: payment.userId,
+          userId: row.userId,
           entityType: "payment_attempt",
-          entityId: payment.id,
+          entityId: row.id,
           type: "PAYMENT_APPROVED",
           payload: {
             source: "webhook",
             eventId: event.id,
-            paypalOrderId: payment.paypalOrderId,
+            paypalOrderId: row.paypalOrderId,
           },
         });
       }
@@ -177,20 +200,20 @@ export function createPaypalWebhookService(deps: PaypalWebhookServiceDeps) {
       payment.status === "AUTHORIZED" &&
       canTransitionPayment(payment.status, "VOIDED")
     ) {
-      const updated = await payments.updateIfStatus(payment.id, "AUTHORIZED", {
+      const updated = await move(payment, "AUTHORIZED", {
         status: "VOIDED",
         paypalAuthorizationStatus: event.resource?.status ?? "VOIDED",
       });
-      if (updated) {
+      for (const row of updated) {
         await audit.record({
-          userId: payment.userId,
+          userId: row.userId,
           entityType: "payment_attempt",
-          entityId: payment.id,
+          entityId: row.id,
           type: "PAYMENT_VOIDED",
           payload: {
             source: "webhook",
             eventId: event.id,
-            paypalAuthorizationId: payment.paypalAuthorizationId,
+            paypalAuthorizationId: row.paypalAuthorizationId,
           },
         });
       }

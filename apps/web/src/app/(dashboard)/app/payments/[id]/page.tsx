@@ -1,15 +1,27 @@
-import {
-  PaymentsPage,
-  type PaymentNotice,
-} from "@/features/payments/payments-page";
+import { PaymentError } from "@finpal/backend";
+import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 
+import { requireUser } from "@/lib/auth";
+import { getPaymentService } from "@/lib/backend";
+
+// Old payment links: a payment now lives on its purchase.
 export default async function PaymentRoute({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<PaymentNotice>;
 }) {
-  const [{ id }, notice] = await Promise.all([params, searchParams]);
-  return <PaymentsPage selectedId={id} notice={notice} />;
+  const user = await requireUser();
+  const { id } = await params;
+  if (!z.uuid().safeParse(id).success) notFound();
+  let decisionId: string;
+  try {
+    ({ decisionId } = await getPaymentService().getPayment(user.id, id));
+  } catch (error) {
+    if (error instanceof PaymentError && error.code === "PAYMENT_NOT_FOUND") {
+      notFound();
+    }
+    throw error;
+  }
+  redirect(`/app/purchases/${decisionId}`);
 }

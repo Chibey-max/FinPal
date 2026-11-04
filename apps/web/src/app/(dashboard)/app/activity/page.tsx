@@ -11,6 +11,10 @@ export default async function ActivityPage() {
 
   return (
     <div className="app-page">
+      <div className="page-head__text">
+        <h1>Activity</h1>
+        <p>A permanent record of everything the agent and you have done.</p>
+      </div>
       <ActivityGrid initial={page} timeZone={constraints?.timezone ?? "UTC"} />
     </div>
   );

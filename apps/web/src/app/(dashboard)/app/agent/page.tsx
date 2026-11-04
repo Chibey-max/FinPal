@@ -3,30 +3,37 @@ import Link from "next/link";
 import { AgentConsole } from "@/features/agent/agent-console";
 import { requireUser } from "@/lib/auth";
 import { getUserConstraints } from "@/lib/backend";
+import { isMockMode } from "@/lib/data-source";
 
-export default async function AgentPage() {
+export default async function AgentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ need?: string }>;
+}) {
   const user = await requireUser();
+  const { need } = await searchParams;
   const constraints = await getUserConstraints(user.id);
 
   return (
     <div className="app-page">
-      <div className="page-head">
-        <div className="page-head__text">
-          <h1>Agent</h1>
-          <p>
-            Tell FinPal what you need. The agent searches real offers, picks one
-            and submits it, and your rules decide what happens next.
-          </p>
-        </div>
+      <div className="page-head__text">
+        <h1>Agent</h1>
+        <p>
+          Drop your shopping list. The agent finds the best options, your rules
+          check them, and you approve once.
+        </p>
       </div>
       {!constraints ? (
         <p className="notice" data-tone="warn">
-          No spending rules are set, so every agent purchase goes to manual
-          review. <Link href="/app/constraints">Set your rules</Link>, or
-          describe them in a sentence.
+          You haven&apos;t set any rules yet, so you&apos;ll review everything
+          the agent finds. <Link href="/app/rules">Set your rules →</Link>
         </p>
       ) : null}
-      <AgentConsole timeZone={constraints?.timezone ?? "UTC"} />
+      <AgentConsole
+        timeZone={constraints?.timezone ?? "UTC"}
+        sandbox={isMockMode()}
+        initialList={need?.slice(0, 1000) ?? ""}
+      />
     </div>
   );
 }

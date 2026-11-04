@@ -151,6 +151,50 @@ export const payments: PaymentAttemptRepository = {
       .reduce((sum, row) => sum + Math.round(row.amount * 100), 0);
     return total / 100;
   },
+  async insertMany(attempts) {
+    const rows = getStore().payments;
+    const clash = attempts.some((attempt) =>
+      rows.some(
+        (row) =>
+          (row.userId === attempt.userId &&
+            row.idempotencyKey === attempt.idempotencyKey) ||
+          (row.decisionId === attempt.decisionId && row.status !== "VOIDED"),
+      ),
+    );
+    if (clash) throw new DuplicatePaymentAttemptError();
+    const at = now().toISOString();
+    return attempts.map((attempt) => {
+      const record: PaymentAttemptRecord = {
+        ...attempt,
+        id: crypto.randomUUID(),
+        createdAt: at,
+        updatedAt: at,
+      };
+      rows.push(record);
+      return record;
+    });
+  },
+  async findByBasketId(userId, basketId) {
+    return getStore().payments.filter(
+      (row) => row.userId === userId && row.basketId === basketId,
+    );
+  },
+  async updateBasketIfStatus(userId, basketId, expectedStatus, patch) {
+    const rows = getStore().payments;
+    const at = now().toISOString();
+    const moved: PaymentAttemptRecord[] = [];
+    rows.forEach((row, index) => {
+      if (
+        row.userId === userId &&
+        row.basketId === basketId &&
+        row.status === expectedStatus
+      ) {
+        rows[index] = { ...row, ...patch, updatedAt: at };
+        moved.push(rows[index]!);
+      }
+    });
+    return moved;
+  },
   async insert(attempt) {
     const rows = getStore().payments;
     const duplicate = rows.some(

@@ -5,62 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ExpandMoreIcon } from "./icons";
-import { LinkPending } from "./navigation-feedback";
-
-const navItems = [
-  { href: "/app", label: "Overview", exact: true },
-  { href: "/app/agent", label: "Agent" },
-  { href: "/app/calendar", label: "Calendar" },
-  { href: "/app/proposals/new", label: "New proposal" },
-  { href: "/app/decisions", label: "Decisions" },
-  { href: "/app/review", label: "Review queue", badge: "review" },
-  { href: "/app/payments", label: "Payments", badge: "payments" },
-  { href: "/app/activity", label: "Activity" },
-  { href: "/app/constraints", label: "Constraints" },
-] as const;
-
-export interface NavBadges {
-  review: number;
-  payments: number;
-}
-
-export function AppNav({ badges }: { badges: NavBadges }) {
-  const pathname = usePathname();
-  const navRef = useRef<HTMLElement>(null);
-
-  // Keep the active pill visible when the nav scrolls horizontally.
-  useEffect(() => {
-    navRef.current
-      ?.querySelector<HTMLElement>('[aria-current="page"]')
-      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [pathname]);
-
-  return (
-    <nav ref={navRef} aria-label="Main" className="app-nav">
-      {navItems.map((item) => {
-        const active =
-          pathname === item.href ||
-          (!("exact" in item) && pathname.startsWith(`${item.href}/`));
-        const count = "badge" in item ? badges[item.badge] : 0;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-          >
-            {item.label}
-            <LinkPending />
-            {count ? (
-              <span className="nav-badge" aria-label={`${count} pending`}>
-                {count}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
 
 const scenarios = [
   {

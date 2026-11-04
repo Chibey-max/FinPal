@@ -12,23 +12,26 @@ import { useMemo, useRef, useState } from "react";
 import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
 import { useToast } from "@/components/toast";
 import { gridTheme } from "@/features/app/grid-theme";
+import { useCompact } from "@/features/app/use-compact";
 import { formatWhen, shortId } from "@/features/app/present";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
-import { eventTypeTone, summarizeEvent } from "./describe-event";
+import { describeEvent, eventTypeTone, summarizeEvent } from "./describe-event";
 
 const FILTERS = {
   All: null,
   Decisions: /PROPOSAL|EVALUATION|DECISION/,
   Payments: /PAYMENT|PAYPAL/,
-  Config: /CONSTRAINTS/,
+  Rules: /CONSTRAINTS/,
 } as const;
 type FilterKey = keyof typeof FILTERS;
 
 interface Row {
   id: number;
   at: string;
+  /** The exact recorded event type, kept for the audit trail. */
   type: AuditEvent["type"];
+  title: string;
   tone: ReturnType<typeof eventTypeTone>;
   entity: string;
   detail: string;
@@ -45,7 +48,7 @@ const getRowId = (params: GetRowIdParams<Row>) => String(params.data.id);
 
 function TypeCell(params: ICellRendererParams<Row, string>) {
   return (
-    <span className="mono grid-type" data-tone={params.data?.tone}>
+    <span className="grid-type" data-tone={params.data?.tone}>
       {params.value}
     </span>
   );
@@ -74,12 +77,14 @@ export function ActivityGrid({
         id: event.id,
         at: formatWhen(event.createdAt, timeZone),
         type: event.type,
+        title: describeEvent(event).title,
         tone: eventTypeTone(event),
         entity: shortId(event.entityType, event.entityId),
         detail: summarizeEvent(event),
       }));
   }, [events, filter, timeZone]);
 
+  const compact = useCompact();
   const columns = useMemo<ColDef<Row>[]>(
     () => [
       {
@@ -93,27 +98,31 @@ export function ActivityGrid({
         cellClass: "mono grid-muted",
       },
       {
-        field: "type",
-        headerName: "Event",
-        width: 230,
+        field: "title",
+        headerName: "What happened",
+        ...(compact ? { flex: 1, minWidth: 180 } : { width: 250 }),
         cellRenderer: TypeCell,
+        // Hover shows the exact recorded type.
+        tooltipField: "type",
       },
       {
         field: "entity",
-        headerName: "Entity",
+        hide: compact,
+        headerName: "Reference",
         width: 130,
         cellClass: "mono grid-entity",
       },
       {
         field: "detail",
         headerName: "Detail",
+        hide: compact,
         flex: 1,
         minWidth: 240,
         sortable: false,
         tooltipField: "detail",
       },
     ],
-    [],
+    [compact],
   );
 
   async function loadOlder() {
@@ -134,32 +143,30 @@ export function ActivityGrid({
 
   return (
     <>
-      <div className="page-head">
-        <div className="page-head__text">
-          <h1>Activity</h1>
-          <p>
-            Append-only audit events. {events.length}
-            {nextBefore ? "+" : ""} recorded.
-          </p>
+      <section className="card grid-card" aria-label="Full log">
+        <div className="grid-toolbar">
+          <span className="small ink3">
+            {events.length}
+            {nextBefore ? "+" : ""} events. This record can&apos;t be edited or
+            deleted.
+          </span>
+          <div
+            className="segmented segmented--quiet"
+            role="group"
+            aria-label="Filter events"
+          >
+            {(Object.keys(FILTERS) as FilterKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
         </div>
-        <div
-          className="segmented segmented--quiet"
-          role="group"
-          aria-label="Filter events"
-        >
-          {(Object.keys(FILTERS) as FilterKey[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-            >
-              {key}
-            </button>
-          ))}
-        </div>
-      </div>
-      <section className="card grid-card" aria-label="Audit events">
         <div className="grid-scroll">
           <div className="grid-inner">
             <AgGridReact<Row>

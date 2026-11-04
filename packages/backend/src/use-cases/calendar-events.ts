@@ -10,16 +10,16 @@ export type CalendarEventsService = ReturnType<
   typeof createCalendarEventsService
 >;
 
-/** Lists upcoming Google Calendar events for proposal prefill (Day 11). */
+/** Lists upcoming events from one calendar client. Used for mock mode's sample calendar. */
 export function createCalendarEventsService(deps: CalendarEventsServiceDeps) {
   return {
     async listUpcoming(limit = 20): Promise<CalendarEventsPage> {
       if (!deps.calendar) {
-        return { events: [], configured: false };
+        return { events: [], configured: false, needsReconnect: false };
       }
       const events: CalendarEvent[] =
         await deps.calendar.listUpcomingEvents(limit);
-      return { events, configured: true };
+      return { events, configured: true, needsReconnect: false };
     },
   };
 }

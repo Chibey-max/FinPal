@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { spendingConstraintsSchema } from "@finpal/contracts";
+import {
+  saveConstraintsSchema,
+  spendingConstraintsSchema,
+} from "@finpal/contracts";
 
 import type { ConstraintsRepository } from "../constraints-repository";
 
@@ -28,7 +31,7 @@ export function createSupabaseConstraintsRepository(
     },
 
     async save(userId, constraints) {
-      const valid = spendingConstraintsSchema.parse(constraints);
+      const valid = saveConstraintsSchema.parse(constraints);
       const { error } = await db.from("constraints").upsert(
         {
           user_id: userId,

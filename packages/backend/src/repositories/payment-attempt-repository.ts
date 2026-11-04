@@ -42,7 +42,12 @@ export interface PaymentAttemptRepository {
     userId: string,
     paypalOrderId: string,
   ): Promise<PaymentAttemptRecord | null>;
-  /** Service-role webhook lookup: order id is globally unique. */
+  /** Every item of a basket, oldest first. */
+  findByBasketId(
+    userId: string,
+    basketId: string,
+  ): Promise<PaymentAttemptRecord[]>;
+  /** Service-role webhook lookup; basket items share an order, any one will do. */
   findAnyByPayPalOrderId(
     paypalOrderId: string,
   ): Promise<PaymentAttemptRecord | null>;
@@ -66,6 +71,8 @@ export interface PaymentAttemptRepository {
     to: Date,
   ): Promise<number>;
   insert(attempt: NewPaymentAttempt): Promise<PaymentAttemptRecord>;
+  /** All or nothing: one duplicate rejects the whole basket. */
+  insertMany(attempts: NewPaymentAttempt[]): Promise<PaymentAttemptRecord[]>;
   /**
    * Compare-and-set: applies the patch only while the row is still in
    * `expectedStatus`. Returns null if another request changed it first.
@@ -75,4 +82,14 @@ export interface PaymentAttemptRepository {
     expectedStatus: PaymentStatus,
     patch: PaymentAttemptPatch,
   ): Promise<PaymentAttemptRecord | null>;
+  /**
+   * Moves the basket's rows still in `expectedStatus`, in one statement.
+   * Returns the rows it changed; rows already further along are left alone.
+   */
+  updateBasketIfStatus(
+    userId: string,
+    basketId: string,
+    expectedStatus: PaymentStatus,
+    patch: PaymentAttemptPatch,
+  ): Promise<PaymentAttemptRecord[]>;
 }

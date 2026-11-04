@@ -6,6 +6,8 @@ export interface CreatePayPalOrderInput {
   amount: number;
   currency: string;
   description: string;
+  /** Line items shown at PayPal checkout; their prices must sum to `amount`. */
+  items?: { name: string; amount: number }[];
   requestId: string;
   returnUrl: string;
   cancelUrl: string;

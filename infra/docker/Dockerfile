@@ -25,6 +25,9 @@ RUN pnpm --filter @finpal/web build
 FROM node:22-alpine AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
+# Next.js binds to $HOSTNAME, which Docker sets to the container id. Render's
+# proxy can't reach that, so every request would return 502.
+ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./

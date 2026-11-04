@@ -9,7 +9,8 @@ import type {
 export interface DecisionTableInput {
   /** Null when the user has not saved any spending constraints. */
   constraintCheck: ConstraintCheck | null;
-  quality: Pick<QualityScoreResult, "score" | "explanation">;
+  quality: Pick<QualityScoreResult, "score" | "explanation"> &
+    Partial<Pick<QualityScoreResult, "unusuallyLow">>;
   trust: TrustSignal;
 }
 
@@ -115,6 +116,13 @@ function reviewReasons(input: DecisionTableInput): DecisionReason[] {
     }
     return reasons;
   }
+  if (quality.score === "GOOD" && quality.unusuallyLow) {
+    reasons.push({
+      code: "PRICE_UNUSUALLY_LOW",
+      source: "quality",
+      message: quality.explanation,
+    });
+  }
   if (trust === "FAIL") {
     reasons.push({
       code: "TRUST_FAILED",
@@ -152,11 +160,14 @@ function summarize(outcome: DecisionOutcome, reasons: DecisionReason[]) {
  * | any         | Poor         | any         | any       | BLOCK         |
  * | any         | any          | any         | Over cap  | BLOCK         |
  * | any         | Insufficient | any         | any       | MANUAL_REVIEW |
+ * | any         | Good, < 50%  | any         | any       | MANUAL_REVIEW |
  *
  * Precedence: any block condition wins; otherwise anything short of every
  * auto-approval condition goes to manual review. Combinations the table does
  * not list (e.g. Good with trust FAIL or UNAVAILABLE) are routed to manual
- * review, never auto-approved. NOT_CHECKED trust counts as N/A.
+ * review, never auto-approved. NOT_CHECKED trust counts as N/A. The "< 50%"
+ * row goes beyond the PRD, which only limits prices that are too high: a price
+ * under half the median is more likely a scam or the wrong product than a deal.
  */
 export function decide(input: DecisionTableInput): DecisionTableResult {
   const blocks = blockReasons(input);

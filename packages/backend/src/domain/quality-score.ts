@@ -1,6 +1,7 @@
 import {
   MIN_COMPARABLE_OFFERS,
   QUALITY_THRESHOLDS,
+  UNUSUALLY_LOW_RATIO,
   type OfferLookup,
   type QualityScore,
   type QualityScoreResult,
@@ -30,6 +31,7 @@ export function medianHalfCents(prices: readonly number[]): number {
 // proposed <= median x 1.05  <=>  proposedCents x 2 x 100 <= medianHalfCents x 105
 const GOOD_MAX_PERCENT = Math.round(QUALITY_THRESHOLDS.goodMaxRatio * 100);
 const FAIR_MAX_PERCENT = Math.round(QUALITY_THRESHOLDS.fairMaxRatio * 100);
+const LOW_PERCENT = Math.round(UNUSUALLY_LOW_RATIO * 100);
 
 function band(proposedCents: number, median2: number): QualityScore {
   const proposedScaled = proposedCents * 2 * 100;
@@ -108,10 +110,11 @@ export function scoreQuality(input: ScoreQualityInput): QualityScoreResult {
   const proposedCents = toCents(proposedPrice);
   const ratio = (proposedCents * 2) / median2;
   const score = band(proposedCents, median2);
+  const unusuallyLow = proposedCents * 2 * 100 < median2 * LOW_PERCENT;
 
   const comparison = `${formatMoney(proposedPrice, currency)} is ${describeDifference(ratio)} the median of ${formatMoney(medianPrice, currency)} across ${offers.length} offers (lowest ${formatMoney(lowestPrice, currency)}).`;
   const verdicts: Record<Exclude<QualityScore, "INSUFFICIENT_DATA">, string> = {
-    GOOD: "Good: within 5% of the median.",
+    GOOD: "Good: no more than 5% above the median.",
     FAIR: "Fair: 5-20% above the median, so it needs review.",
     POOR: "Poor: more than 20% above the median.",
   };
@@ -122,6 +125,11 @@ export function scoreQuality(input: ScoreQualityInput): QualityScoreResult {
     medianPrice,
     lowestPrice,
     ratioToMedian: Math.round(ratio * 10_000) / 10_000,
-    explanation: `${comparison} ${verdicts[score as keyof typeof verdicts]}`,
+    unusuallyLow,
+    explanation: `${comparison} ${
+      unusuallyLow
+        ? "Unusually low: under half the median, so check it's the right product from a genuine seller."
+        : verdicts[score as keyof typeof verdicts]
+    }`,
   };
 }

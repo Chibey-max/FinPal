@@ -1,12 +1,11 @@
 "use client";
 
-import type { DecisionOutcome, DecisionRow } from "@finpal/contracts";
+import type { DecisionRow } from "@finpal/contracts";
 import type {
   ColDef,
   GetRowIdParams,
   GridApi,
   ICellRendererParams,
-  IRowNode,
   RowClassRules,
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
@@ -14,24 +13,21 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, Pagination } from "@/components/pagination";
+import { useCompact } from "@/features/app/use-compact";
 import { gridTheme } from "@/features/app/grid-theme";
 import {
   formatMoney,
   formatWhen,
+  isUnusuallyLow,
+  outcomeLabel,
   outcomeTone,
+  paymentLabel,
   paymentTone,
   scoreLabel,
   scoreTone,
   shortId,
   sourceLabel,
 } from "@/features/app/present";
-
-const OUTCOMES: { key: DecisionOutcome | "ALL"; label: string }[] = [
-  { key: "ALL", label: "All" },
-  { key: "AUTO_APPROVE", label: "Auto-approve" },
-  { key: "MANUAL_REVIEW", label: "Review" },
-  { key: "BLOCK", label: "Blocked" },
-];
 
 type Cell<K extends keyof DecisionRow> = ICellRendererParams<
   DecisionRow,
@@ -40,6 +36,13 @@ type Cell<K extends keyof DecisionRow> = ICellRendererParams<
 
 function QualityCell({ data }: Cell<"qualityScore">) {
   if (!data) return null;
+  if (isUnusuallyLow(data.amount, data.medianPrice)) {
+    return (
+      <span className="mono small" data-tone="warn">
+        UNUSUALLY LOW
+      </span>
+    );
+  }
   return (
     <span className="mono small" data-tone={scoreTone[data.qualityScore]}>
       {scoreLabel(data.qualityScore)}
@@ -51,7 +54,11 @@ function OutcomeCell({ data }: Cell<"outcome">) {
   if (!data) return null;
   return (
     <span className="chip" data-tone={outcomeTone[data.outcome]}>
-      {data.reviewStatus ? `REVIEW · ${data.reviewStatus}` : data.outcome}
+      {data.reviewStatus === "APPROVED"
+        ? "Approved by you"
+        : data.reviewStatus === "REJECTED"
+          ? "Rejected"
+          : outcomeLabel[data.outcome]}
     </span>
   );
 }
@@ -60,7 +67,7 @@ function PaymentCell({ data }: Cell<"paymentStatus">) {
   if (!data?.paymentStatus) return <span className="ink4">—</span>;
   return (
     <span className="mono small" data-tone={paymentTone[data.paymentStatus]}>
-      {data.paymentStatus}
+      {paymentLabel[data.paymentStatus]}
     </span>
   );
 }
@@ -172,7 +179,7 @@ function DecisionCards({
 }
 
 /**
- * Decisions dashboard on AG Grid: quick search, outcome filter, sortable and
+ * Decisions dashboard on AG Grid: quick search, sortable and
  * filterable columns, paged with the shared pagination control. Selecting a
  * row opens its evidence below via the URL.
  */
@@ -199,8 +206,6 @@ export function DecisionsGrid({
   const router = useRouter();
   const apiRef = useRef<GridApi<DecisionRow> | null>(null);
   const [search, setSearch] = useState("");
-  const [outcome, setOutcome] = useState<DecisionOutcome | "ALL">("ALL");
-  const [cardPage, setCardPage] = useState(1);
   const [paging, setPaging] = useState({
     page: 1,
     pageCount: 1,
@@ -210,16 +215,18 @@ export function DecisionsGrid({
   const open = useCallback(
     (row: DecisionRow | undefined) => {
       if (row)
-        router.push(`/app/decisions/${row.decisionId}`, { scroll: false });
+        router.push(`/app/purchases/${row.decisionId}`, { scroll: false });
     },
     [router],
   );
 
+  const compact = useCompact();
   const columns = useMemo<ColDef<DecisionRow>[]>(
     () => [
       {
         headerName: "ID",
         field: "decisionId",
+        hide: compact,
         width: 104,
         valueFormatter: (p) => (p.value ? shortId("decision", p.value) : ""),
         getQuickFilterText: (p) => shortId("decision", p.value),
@@ -228,6 +235,7 @@ export function DecisionsGrid({
       {
         headerName: "Decided",
         field: "decidedAt",
+        hide: compact,
         width: 130,
         sort: "desc",
         valueFormatter: (p) => formatWhen(p.value, timeZone),
@@ -237,14 +245,14 @@ export function DecisionsGrid({
         headerName: "Product",
         field: "productName",
         flex: 1,
-        minWidth: 200,
+        minWidth: compact ? 140 : 200,
         filter: "agTextColumnFilter",
         tooltipField: "productName",
       },
       {
         headerName: "Amount",
         field: "amount",
-        width: 124,
+        width: compact ? 104 : 124,
         type: "rightAligned",
         filter: "agNumberColumnFilter",
         valueFormatter: (p) => formatMoney(p.value, p.data?.currency ?? "USD"),
@@ -253,32 +261,34 @@ export function DecisionsGrid({
       {
         headerName: "Quality",
         field: "qualityScore",
+        hide: compact,
         width: 130,
         cellRenderer: QualityCell,
       },
       {
         headerName: "Source",
         field: "source",
+        hide: compact,
         width: 110,
         valueFormatter: (p) => (p.value ? sourceLabel(p.value) : ""),
         cellClass: "grid-muted",
       },
       {
-        headerName: "Outcome",
+        headerName: "Status",
         field: "outcome",
+        hide: compact,
         width: 190,
         cellRenderer: OutcomeCell,
-        getQuickFilterText: (p) =>
-          `${p.value} ${p.data?.reviewStatus ?? ""}`.trim(),
+        getQuickFilterText: (p) => (p.data ? outcomeLabel[p.data.outcome] : ""),
       },
       {
         headerName: "Payment",
         field: "paymentStatus",
-        width: 130,
+        width: 110,
         cellRenderer: PaymentCell,
       },
     ],
-    [timeZone],
+    [timeZone, compact],
   );
 
   // Only update when a number changed: a new object on every grid event
@@ -317,30 +327,13 @@ export function DecisionsGrid({
     [selectedId],
   );
 
-  const isExternalFilterPresent = useCallback(
-    () => outcome !== "ALL",
-    [outcome],
-  );
-  const doesExternalFilterPass = useCallback(
-    (node: IRowNode<DecisionRow>) => node.data?.outcome === outcome,
-    [outcome],
-  );
-  const cardRows = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return rows.filter(
-      (row) =>
-        (outcome === "ALL" || row.outcome === outcome) &&
-        (needle === "" || searchText(row, timeZone).includes(needle)),
-    );
-  }, [outcome, rows, search, timeZone]);
-
   return (
-    <section className="card grid-card stack-flush" aria-label="Decisions">
+    <section className="card grid-card stack-flush" aria-label="Purchases">
       <div className="grid-toolbar">
         <input
           type="search"
           className="input grid-search"
-          placeholder="Search product, outcome, ID…"
+          placeholder="Search products…"
           aria-label="Search decisions"
           value={search}
           onChange={(event) => {
@@ -348,27 +341,6 @@ export function DecisionsGrid({
             setCardPage(1);
           }}
         />
-        <div
-          className="segmented segmented--quiet"
-          role="group"
-          aria-label="Filter by outcome"
-        >
-          {OUTCOMES.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              aria-pressed={outcome === option.key}
-              onClick={() => {
-                setOutcome(option.key);
-                setCardPage(1);
-                // AG Grid reads external filters lazily.
-                requestAnimationFrame(() => apiRef.current?.onFilterChanged());
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
       </div>
       <DecisionCards
         rows={cardRows}
@@ -393,12 +365,10 @@ export function DecisionsGrid({
             paginationPageSizeSelector={false}
             suppressPaginationPanel
             quickFilterText={search}
-            isExternalFilterPresent={isExternalFilterPresent}
-            doesExternalFilterPass={doesExternalFilterPass}
             rowClassRules={rowClassRules}
             rowClass="grid-row-link"
             tooltipShowDelay={400}
-            overlayNoRowsTemplate="No decisions match this search."
+            overlayNoRowsTemplate="No purchases match this search."
             onGridReady={(event) => {
               apiRef.current = event.api;
             }}
@@ -421,7 +391,7 @@ export function DecisionsGrid({
           pageCount={paging.pageCount}
           total={paging.total}
           pageSize={DEFAULT_PAGE_SIZE}
-          label="decisions"
+          label="purchases"
           onPage={(page) => apiRef.current?.paginationGoToPage(page - 1)}
         />
       </div>

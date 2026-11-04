@@ -1,17 +1,11 @@
 import { calendarEventsQuerySchema } from "@finpal/contracts";
-import { GoogleCalendarApiError } from "@finpal/backend";
 import { NextResponse } from "next/server";
 
-import {
-  apiError,
-  getApiUserId,
-  handleRouteError,
-  unauthorized,
-} from "@/lib/api";
-import { getCalendarEventsService } from "@/lib/backend";
+import { getApiUserId, handleRouteError, unauthorized } from "@/lib/api";
+import { getCalendarEvents } from "@/lib/backend";
 
 // GET /api/v1/calendar/events?limit=20
-// Upcoming events for proposal prefill (title + start only).
+// This user's upcoming events (title + start only).
 export async function GET(request: Request) {
   const userId = await getApiUserId();
   if (!userId) return unauthorized();
@@ -21,20 +15,8 @@ export async function GET(request: Request) {
     const query = calendarEventsQuerySchema.parse({
       limit: searchParams.get("limit") ?? undefined,
     });
-    const page = await getCalendarEventsService().listUpcoming(query.limit);
-    return NextResponse.json(page);
+    return NextResponse.json(await getCalendarEvents(userId, query.limit));
   } catch (error) {
-    if (error instanceof GoogleCalendarApiError) {
-      const status =
-        error.status === 0 || error.status >= 500 || error.status === 429
-          ? 503
-          : error.status === 401 || error.status === 403
-            ? 502
-            : 502;
-      return apiError(status, "CALENDAR_UNAVAILABLE", error.message, {
-        httpStatus: error.status,
-      });
-    }
     return handleRouteError(error);
   }
 }

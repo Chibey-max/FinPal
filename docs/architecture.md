@@ -68,6 +68,8 @@ Normalization rules:
 | `POOR`              | At least 3 offers and proposed price > median × 1.20                    | Block                             |
 | `INSUFFICIENT_DATA` | Fewer than 3 offers, lookup not `OK`, or offers in a different currency | Manual review; never auto-approve |
 
+A `GOOD` price under 50% of the median (`UNUSUALLY_LOW_RATIO`) also goes to manual review, with reason `PRICE_UNUSUALLY_LOW`. This goes beyond the PRD, which only limits prices that are too high: a price that far below market is more likely a scam or the wrong product than a deal.
+
 - **Both bounds are inclusive:** exactly median × 1.05 is `GOOD`, one cent more is `FAIR`.
 - **Exact arithmetic:** comparisons use integer cents, and the median is kept in half-cents so an even count's midpoint (e.g. 100.005) is exact. Plain floating point would misclassify prices sitting exactly on a bound (`10.2 × 1.05 = 10.709999…`); tests cover these cases.
 - **Stored result:** score, explanation, proposed price, currency, offer count, median, lowest offer, ratio to median, the thresholds used, the lookup status and the Channel3 offers used as references. The decision orchestrator persists it on `evaluations` (`quality_score`, `explanation`, `offer_count`, `median_price`, `lowest_price`, `offer_currency`, `channel3_refs`, and the full result in `quality_result`).

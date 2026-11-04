@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReviewStatus } from "@finpal/contracts";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -9,8 +8,15 @@ import { useToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { apiRequest, errorMessage } from "@/lib/api-client";
 
-/** Approve or reject a MANUAL_REVIEW decision (POST /decisions/:id/review). */
-export function ReviewActions({ decisionId }: { decisionId: string }) {
+/** Approve or reject an item the rules sent to a person. */
+export function ReviewActions({
+  decisionId,
+  onDone,
+}: {
+  decisionId: string;
+  /** Called instead of refreshing the page, e.g. on the Agent screen. */
+  onDone?: (action: ReviewStatus) => void;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [pending, setPending] = useState<ReviewStatus | null>(null);
@@ -22,16 +28,14 @@ export function ReviewActions({ decisionId }: { decisionId: string }) {
       await apiRequest(`/api/v1/decisions/${decisionId}/review`, {
         body: { action },
       });
-      if (action === "APPROVED") {
-        toast("Approved. The decision is now payable.");
-        startTransition(() => {
-          router.push(`/app/decisions/${decisionId}`);
-          router.refresh();
-        });
-      } else {
-        toast("Rejected. No payment will be created.", "bad");
-        startTransition(() => router.refresh());
-      }
+      toast(
+        action === "APPROVED"
+          ? "Approved. It can be paid now."
+          : "Rejected. It won't be bought.",
+        action === "APPROVED" ? "ok" : "bad",
+      );
+      if (onDone) onDone(action);
+      else startTransition(() => router.refresh());
     } catch (error) {
       setPending(null);
       toast(errorMessage(error), "bad");
@@ -40,9 +44,6 @@ export function ReviewActions({ decisionId }: { decisionId: string }) {
 
   return (
     <div className="review-actions">
-      <Link href={`/app/decisions/${decisionId}`} className="btn btn-text">
-        Evidence
-      </Link>
       <button
         type="button"
         className="btn btn-danger"
