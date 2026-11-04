@@ -7,6 +7,7 @@ export class ApiRequestError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiRequestError";
@@ -29,10 +30,29 @@ export function apiBaseUrl() {
     : "http://localhost:3000";
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+// Set by the auth provider: the Supabase access token for the signed-in user.
+// In mock mode there is no token and the server needs none.
+let tokenProvider: () => Promise<string | null> = async () => null;
+export function setAuthTokenProvider(provider: () => Promise<string | null>) {
+  tokenProvider = provider;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  init: { method?: "GET" | "POST" | "PUT"; body?: unknown } = {},
+): Promise<T> {
+  const token = await tokenProvider();
+  const hasBody = init.body !== undefined;
   let response: Response;
   try {
-    response = await fetch(`${apiBaseUrl()}${path}`);
+    response = await fetch(`${apiBaseUrl()}${path}`, {
+      method: init.method ?? (hasBody ? "POST" : "GET"),
+      headers: {
+        ...(hasBody ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: hasBody ? JSON.stringify(init.body) : undefined,
+    });
   } catch {
     throw new ApiRequestError(
       0,
@@ -44,9 +64,18 @@ export async function apiGet<T>(path: string): Promise<T> {
   if (!response.ok) {
     throw new ApiRequestError(
       response.status,
-      data?.error?.code ?? "REQUEST_FAILED",
-      data?.error?.message ?? `Request failed (${response.status}).`,
+      data?.error?.code ??
+        (response.status === 401 ? "UNAUTHORIZED" : "REQUEST_FAILED"),
+      data?.error?.message ??
+        data?.message ??
+        `Request failed (${response.status}).`,
+      data?.error?.details,
     );
   }
   return data as T;
 }
+
+export const apiGet = <T>(path: string) => apiRequest<T>(path);
+
+export const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong.";

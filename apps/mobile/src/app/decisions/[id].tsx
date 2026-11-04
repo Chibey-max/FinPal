@@ -1,7 +1,8 @@
 import type { DecisionDetail } from "@finpal/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 
+import { DecisionActions, DecisionSummary } from "@/components/decision-parts";
 import {
   Badge,
   Card,
@@ -10,6 +11,7 @@ import {
   Loading,
   Row,
   Screen,
+  Text,
   Title,
 } from "@/components/ui";
 import { ms, s } from "@/lib/screen";
@@ -24,11 +26,13 @@ import {
   shortId,
   trustTone,
 } from "@/lib/present";
-import { colors, mono } from "@/theme";
+import { useTheme } from "@/lib/theme-context";
+import { mono } from "@/theme";
 
 export default function DecisionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
   const { data, error, loading, refreshing, refresh } = useApi<DecisionDetail>(
     `/api/v1/decisions/${id}`,
   );
@@ -37,7 +41,7 @@ export default function DecisionDetailScreen() {
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <Pressable
         onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
+          router.canGoBack() ? router.back() : router.replace("/overview")
         }
         accessibilityRole="button"
         hitSlop={12}
@@ -50,13 +54,20 @@ export default function DecisionDetailScreen() {
       ) : error || !data ? (
         <ErrorNotice message={error ?? "No data."} onRetry={refresh} />
       ) : (
-        <Detail detail={data} />
+        <Detail detail={data} onChanged={refresh} />
       )}
     </Screen>
   );
 }
 
-function Detail({ detail }: { detail: DecisionDetail }) {
+function Detail({
+  detail,
+  onChanged,
+}: {
+  detail: DecisionDetail;
+  onChanged: () => void;
+}) {
+  const { colors } = useTheme();
   const { proposal, evaluation, decision, payment, events } = detail;
   const { quality } = evaluation;
   const tz = useTimezone();
@@ -79,6 +90,8 @@ function Detail({ detail }: { detail: DecisionDetail }) {
         </Text>
       </View>
 
+      <DecisionSummary decisionId={decision.id} />
+
       <Card>
         <Eyebrow>Decision</Eyebrow>
         <Badge label={decision.outcome} tone={outcomeTone[decision.outcome]} />
@@ -91,6 +104,8 @@ function Detail({ detail }: { detail: DecisionDetail }) {
           <Row label="Review" value={decision.reviewStatus} />
         ) : null}
       </Card>
+
+      <DecisionActions detail={detail} onChanged={onChanged} />
 
       <Card>
         <Eyebrow>Why</Eyebrow>

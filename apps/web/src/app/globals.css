@@ -195,11 +195,18 @@
   inset: 0;
   filter: var(--orb-filter);
   opacity: var(--orb-opacity);
-  transform: scale(var(--backdrop-scale, 1));
+  transform: translateY(var(--orb-shift, 0)) scale(var(--backdrop-scale, 1));
   transition:
     filter 0.6s ease,
     opacity 0.6s ease;
   will-change: transform;
+}
+/* Phones: raise the orb, clear of the text and buttons low on the screen.
+   The landing page's card (--orb-shift in landing.css) moves with it. */
+@media (max-width: 600px) {
+  :root {
+    --orb-shift: -9svh;
+  }
 }
 .site-backdrop .fluid-sphere-canvas {
   position: absolute;

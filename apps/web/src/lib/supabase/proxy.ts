@@ -56,7 +56,13 @@ export async function updateSession(request: NextRequest) {
   const isSignedIn = Boolean(data?.claims);
   const { pathname } = request.nextUrl;
 
-  if (!isSignedIn && pathname.startsWith("/api/v1/")) {
+  // Native clients authenticate with a bearer token instead of a cookie; the
+  // route handler verifies it with Supabase, so let those requests through.
+  const hasBearer = /^Bearer\s+\S+$/i.test(
+    request.headers.get("authorization") ?? "",
+  );
+
+  if (!isSignedIn && !hasBearer && pathname.startsWith("/api/v1/")) {
     return NextResponse.json(
       { message: "Authentication required." },
       { status: 401 },
