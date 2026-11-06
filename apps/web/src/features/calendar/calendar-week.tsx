@@ -140,9 +140,7 @@ export function CalendarWeek({
             <i aria-hidden /> Shaded hours: spending allowed by your rules
           </span>
         ) : null}
-        {configured && canConnect ? (
-          <DisconnectCalendarButton />
-        ) : null}
+        {configured && canConnect ? <DisconnectCalendarButton /> : null}
         <span className="footnote">
           {configured
             ? "FinPal reads only event titles and start times."

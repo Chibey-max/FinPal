@@ -19,8 +19,8 @@ export default async function AgentPage({
       <div className="page-head__text">
         <h1>Agent</h1>
         <p>
-          Type, speak, or snap a photo. The agent finds options, your rules
-          check them, and you approve once — voice and Snap never spend money.
+          Shop a list or send from the Sandbox wallet. Rules check every move;
+          you approve before PayPal — voice and Snap never spend money.
         </p>
       </div>
       {!constraints ? (

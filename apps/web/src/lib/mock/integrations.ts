@@ -99,6 +99,80 @@ export const paypal: PayPalClient = {
   // Mock mode never receives real PayPal webhooks: fail closed, so a forged
   // request can never change a payment.
   verifyWebhookSignature: async () => false,
+
+  getBalances: async () => {
+    const store = getStore();
+    return {
+      available: store.walletAvailable,
+      currency: "USD",
+      asOf: now().toISOString(),
+    };
+  },
+
+  createPayout: (input) =>
+    replayable(`payout:${input.requestId}`, () => {
+      const store = getStore();
+      const amount = Math.round(input.amount * 100) / 100;
+      if (amount > store.walletAvailable + 1e-9) {
+        throw new PayPalApiError(
+          "Insufficient funds in the Sandbox wallet.",
+          422,
+          "INSUFFICIENT_FUNDS",
+        );
+      }
+      store.walletAvailable =
+        Math.round((store.walletAvailable - amount) * 100) / 100;
+      const batchId = `BATCH${paypalId().slice(0, 12)}`;
+      const payoutItemId = `ITEM${paypalId().slice(0, 12)}`;
+      // Demo: emails containing "unclaim" stay UNCLAIMED; others SUCCESS.
+      const transactionStatus = /unclaim/i.test(input.recipientEmail)
+        ? "UNCLAIMED"
+        : "SUCCESS";
+      store.payouts.set(payoutItemId, {
+        batchId,
+        transactionStatus,
+      });
+      return {
+        batchId,
+        batchStatus: "SUCCESS",
+        payoutItemId,
+        transactionStatus,
+      };
+    }),
+
+  getPayoutBatch: async (batchId) => {
+    for (const [payoutItemId, found] of getStore().payouts) {
+      if (found.batchId === batchId) {
+        return {
+          batchId,
+          batchStatus: "SUCCESS",
+          payoutItemId,
+          transactionStatus: found.transactionStatus,
+        };
+      }
+    }
+    throw new PayPalApiError(
+      "Payout batch not found",
+      404,
+      "RESOURCE_NOT_FOUND",
+    );
+  },
+
+  getPayoutItem: async (payoutItemId) => {
+    const found = getStore().payouts.get(payoutItemId);
+    if (!found) {
+      throw new PayPalApiError(
+        "Payout item not found",
+        404,
+        "RESOURCE_NOT_FOUND",
+      );
+    }
+    return {
+      payoutItemId,
+      transactionStatus: found.transactionStatus,
+      payoutBatchId: found.batchId,
+    };
+  },
 };
 
 /** The buyer logs in to Sandbox checkout and clicks "Approve payment". */

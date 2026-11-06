@@ -6,6 +6,8 @@ import type {
   Basket,
   EventSuggestion,
   EventSuggestions,
+  SendDraft,
+  WalletSummary,
 } from "@finpal/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   useTransition,
   type FormEvent,
   type ReactNode,
@@ -23,9 +26,11 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AutoAwesomeIcon } from "@/components/icons";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import {
+  clearAgentSession,
   readAgentSession,
   writeAgentSession,
 } from "@/features/agent/agent-session";
+import { SendDraftCard } from "@/features/agent/send-draft-card";
 import { SnapSearchButton } from "@/features/agent/snap-search";
 import { VoiceDictationButton } from "@/features/agent/voice-dictation";
 import {
@@ -37,6 +42,21 @@ import {
 import { CheckoutButton } from "@/features/purchases/checkout-button";
 import { ReviewActions } from "@/features/review/review-actions";
 import { apiRequest, errorMessage } from "@/lib/api-client";
+
+// Same shape the server parses: it starts by asking to send, has an amount,
+// and names one recipient after "to". A list that mentions "pay" or an
+// email address is shopping.
+function looksLikeSend(text: string) {
+  return /^\s*(?:please\s+)?(?:send|pay|transfer|payout)\b[^@]*\d[^@]*\bto\s*:?\s*[^\s@]+@[^\s@]+\.[^\s@]+/i.test(
+    text,
+  );
+}
+
+function looksLikeBalance(text: string) {
+  return /^(what'?s?\s+(my\s+)?balance|balance(\?)?|how much (do i |have i got |have )?(i\s+)?(got|have|left)|wallet)\b/i.test(
+    text.trim(),
+  );
+}
 
 type ChatTurn = {
   id: string;
@@ -72,7 +92,8 @@ function summarizeRuns(runs: AgentRun[]) {
 
 const EXAMPLES = [
   "Noise-cancelling headphones under $350, a portable charger and an ergonomic office chair",
-  "A birthday gift for my brother and a travel backpack",
+  "Send $40 to friend@example.com for birthday",
+  "What's my balance?",
 ];
 
 // Shown while the request runs; the real result replaces them.
@@ -81,6 +102,12 @@ const WORKING = [
   "Searching real offers",
   "Comparing products and merchants",
   "Checking each line against your rules",
+];
+
+const SEND_WORKING = [
+  "Reading your send",
+  "Checking Sandbox balance",
+  "Checking your rules",
 ];
 
 const NOT_FOUND: Partial<Record<AgentRun["status"], string>> = {
@@ -155,62 +182,106 @@ function buildBillLines(runs: AgentRun[]): BillLine[] {
   return lines;
 }
 
-export function AgentConsole({
-  timeZone,
-  sandbox,
-  initialList,
-}: {
+interface AgentConsoleProps {
   timeZone: string;
   sandbox: boolean;
   initialList: string;
-}) {
+}
+
+const noSubscribe = () => () => undefined;
+
+/**
+ * The server can't see this device's saved thread, so the console first
+ * renders empty (matching the server HTML), then mounts again in the
+ * browser with the thread restored.
+ */
+export function AgentConsole(props: AgentConsoleProps) {
+  const inBrowser = useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  );
+  return (
+    <AgentConsoleView
+      key={inBrowser ? "browser" : "server"}
+      {...props}
+      restore={inBrowser}
+    />
+  );
+}
+
+function AgentConsoleView({
+  timeZone,
+  sandbox,
+  initialList,
+  restore,
+}: AgentConsoleProps & { restore: boolean }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [hydrated, setHydrated] = useState(false);
-  const [list, setList] = useState(initialList);
+  const [saved] = useState(() => (restore ? readAgentSession() : null));
+  const [list, setList] = useState(initialList || saved?.list || "");
   const [pending, setPending] = useState(false);
   const [step, setStep] = useState(0);
-  const [runs, setRuns] = useState<AgentRun[]>([]);
-  const [excluded, setExcluded] = useState<Set<string>>(new Set());
-  const [paid, setPaid] = useState<Basket | null>(null);
+  const [runs, setRuns] = useState<AgentRun[]>(saved?.runs ?? []);
+  const [excluded, setExcluded] = useState<Set<string>>(
+    () => new Set(saved?.excluded ?? []),
+  );
+  const [paid, setPaid] = useState<Basket | null>(saved?.paid ?? null);
+  const [sendDraft, setSendDraft] = useState<SendDraft | null>(
+    saved?.sendDraft ?? null,
+  );
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [mode, setMode] = useState<"shop" | "send" | "balance">("shop");
   const [error, setError] = useState<string | null>(null);
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [turns, setTurns] = useState<ChatTurn[]>(saved?.turns ?? []);
   const resultRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
 
-  // Restore the last Agent thread from this device after refresh.
-  useEffect(() => {
-    const saved = readAgentSession();
-    if (saved) {
-      if (!initialList) setList(saved.list);
-      setTurns(saved.turns);
-      setRuns(saved.runs);
-      setPaid(saved.paid);
-      setExcluded(new Set(saved.excluded));
+  async function loadWallet() {
+    try {
+      const next = await apiRequest<WalletSummary>("/api/v1/paypal/wallet");
+      setWallet(next);
+      return next;
+    } catch {
+      return null;
     }
-    setHydrated(true);
-  }, [initialList]);
+  }
 
   useEffect(() => {
-    if (!hydrated || pending) return;
+    if (!restore) return;
+    let live = true;
+    apiRequest<WalletSummary>("/api/v1/paypal/wallet")
+      .then((next) => {
+        if (live) setWallet(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [restore]);
+
+  useEffect(() => {
+    if (!restore || pending) return;
     writeAgentSession({
       list,
       turns,
       runs,
       paid,
       excluded: [...excluded],
+      sendDraft,
     });
-  }, [hydrated, pending, list, turns, runs, paid, excluded]);
+  }, [restore, pending, list, turns, runs, paid, excluded, sendDraft]);
 
   useEffect(() => {
     if (!pending) return;
+    const labels = mode === "send" ? SEND_WORKING : WORKING;
     const timer = setInterval(
-      () => setStep((s) => Math.min(s + 1, WORKING.length - 1)),
+      () => setStep((s) => Math.min(s + 1, labels.length - 1)),
       1400,
     );
     return () => clearInterval(timer);
-  }, [pending]);
+  }, [pending, mode]);
 
   // Lenis preventDefault's window wheel; drive this pane natively and instantly.
   useEffect(() => {
@@ -229,22 +300,105 @@ export function AgentConsole({
 
   const refreshSide = () => startTransition(() => router.refresh());
 
-  async function shop(text: string) {
-    const trimmed = text.trim();
-    if (trimmed.length < 3 || pending) return;
-    const userTurn: ChatTurn = {
-      id:
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `u-${Date.now()}`,
-      role: "user",
-      text: trimmed,
-    };
-    setTurns((current) => [...current, userTurn]);
+  function pushAgent(text: string) {
+    setTurns((current) => [
+      ...current,
+      {
+        id:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `a-${Date.now()}`,
+        role: "agent",
+        text,
+      },
+    ]);
+  }
+
+  async function askBalance() {
+    setMode("balance");
+    setStep(0);
+    setPending(true);
+    setError(null);
+    setList("");
+    try {
+      const next = await loadWallet();
+      if (!next) {
+        pushAgent(
+          "I couldn't read the Sandbox wallet right now. Try again in a moment.",
+        );
+        return;
+      }
+      const sendable = formatMoney(next.sendableToday, next.currency);
+      if (next.balanceStatus === "UNAVAILABLE" || next.available === null) {
+        pushAgent(
+          `PayPal's balance isn't available to this Sandbox app, so I can't show the number. You can send up to ${sendable} today; PayPal checks the funds when it pays.`,
+        );
+        return;
+      }
+      pushAgent(
+        `The shared Sandbox wallet has about ${formatMoney(next.available, next.currency)}. You can send up to ${sendable} today (FinPal allows ${formatMoney(next.dailyLimit, next.currency)} a day per person).`,
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+      pushAgent("I couldn't read the Sandbox balance.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function sendFunds(trimmed: string) {
+    setMode("send");
     setStep(0);
     setPending(true);
     setError(null);
     setPaid(null);
+    setRuns([]);
+    setExcluded(new Set());
+    setSendDraft(null);
+    setList("");
+    requestAnimationFrame(() =>
+      threadRef.current?.scrollTo({
+        top: threadRef.current.scrollHeight,
+        behavior: "smooth",
+      }),
+    );
+    try {
+      const draft = await apiRequest<SendDraft>("/api/v1/sends", {
+        body: { message: trimmed },
+      });
+      setSendDraft(draft);
+      pushAgent(
+        draft.ruleOutcome === "BLOCK"
+          ? `Draft ready, but blocked: ${draft.ruleReason}`
+          : `Draft ready: ${formatMoney(draft.amount, draft.currency)} to ${draft.recipientEmail}. Approve & pay when you're ready — I never move money myself.`,
+      );
+      void loadWallet();
+      refreshSide();
+      requestAnimationFrame(() =>
+        resultRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        }),
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+      pushAgent(
+        "I couldn't draft that send. Try: Send $40 to name@email.com for birthday.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function shop(text: string) {
+    const trimmed = text.trim();
+    if (trimmed.length < 3 || pending) return;
+    setMode("shop");
+    setStep(0);
+    setPending(true);
+    setError(null);
+    setPaid(null);
+    setSendDraft(null);
     setRuns([]);
     setExcluded(new Set());
     setList("");
@@ -259,17 +413,7 @@ export function AgentConsole({
         body: { list: trimmed },
       });
       setRuns(result.runs);
-      setTurns((current) => [
-        ...current,
-        {
-          id:
-            typeof crypto !== "undefined" && "randomUUID" in crypto
-              ? crypto.randomUUID()
-              : `a-${Date.now()}`,
-          role: "agent",
-          text: summarizeRuns(result.runs),
-        },
-      ]);
+      pushAgent(summarizeRuns(result.runs));
       refreshSide();
       requestAnimationFrame(() =>
         resultRef.current?.scrollIntoView({
@@ -279,25 +423,67 @@ export function AgentConsole({
       );
     } catch (caught) {
       setError(errorMessage(caught));
-      setTurns((current) => [
-        ...current,
-        {
-          id:
-            typeof crypto !== "undefined" && "randomUUID" in crypto
-              ? crypto.randomUUID()
-              : `e-${Date.now()}`,
-          role: "agent",
-          text: "I couldn't shop that list. Edit it and try again.",
-        },
-      ]);
+      pushAgent("I couldn't shop that list. Edit it and try again.");
     } finally {
       setPending(false);
     }
   }
 
+  async function handlePrompt(text: string) {
+    const trimmed = text.trim();
+    if (trimmed.length < 3 || pending) return;
+    const userTurn: ChatTurn = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `u-${Date.now()}`,
+      role: "user",
+      text: trimmed,
+    };
+    setTurns((current) => [...current, userTurn]);
+    requestAnimationFrame(() =>
+      threadRef.current?.scrollTo({
+        top: threadRef.current.scrollHeight,
+        behavior: "smooth",
+      }),
+    );
+    if (looksLikeBalance(trimmed)) {
+      await askBalance();
+      return;
+    }
+    if (looksLikeSend(trimmed)) {
+      await sendFunds(trimmed);
+      return;
+    }
+    await shop(trimmed);
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void shop(list);
+    void handlePrompt(list);
+  }
+
+  const canClear =
+    turns.length > 0 ||
+    runs.length > 0 ||
+    Boolean(sendDraft) ||
+    Boolean(paid) ||
+    Boolean(list.trim()) ||
+    Boolean(error);
+
+  function clearChat() {
+    if (pending || !canClear) return;
+    clearAgentSession();
+    setList("");
+    setTurns([]);
+    setRuns([]);
+    setExcluded(new Set());
+    setPaid(null);
+    setSendDraft(null);
+    setError(null);
+    setStep(0);
+    setMode("shop");
+    inputRef.current?.focus();
   }
 
   function addSuggestion(suggestion: EventSuggestion) {
@@ -377,8 +563,8 @@ export function AgentConsole({
                 Type, speak, snap, or pick an example
               </p>
               <p className="small ink3">
-                The agent shops your list, your rules check every line, and you
-                approve before PayPal. Voice and Snap never spend money.
+                Shop a list or send funds from the Sandbox wallet. Your rules
+                check every move, and nothing leaves until you approve.
               </p>
               <div className="agent-ask__examples">
                 {EXAMPLES.map((example) => (
@@ -399,11 +585,7 @@ export function AgentConsole({
           ) : null}
 
           {turns.map((turn) => (
-            <div
-              key={turn.id}
-              className="agent-bubble"
-              data-role={turn.role}
-            >
+            <div key={turn.id} className="agent-bubble" data-role={turn.role}>
               <span className="agent-bubble__who">
                 {turn.role === "user" ? "You" : "FinPal"}
               </span>
@@ -411,11 +593,11 @@ export function AgentConsole({
             </div>
           ))}
 
-          {pending ? (
+          {pending && mode !== "balance" ? (
             <div className="agent-bubble" data-role="agent" data-pending>
               <span className="agent-bubble__who">FinPal</span>
               <ol className="agent-steps agent-steps--inline">
-                {WORKING.map((label, i) => (
+                {(mode === "send" ? SEND_WORKING : WORKING).map((label, i) => (
                   <li
                     key={label}
                     data-state={
@@ -454,7 +636,26 @@ export function AgentConsole({
               </section>
             ) : null}
 
+            {!paid && sendDraft ? (
+              <SendDraftCard
+                draft={sendDraft}
+                onUpdate={(next) => {
+                  setSendDraft(next);
+                  if (next.status === "SENT") {
+                    pushAgent(
+                      next.payoutStatus === "UNCLAIMED"
+                        ? `Sent ${formatMoney(next.amount, next.currency)} — recipient has not claimed it yet (UNCLAIMED).`
+                        : `Sent ${formatMoney(next.amount, next.currency)} to ${next.recipientEmail}. Status: ${next.payoutStatus}.`,
+                    );
+                    void loadWallet();
+                    refreshSide();
+                  }
+                }}
+              />
+            ) : null}
+
             {!paid &&
+              !sendDraft &&
               questions.map(({ run, index }) => (
                 <AgentQuestion
                   key={`ask-${run.need}-${index}`}
@@ -463,7 +664,7 @@ export function AgentConsole({
                 />
               ))}
 
-            {!paid && lines.length > 0 ? (
+            {!paid && !sendDraft && lines.length > 0 ? (
               <OrderBill
                 lines={lines}
                 currency={currency}
@@ -529,11 +730,34 @@ export function AgentConsole({
         </div>
 
         <form className="agent-ask agent-ask--compose" onSubmit={submit}>
+          {wallet ? (
+            <div className="agent-wallet" aria-live="polite">
+              <span className="agent-wallet__label">You can send today</span>
+              <strong className="mono">
+                {formatMoney(wallet.sendableToday, wallet.currency)}
+              </strong>
+              <span className="agent-wallet__meta">
+                {wallet.available !== null
+                  ? `About ${formatMoney(wallet.available, wallet.currency)} in the shared ${wallet.accountLabel} wallet`
+                  : `${wallet.accountLabel} · balance unavailable`}
+              </span>
+            </div>
+          ) : null}
           <div className="agent-ask__toolbar">
             <label className="eyebrow" htmlFor="agent-list">
-              {turns.length ? "Add another list" : "Your shopping list"}
+              {turns.length ? "Shop or send" : "Shop a list or send funds"}
             </label>
             <div className="agent-ask__tools">
+              {canClear ? (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm agent-ask__clear"
+                  disabled={pending}
+                  onClick={clearChat}
+                >
+                  Clear chat
+                </button>
+              ) : null}
               <SnapSearchButton
                 value={list}
                 onChange={setList}
@@ -556,13 +780,13 @@ export function AgentConsole({
             value={list}
             onChange={(e) => setList(e.target.value)}
             onKeyDown={(e) => {
-              // Enter shops; Shift+Enter inserts a new line in the list.
+              // Enter runs; Shift+Enter inserts a new line in the list.
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                void shop(list);
+                void handlePrompt(list);
               }
             }}
-            placeholder="Type, Voice, or Snap a photo: headphones under $200…"
+            placeholder="Shop: headphones under $200 · Send: $40 to name@email.com"
             maxLength={1000}
             disabled={pending}
           />
@@ -580,16 +804,18 @@ export function AgentConsole({
                 <AutoAwesomeIcon aria-hidden />
               )}
               {pending
-                ? "Shopping…"
-                : turns.length
-                  ? "Shop this list"
-                  : "Let the agent shop"}
+                ? mode === "send"
+                  ? "Drafting send…"
+                  : mode === "balance"
+                    ? "Checking…"
+                    : "Shopping…"
+                : "Go"}
             </LiquidButton>
             <span
               className="small ink4 agent-ask__hint"
-              title="Enter to shop · Snap a product · Say stop to end voice"
+              title="Enter to go · Snap a product · Say stop to end voice"
             >
-              Enter to shop · Snap a product · Say “stop” to end voice
+              Enter to go · Snap a product · Say “stop” to end voice
             </span>
             <Link href="/app/proposals/new" className="link-quiet">
               Add one item by hand
@@ -1068,7 +1294,10 @@ function BillLineRow({
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="agent-bill__thumb agent-bill__thumb--empty" aria-hidden />
+          <span
+            className="agent-bill__thumb agent-bill__thumb--empty"
+            aria-hidden
+          />
         )}
 
         <div className="agent-bill__product">

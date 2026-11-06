@@ -364,6 +364,10 @@ export function ConstraintsForm({
         </span>
 
         <span className="eyebrow card-divider">Amount caps (inclusive)</span>
+        <p className="small ink3" style={{ margin: "0 0 8px" }}>
+          Caps apply to Agent shops and sends. A send that would overdraw the
+          Sandbox wallet is blocked before you can approve.
+        </p>
         <div className="field-grid">
           <label className="field">
             <span>Per transaction</span>

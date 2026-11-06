@@ -6,9 +6,12 @@ import {
   createComparableOffersService,
   createDecisionDetailService,
   createEvaluationService,
+  createMemorySendDraftRepository,
   createPaymentService,
   createQualityScoreService,
   createReviewDecisionService,
+  createSendFundsService,
+  withSends,
   type CalendarClient,
 } from "@finpal/backend";
 import type {
@@ -36,11 +39,15 @@ import { getStore } from "./store";
 
 const audit = createAuditLog(repo.auditEvents);
 const offers = createComparableOffersService({ channel3 });
+// Next bundles routes and pages separately; the store is shared by all.
+const sends = createMemorySendDraftRepository(() => getStore().sendDrafts);
+// Purchases plus sends, as counted against the caps.
+const spend = withSends(repo.payments, sends);
 
 const evaluation = createEvaluationService({
   proposals: repo.proposals,
   constraints: repo.constraints,
-  payments: repo.payments,
+  payments: spend,
   quality: createQualityScoreService({ offers }),
   evaluations: repo.evaluations,
   audit,
@@ -50,6 +57,7 @@ const evaluation = createEvaluationService({
 const payment = createPaymentService({
   paypal,
   payments: repo.payments,
+  spend,
   decisions: repo.decisions,
   constraints: repo.constraints,
   audit,
@@ -61,6 +69,15 @@ const payment = createPaymentService({
 const review = createReviewDecisionService({
   decisions: repo.decisions,
   audit,
+});
+
+const send = createSendFundsService({
+  paypal,
+  constraints: repo.constraints,
+  spend,
+  sends,
+  audit,
+  accountLabel: "Sandbox business",
 });
 
 // The coming week's events, through the backend's own calendar use case.
@@ -214,16 +231,16 @@ export function describeConstraints(constraints: SpendingConstraints) {
 
 // Versioned with the store key in store.ts.
 const globalSeed = globalThis as typeof globalThis & {
-  __finpalMockSeedV2?: Promise<void>;
+  __finpalMockSeedV4?: Promise<void>;
 };
 
 export function ensureSeeded() {
-  globalSeed.__finpalMockSeedV2 ??= seed().catch((error) => {
-    globalSeed.__finpalMockSeedV2 = undefined;
+  globalSeed.__finpalMockSeedV4 ??= seed().catch((error) => {
+    globalSeed.__finpalMockSeedV4 = undefined;
     getStore().pinnedNow = null;
     throw error;
   });
-  return globalSeed.__finpalMockSeedV2;
+  return globalSeed.__finpalMockSeedV4;
 }
 
 /** Wraps every method so it waits for the seed before touching the store. */
@@ -248,9 +265,11 @@ export const mockBackend = {
   decisionDetail: seeded(decisionDetail),
   constraints: seeded(repo.constraints),
   payments: seeded(repo.payments),
+  spend: seeded(spend),
   offers: seeded(offers),
   review: seeded(review),
   calendar: seeded(calendar),
+  send: seeded(send),
 };
 
 /** Simulated KERNEL result for a proposal (mock mode only). */

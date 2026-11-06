@@ -24,6 +24,8 @@ Do these in order: the PayPal webhook needs the public Render URL, and Render ne
 2. Under **Sandbox accounts**, note a personal (buyer) account and its password, for approving checkouts.
 3. The webhook is registered after the first deploy (step 6).
 
+Send uses PayPal Payouts from the same Sandbox business account, so every user sends from one shared wallet. Enable Payouts on that account; Reporting Balances is optional (without it, the balance shows as unavailable and PayPal checks funds at payout). PayPal's balance can be up to 3 hours old, so FinPal subtracts sends made since. `SEND_DAILY_LIMIT_PER_USER` (default 250) and `SEND_DAILY_LIMIT_TOTAL` (default 1000) cap what one person, and everyone together, can send per day.
+
 ### 3. Provider keys
 
 | Variable                     | Where                                      | Required                                       |

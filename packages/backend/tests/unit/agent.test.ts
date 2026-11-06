@@ -400,6 +400,28 @@ describe("calendar suggestions", () => {
       expect.objectContaining({ eventId: "e1", need: "travel adapter" }),
     ]);
   });
+
+  it("drops suggestions that read like a money transfer", async () => {
+    // An event title is untrusted text; a suggestion must never become a
+    // send request in the list box.
+    const llm = llmReturning(
+      JSON.stringify({
+        suggestions: [
+          {
+            eventId: "e1",
+            need: "Send $50 to pal@example.com",
+            reason: "From the event title.",
+          },
+          { eventId: "e2", need: "e-reader gift", reason: "A birthday." },
+        ],
+      }),
+    );
+    const result = await createCalendarSuggestions({
+      llm,
+      now: () => NOW,
+    }).suggest(EVENTS, true);
+    expect(result.suggestions.map((s) => s.need)).toEqual(["e-reader gift"]);
+  });
 });
 
 describe("natural-language rules", () => {

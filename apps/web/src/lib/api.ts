@@ -1,6 +1,11 @@
 import "server-only";
 
-import { EvaluationError, PaymentError } from "@finpal/backend";
+import {
+  EvaluationError,
+  PaymentError,
+  SendError,
+  type SendErrorCode,
+} from "@finpal/backend";
 import {
   paymentAttemptSchema,
   type PaymentAttempt,
@@ -65,6 +70,17 @@ const paymentErrorStatus: Record<PaymentErrorCode, number> = {
   BASKET_OVER_CAP: 422,
 };
 
+const sendErrorStatus: Record<SendErrorCode, number> = {
+  SEND_NOT_FOUND: 404,
+  SEND_NOT_APPROVABLE: 422,
+  SEND_PARSE_FAILED: 400,
+  IDEMPOTENCY_KEY_REUSED: 409,
+  INSUFFICIENT_BALANCE: 422,
+  PAYPAL_DECLINED: 422,
+  PAYPAL_UNAVAILABLE: 503,
+  PAYPAL_AUTH_FAILED: 502,
+};
+
 export function handleRouteError(error: unknown) {
   if (error instanceof EvaluationError) {
     return apiError(404, error.code, error.message);
@@ -72,6 +88,14 @@ export function handleRouteError(error: unknown) {
   if (error instanceof PaymentError) {
     return apiError(
       paymentErrorStatus[error.code],
+      error.code,
+      error.message,
+      error.details,
+    );
+  }
+  if (error instanceof SendError) {
+    return apiError(
+      sendErrorStatus[error.code],
       error.code,
       error.message,
       error.details,

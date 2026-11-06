@@ -28,6 +28,7 @@ import {
   MenuIcon,
   ReceiptLongIcon,
   SearchIcon,
+  SendIcon,
   SettingsIcon,
   SidePanelIcon,
   SmartToyIcon,
@@ -68,6 +69,12 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
         label: "Purchases",
         icon: ReceiptLongIcon,
         goKey: "p",
+      },
+      {
+        href: "/app/send",
+        label: "Send",
+        icon: SendIcon,
+        goKey: "e",
       },
       {
         href: "/app/approvals",

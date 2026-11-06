@@ -34,9 +34,9 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
           if (!(node instanceof Element)) return false;
           return Boolean(
             node.closest("[data-lenis-prevent]") ||
-              node.closest(".ag-body-viewport") ||
-              node.closest(".agent-chat__thread") ||
-              node.closest("dialog"),
+            node.closest(".ag-body-viewport") ||
+            node.closest(".agent-chat__thread") ||
+            node.closest("dialog"),
           );
         },
       }}

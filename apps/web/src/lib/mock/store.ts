@@ -9,7 +9,7 @@ import type {
   SpendingConstraints,
   TrustSignal,
 } from "@finpal/contracts";
-import type { PaymentAttemptRecord } from "@finpal/backend";
+import type { PaymentAttemptRecord, StoredSendDraft } from "@finpal/backend";
 
 export type Owned<T> = T & { userId: string };
 
@@ -29,6 +29,11 @@ export interface SimulatedOrder {
   authorizationStatus?: string;
 }
 
+export interface SimulatedPayout {
+  batchId: string;
+  transactionStatus: string;
+}
+
 /** Everything mock mode persists, standing in for the Supabase tables. */
 export interface MockStore {
   proposals: Owned<Proposal>[];
@@ -39,6 +44,12 @@ export interface MockStore {
   audit: StoredAuditEvent[];
   /** Simulated PayPal Sandbox state, keyed by order id. */
   orders: Map<string, SimulatedOrder>;
+  /** Simulated Payouts items, keyed by payout item id. */
+  payouts: Map<string, SimulatedPayout>;
+  /** Send drafts, shared by every route and page (see mock/index.ts). */
+  sendDrafts: Map<string, StoredSendDraft>;
+  /** Mock Sandbox merchant available balance (USD). */
+  walletAvailable: number;
   /** PayPal-Request-Id replays, so retried calls return the first result. */
   replays: Map<string, unknown>;
   /** KERNEL (simulated): the trust result chosen per proposal. */
@@ -56,6 +67,9 @@ function createStore(): MockStore {
     payments: [],
     audit: [],
     orders: new Map(),
+    payouts: new Map(),
+    sendDrafts: new Map(),
+    walletAvailable: 1240,
     replays: new Map(),
     trust: new Map(),
     pinnedNow: null,
@@ -67,17 +81,17 @@ function createStore(): MockStore {
 // The key is versioned: bump it when the stored shape changes, so a running
 // dev server reseeds instead of serving rows from the old shape.
 const globalStore = globalThis as typeof globalThis & {
-  __finpalMockStoreV2?: MockStore;
+  __finpalMockStoreV4?: MockStore;
 };
 
 export function getStore(): MockStore {
-  globalStore.__finpalMockStoreV2 ??= createStore();
-  return globalStore.__finpalMockStoreV2;
+  globalStore.__finpalMockStoreV4 ??= createStore();
+  return globalStore.__finpalMockStoreV4;
 }
 
 export function resetStore() {
-  globalStore.__finpalMockStoreV2 = createStore();
-  return globalStore.__finpalMockStoreV2;
+  globalStore.__finpalMockStoreV4 = createStore();
+  return globalStore.__finpalMockStoreV4;
 }
 
 export const now = () => getStore().pinnedNow ?? new Date();

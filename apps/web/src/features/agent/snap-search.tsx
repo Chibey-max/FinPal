@@ -105,9 +105,7 @@ export function SnapSearchButton({
         }}
       >
         <SnapIcon />
-        <span className="agent-mic__label">
-          {busy ? "Reading…" : "Snap"}
-        </span>
+        <span className="agent-mic__label">{busy ? "Reading…" : "Snap"}</span>
       </button>
       {open ? (
         <div id={menuId} role="menu" className="agent-snap__menu">
@@ -270,11 +268,7 @@ function CameraCapture({
           ) : null}
         </div>
         <div className="agent-camera__actions">
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={onCancel}
-          >
+          <button type="button" className="btn btn-outline" onClick={onCancel}>
             Cancel
           </button>
           <button

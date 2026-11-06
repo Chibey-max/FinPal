@@ -83,7 +83,10 @@ export function PurchaseDetailSkeleton() {
       <div className="skeleton skeleton-line" style={{ width: 120 }} />
       <div className="stack-sm" style={{ marginTop: 12 }}>
         <div className="skeleton skeleton-title" style={{ height: 36 }} />
-        <div className="skeleton skeleton-line" style={{ width: "min(280px, 60%)" }} />
+        <div
+          className="skeleton skeleton-line"
+          style={{ width: "min(280px, 60%)" }}
+        />
       </div>
       <div className="skeleton skeleton-panel" style={{ height: 220 }} />
       <div className="skeleton skeleton-panel" style={{ height: 160 }} />
@@ -100,11 +103,23 @@ export function ApprovalsSkeleton() {
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="skeleton-approval-row" aria-hidden>
             <div className="stack-xs" style={{ flex: 1, minWidth: 0 }}>
-              <div className="skeleton skeleton-line" style={{ width: "55%" }} />
-              <div className="skeleton skeleton-line" style={{ width: "80%", height: 12 }} />
-              <div className="skeleton skeleton-line" style={{ width: "30%", height: 10 }} />
+              <div
+                className="skeleton skeleton-line"
+                style={{ width: "55%" }}
+              />
+              <div
+                className="skeleton skeleton-line"
+                style={{ width: "80%", height: 12 }}
+              />
+              <div
+                className="skeleton skeleton-line"
+                style={{ width: "30%", height: 10 }}
+              />
             </div>
-            <div className="skeleton skeleton-line skeleton-approval-chip" style={{ width: 72, height: 18 }} />
+            <div
+              className="skeleton skeleton-line skeleton-approval-chip"
+              style={{ width: 72, height: 18 }}
+            />
             <div className="skeleton skeleton-btn skeleton-approval-act" />
           </div>
         ))}
@@ -120,7 +135,10 @@ export function AgentSkeleton() {
       <PageHead />
       <div className="card skeleton-agent-chat">
         <div className="skeleton-agent-thread">
-          <div className="skeleton skeleton-line" style={{ width: "70%", height: 12 }} />
+          <div
+            className="skeleton skeleton-line"
+            style={{ width: "70%", height: 12 }}
+          />
           <div className="skeleton skeleton-compose" style={{ height: 72 }} />
           <div
             className="skeleton skeleton-compose"
@@ -128,9 +146,15 @@ export function AgentSkeleton() {
           />
         </div>
         <div className="skeleton-agent-compose">
-          <div className="skeleton skeleton-line" style={{ width: 140, height: 12 }} />
+          <div
+            className="skeleton skeleton-line"
+            style={{ width: 140, height: 12 }}
+          />
           <div className="skeleton skeleton-compose" />
-          <div className="skeleton skeleton-btn" style={{ alignSelf: "flex-end" }} />
+          <div
+            className="skeleton skeleton-btn"
+            style={{ alignSelf: "flex-end" }}
+          />
         </div>
       </div>
     </div>
@@ -145,9 +169,18 @@ export function RulesSkeleton() {
         <PageHead />
         {Array.from({ length: 3 }, (_, index) => (
           <div key={index} className="card stack-card" style={{ gap: 14 }}>
-            <div className="skeleton skeleton-line" style={{ width: 160, height: 18 }} />
-            <div className="skeleton skeleton-line" style={{ width: "100%", height: 40 }} />
-            <div className="skeleton skeleton-line" style={{ width: "100%", height: 40 }} />
+            <div
+              className="skeleton skeleton-line"
+              style={{ width: 160, height: 18 }}
+            />
+            <div
+              className="skeleton skeleton-line"
+              style={{ width: "100%", height: 40 }}
+            />
+            <div
+              className="skeleton skeleton-line"
+              style={{ width: "100%", height: 40 }}
+            />
           </div>
         ))}
       </div>
@@ -191,7 +224,11 @@ export function SettingsSkeleton() {
     <div className="app-page" aria-busy="true" aria-label="Loading settings">
       <PageHead />
       {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="skeleton skeleton-panel" style={{ height: 140 }} />
+        <div
+          key={index}
+          className="skeleton skeleton-panel"
+          style={{ height: 140 }}
+        />
       ))}
     </div>
   );

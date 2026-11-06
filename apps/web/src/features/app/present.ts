@@ -54,6 +54,7 @@ const entityPrefix: Record<AuditEntityType, string> = {
   evaluation: "evl",
   decision: "dec",
   payment_attempt: "pay",
+  send: "snd",
 };
 
 /** Short display id, e.g. dec_1a07, from a uuid. Full ids stay in URLs. */

@@ -83,7 +83,10 @@ export function cleanSpeech(raw: string): string {
   text = text.replace(/\b(you know|i mean|sort of|kind of)\b/gi, " ");
   // "like" only when used as a filler hitch ("like, two shirts"), not "I like tea".
   text = text.replace(/(^|[\s,])like[,]+(?=\s|$)/gi, "$1");
-  text = text.replace(/(^|[\s,])like(?=\s+(?:um|uh|the|a|an|one|two|\d))/gi, "$1");
+  text = text.replace(
+    /(^|[\s,])like(?=\s+(?:um|uh|the|a|an|one|two|\d))/gi,
+    "$1",
+  );
 
   // Mic / livestream checks people say while testing.
   text = text.replace(/\bcan you hear me\b[?.!]*/gi, " ");
@@ -282,7 +285,9 @@ export function VoiceDictationButton({
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang =
-      typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
+      typeof navigator !== "undefined"
+        ? navigator.language || "en-US"
+        : "en-US";
     recognitionRef.current = recognition;
     wantListenRef.current = true;
     heardSpeechRef.current = false;
@@ -300,8 +305,10 @@ export function VoiceDictationButton({
         if (result.isFinal) finals += piece;
         else interim += piece;
       }
-      const rawAll =
-        `${committedRef.current} ${finals} ${interim}`.replace(/\s+/g, " ");
+      const rawAll = `${committedRef.current} ${finals} ${interim}`.replace(
+        /\s+/g,
+        " ",
+      );
       const heardStop =
         hasStopCommand(rawAll) ||
         hasStopCommand(finals) ||
@@ -472,9 +479,7 @@ export function VoiceDictationButton({
       onClick={toggle}
       disabled={disabled && !listening}
       aria-pressed={listening}
-      aria-label={
-        listening ? "Stop listening" : "Dictate shopping list"
-      }
+      aria-label={listening ? "Stop listening" : "Dictate shopping list"}
       title={
         listening
           ? 'Say "stop" when you\'re done — or tap to stop'

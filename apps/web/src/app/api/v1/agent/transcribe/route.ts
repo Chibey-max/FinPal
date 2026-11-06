@@ -77,7 +77,11 @@ export async function POST(request: Request) {
     }
 
     if (response.status === 401 || response.status === 403) {
-      return apiError(502, "TRANSCRIBE_AUTH_FAILED", "Groq rejected the API key.");
+      return apiError(
+        502,
+        "TRANSCRIBE_AUTH_FAILED",
+        "Groq rejected the API key.",
+      );
     }
     if (!response.ok) {
       return apiError(
@@ -91,7 +95,9 @@ export async function POST(request: Request) {
       text?: unknown;
     } | null;
     const text =
-      typeof payload?.text === "string" ? payload.text.trim().slice(0, 1000) : "";
+      typeof payload?.text === "string"
+        ? payload.text.trim().slice(0, 1000)
+        : "";
     if (!text) {
       return apiError(
         422,

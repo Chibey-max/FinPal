@@ -55,28 +55,31 @@ export async function POST(request: Request) {
 
     let response: Response;
     try {
-      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+      response = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: VISION_MODEL,
+            temperature: 0.2,
+            max_completion_tokens: 120,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: PROMPT },
+                  { type: "image_url", image_url: { url: dataUrl } },
+                ],
+              },
+            ],
+          }),
+          signal: AbortSignal.timeout(30_000),
         },
-        body: JSON.stringify({
-          model: VISION_MODEL,
-          temperature: 0.2,
-          max_completion_tokens: 120,
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: PROMPT },
-                { type: "image_url", image_url: { url: dataUrl } },
-              ],
-            },
-          ],
-        }),
-        signal: AbortSignal.timeout(30_000),
-      });
+      );
     } catch {
       return apiError(
         503,

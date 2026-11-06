@@ -36,6 +36,12 @@ export const serverEnvSchema = z.object({
   GROQ_API_KEY: z.string().min(1).optional(),
   GROQ_MODEL: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  /**
+   * Send limits, in the wallet's currency, while every user pays from one
+   * shared Sandbox wallet. Unset uses the backend defaults (250 and 1000).
+   */
+  SEND_DAILY_LIMIT_PER_USER: z.coerce.number().positive().optional(),
+  SEND_DAILY_LIMIT_TOTAL: z.coerce.number().positive().optional(),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

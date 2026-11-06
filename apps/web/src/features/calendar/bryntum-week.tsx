@@ -156,7 +156,8 @@ export function BryntumWeek({
         const data = initial.current;
         // Week columns are unusable on phone widths — start in day mode.
         const narrow =
-          typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
+          typeof window !== "undefined" &&
+          window.matchMedia("(max-width: 720px)").matches;
         calendarRef.current = new Calendar({
           appendTo: hostRef.current,
           date: new Date(data.weekStart),

@@ -40,6 +40,43 @@ export interface VerifyWebhookSignatureInput {
   webhookEvent: unknown;
 }
 
+/** Reporting Balances — Sandbox merchant available funds. */
+export interface PayPalBalances {
+  available: number;
+  currency: string;
+  asOf: string;
+}
+
+export interface CreatePayPalPayoutInput {
+  amount: number;
+  currency: string;
+  recipientEmail: string;
+  /** Shown to the recipient in PayPal's email. */
+  memo?: string | null;
+  /** PayPal-Request-Id: the same id on a retry returns the first result. */
+  requestId: string;
+  /** One per send: PayPal refuses a second payout with the same id. */
+  senderBatchId: string;
+}
+
+export interface PayPalPayout {
+  batchId: string;
+  batchStatus: string;
+  payoutItemId: string | null;
+  /** Mapped item transaction status when present. */
+  transactionStatus: string | null;
+  /** PayPal's explanation when the item failed or is unclaimed. */
+  errorMessage?: string | null;
+}
+
+export interface PayPalPayoutItem {
+  payoutItemId: string;
+  transactionStatus: string;
+  payoutBatchId: string | null;
+  /** PayPal's explanation when the item failed or is unclaimed. */
+  errorMessage?: string | null;
+}
+
 export interface PayPalClient {
   createOrder(input: CreatePayPalOrderInput): Promise<PayPalOrder>;
   getOrder(orderId: string): Promise<PayPalOrder>;
@@ -57,6 +94,11 @@ export interface PayPalClient {
   ): Promise<{ authorizationStatus: string }>;
   /** Returns true when PayPal confirms the webhook transmission. */
   verifyWebhookSignature(input: VerifyWebhookSignatureInput): Promise<boolean>;
+  getBalances(): Promise<PayPalBalances>;
+  createPayout(input: CreatePayPalPayoutInput): Promise<PayPalPayout>;
+  /** Resolve item ids / statuses after create (create often returns batch only). */
+  getPayoutBatch(batchId: string): Promise<PayPalPayout>;
+  getPayoutItem(payoutItemId: string): Promise<PayPalPayoutItem>;
 }
 
 export class PayPalApiError extends Error {
@@ -67,6 +109,8 @@ export class PayPalApiError extends Error {
     /** PayPal issue code, e.g. ORDER_NOT_APPROVED, or TIMEOUT/NETWORK. */
     readonly issue?: string,
     readonly debugId?: string,
+    /** HATEOAS links in the error body, e.g. to an existing payout. */
+    readonly links: string[] = [],
   ) {
     super(message);
     this.name = "PayPalApiError";
