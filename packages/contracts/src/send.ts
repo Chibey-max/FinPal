@@ -1,29 +1,31 @@
 import { z } from "zod";
 
-/** The shared Sandbox merchant wallet, as one user sees it (no secrets). */
+/**
+ * Personal FinPal ledger funded by PayPal Checkout (Log in with PayPal),
+ * not the shared merchant Reporting balance.
+ */
 export const walletSummarySchema = z.object({
-  /**
-   * Estimated: PayPal's balance can be up to 3 hours old, so FinPal takes
-   * off what was sent since. Null when Reporting Balances isn't authorized
-   * on the REST app.
-   */
+  /** Ledger available; null only when disconnected (cannot send). */
   available: z.number().nonnegative().nullable(),
   currency: z.string().length(3),
-  /** When PayPal last refreshed the balance. */
+  /** When the ledger was last updated. */
   asOf: z.string(),
-  /** Short label only, e.g. "Sandbox business". */
+  /** Short label, e.g. connected PayPal email or "FinPal balance". */
   accountLabel: z.string().min(1).max(80),
   /**
-   * LIVE = Reporting returned a balance.
-   * UNAVAILABLE = app lacks Reporting permission (Payouts can still work).
+   * LIVE = connected with a ledger balance.
+   * DISCONNECTED = must Connect PayPal before sending.
    */
-  balanceStatus: z.enum(["LIVE", "UNAVAILABLE"]).default("LIVE"),
+  balanceStatus: z.enum(["LIVE", "DISCONNECTED"]).default("DISCONNECTED"),
+  connected: z.boolean(),
+  /** Connected PayPal email when linked. */
+  paypalEmail: z.string().email().nullable(),
   /**
-   * What this user can still send today: the lowest of the estimated
-   * balance, their daily send limit and the limit for all users.
+   * What this user can still send today: min of ledger, per-user daily
+   * send limit, and merchant total daily safety cap.
    */
   sendableToday: z.number().nonnegative(),
-  /** FinPal's per-person daily send limit for the shared wallet. */
+  /** FinPal's per-person daily send limit. */
   dailyLimit: z.number().positive(),
 });
 
@@ -63,9 +65,9 @@ export const sendDraftSchema = z.object({
   memo: z.string().max(200).nullable(),
   ruleOutcome: sendRuleOutcomeSchema,
   ruleReason: z.string(),
-  /** Available balance when the draft was evaluated; null if Reporting unavailable. */
+  /** Ledger available when the draft was evaluated. */
   availableAtDraft: z.number().nonnegative().nullable(),
-  /** availableAtDraft − amount when under balance; null when blocked/unknown. */
+  /** availableAtDraft − amount when under balance; null when blocked. */
   balanceAfterSend: z.number().nonnegative().nullable(),
   status: sendDraftStatusSchema,
   payoutBatchId: z.string().nullable(),
@@ -101,3 +103,31 @@ export const approveSendSchema = z.object({
 });
 
 export type ApproveSendInput = z.infer<typeof approveSendSchema>;
+
+export const createTopUpSchema = z.object({
+  amount: z.number().positive().max(10_000),
+  currency: z.string().length(3).default("USD"),
+});
+
+export type CreateTopUpInput = z.infer<typeof createTopUpSchema>;
+
+export const topUpSessionSchema = z.object({
+  topUpId: z.string().uuid(),
+  orderId: z.string().min(1),
+  amount: z.number().positive(),
+  currency: z.string().length(3),
+  approveUrl: z.string().url().nullable(),
+});
+
+export type TopUpSession = z.infer<typeof topUpSessionSchema>;
+
+export const paypalConnectionStatusSchema = z.object({
+  connected: z.boolean(),
+  email: z.string().email().nullable(),
+  payerId: z.string().nullable(),
+  needsReconnect: z.boolean(),
+});
+
+export type PaypalConnectionStatus = z.infer<
+  typeof paypalConnectionStatusSchema
+>;

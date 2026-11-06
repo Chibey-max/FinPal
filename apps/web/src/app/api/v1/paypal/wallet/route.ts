@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getApiUserId, handleRouteError, unauthorized } from "@/lib/api";
 import { getSendFundsService } from "@/lib/backend";
 
-/** The shared Sandbox wallet, and what this user can still send today. */
+/** Personal FinPal ledger (funded from the user's PayPal) + sendable today. */
 export async function GET() {
   const userId = await getApiUserId();
   if (!userId) return unauthorized();

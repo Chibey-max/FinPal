@@ -3,11 +3,13 @@ import Link from "next/link";
 import { ShortcutsButton } from "@/components/shortcuts-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DisconnectCalendarButton } from "@/features/calendar/disconnect-calendar-button";
+import { DisconnectPaypalButton } from "@/features/send/disconnect-paypal-button";
 import { requireUser } from "@/lib/auth";
 import {
   getAssistantService,
   getCalendarConnectionService,
   getCalendarEvents,
+  getPaypalConnectionService,
 } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
 
@@ -15,6 +17,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const calendar = await getCalendarEvents(user.id, 1);
   const canConnect = getCalendarConnectionService() !== null;
+  const paypal = await getPaypalConnectionService().status(user.id);
   const mock = isMockMode();
   const ai = getAssistantService();
 
@@ -99,13 +102,20 @@ export default async function SettingsPage() {
           <div>
             <span className="settings-row__title">PayPal</span>
             <span className="small ink3">
-              Sandbox only. You approve each basket in PayPal, and no real money
-              moves.
+              {paypal.needsReconnect
+                ? "PayPal ended this connection. Connect again to top up and send."
+                : paypal.connected
+                  ? `Connected as ${paypal.email}. Top up funds your personal FinPal balance (Sandbox only).`
+                  : "Log in with PayPal so sends use your personal FinPal balance, funded from your Sandbox account."}
             </span>
           </div>
-          <span className="chip" data-tone="info">
-            Sandbox
-          </span>
+          {paypal.connected && !paypal.needsReconnect ? (
+            <DisconnectPaypalButton />
+          ) : (
+            <a href="/api/v1/paypal/connect" className="btn btn-outline btn-sm">
+              {paypal.needsReconnect ? "Reconnect" : "Connect"}
+            </a>
+          )}
         </div>
         <div className="settings-row">
           <div>

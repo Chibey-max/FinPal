@@ -10,7 +10,6 @@ export default async function SendPage() {
   const constraints = await getUserConstraints(user.id);
   const send = getSendFundsService();
 
-  // getWallet soft-fails to balanceStatus UNAVAILABLE when Reporting is off.
   let wallet: WalletSummary | null = null;
   try {
     wallet = await send.getWallet(user.id);
@@ -25,9 +24,9 @@ export default async function SendPage() {
         <div className="page-head__text">
           <h1>Send</h1>
           <p>
-            Pay someone from the PayPal Sandbox wallet. Demo emails become
-            Unclaimed (no PayPal account). Use a Sandbox personal account email
-            for a claimed Success.
+            Connect PayPal, top up your personal FinPal balance, then send.
+            Demo recipient emails often stay Unclaimed; use a Sandbox personal
+            account email for Success.
           </p>
         </div>
       </div>

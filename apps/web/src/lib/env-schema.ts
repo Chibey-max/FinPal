@@ -38,7 +38,7 @@ export const serverEnvSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /**
    * Send limits, in the wallet's currency, while every user pays from one
-   * shared Sandbox wallet. Unset uses the backend defaults (250 and 1000).
+   * personal FinPal balances. Unset uses the backend defaults (250 and 1000).
    */
   SEND_DAILY_LIMIT_PER_USER: z.coerce.number().positive().optional(),
   SEND_DAILY_LIMIT_TOTAL: z.coerce.number().positive().optional(),

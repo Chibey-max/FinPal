@@ -329,18 +329,18 @@ function AgentConsoleView({
         return;
       }
       const sendable = formatMoney(next.sendableToday, next.currency);
-      if (next.balanceStatus === "UNAVAILABLE" || next.available === null) {
+      if (!next.connected || next.available === null) {
         pushAgent(
-          `PayPal's balance isn't available to this Sandbox app, so I can't show the number. You can send up to ${sendable} today; PayPal checks the funds when it pays.`,
+          `Connect your PayPal account in Settings, then top up your FinPal balance before sending. You can send up to ${sendable} today once funded.`,
         );
         return;
       }
       pushAgent(
-        `The shared Sandbox wallet has about ${formatMoney(next.available, next.currency)}. You can send up to ${sendable} today (FinPal allows ${formatMoney(next.dailyLimit, next.currency)} a day per person).`,
+        `Your FinPal balance is ${formatMoney(next.available, next.currency)} (${next.paypalEmail ?? next.accountLabel}). You can send up to ${sendable} today (FinPal allows ${formatMoney(next.dailyLimit, next.currency)} a day).`,
       );
     } catch (caught) {
       setError(errorMessage(caught));
-      pushAgent("I couldn't read the Sandbox balance.");
+      pushAgent("I couldn't read your FinPal balance.");
     } finally {
       setPending(false);
     }
@@ -737,9 +737,9 @@ function AgentConsoleView({
                 {formatMoney(wallet.sendableToday, wallet.currency)}
               </strong>
               <span className="agent-wallet__meta">
-                {wallet.available !== null
-                  ? `About ${formatMoney(wallet.available, wallet.currency)} in the shared ${wallet.accountLabel} wallet`
-                  : `${wallet.accountLabel} · balance unavailable`}
+                {wallet.connected && wallet.available !== null
+                  ? `${formatMoney(wallet.available, wallet.currency)} FinPal balance · ${wallet.paypalEmail ?? wallet.accountLabel}`
+                  : "Connect PayPal to fund your FinPal balance"}
               </span>
             </div>
           ) : null}

@@ -6,11 +6,16 @@ import {
   createComparableOffersService,
   createDecisionDetailService,
   createEvaluationService,
+  createMemoryPaypalConnectionRepository,
   createMemorySendDraftRepository,
+  createMemoryUserWalletRepository,
   createPaymentService,
+  createPaypalConnectionService,
   createQualityScoreService,
   createReviewDecisionService,
   createSendFundsService,
+  createWalletTopUpService,
+  seedMemoryWallet,
   withSends,
   type CalendarClient,
 } from "@finpal/backend";
@@ -71,14 +76,46 @@ const review = createReviewDecisionService({
   audit,
 });
 
+const paypalConnections = createMemoryPaypalConnectionRepository();
+const userWallets = createMemoryUserWalletRepository();
+
+const paypalConnectionService = createPaypalConnectionService({
+  connections: paypalConnections,
+  clientId: "mock-client",
+  clientSecret: "mock-secret",
+  apiBaseUrl: "https://api-m.sandbox.paypal.com",
+  redirectUri: "http://localhost:3000/api/v1/paypal/connect/callback",
+});
+
+const walletTopUp = createWalletTopUpService({
+  paypal,
+  connections: paypalConnections,
+  wallets: userWallets,
+  audit,
+  returnUrl: "http://localhost:3000/api/v1/paypal/wallet/top-up/return",
+  cancelUrl: "http://localhost:3000/app/send?topup=cancelled",
+  mockCheckout: true,
+});
+
 const send = createSendFundsService({
   paypal,
   constraints: repo.constraints,
   spend,
   sends,
   audit,
-  accountLabel: "Sandbox business",
+  connections: paypalConnections,
+  wallets: userWallets,
+  accountLabel: "FinPal balance",
 });
+
+/** Demo user starts connected with a funded personal ledger. */
+const mockPaypalReady = (async () => {
+  await paypalConnectionService.connectMock(MOCK_USER.id, {
+    email: "demo@finpal.dev",
+    payerId: "MOCKPAYERDEMO",
+  });
+  await seedMemoryWallet(userWallets, MOCK_USER.id, 1240);
+})();
 
 // The coming week's events, through the backend's own calendar use case.
 const calendarClient: CalendarClient = {
@@ -213,6 +250,8 @@ async function seed() {
     sourceEventId: "evt_camera_walk",
   });
 
+  await mockPaypalReady;
+
   store.pinnedNow = null;
 }
 
@@ -231,16 +270,16 @@ export function describeConstraints(constraints: SpendingConstraints) {
 
 // Versioned with the store key in store.ts.
 const globalSeed = globalThis as typeof globalThis & {
-  __finpalMockSeedV4?: Promise<void>;
+  __finpalMockSeedV5?: Promise<void>;
 };
 
 export function ensureSeeded() {
-  globalSeed.__finpalMockSeedV4 ??= seed().catch((error) => {
-    globalSeed.__finpalMockSeedV4 = undefined;
+  globalSeed.__finpalMockSeedV5 ??= seed().catch((error) => {
+    globalSeed.__finpalMockSeedV5 = undefined;
     getStore().pinnedNow = null;
     throw error;
   });
-  return globalSeed.__finpalMockSeedV4;
+  return globalSeed.__finpalMockSeedV5;
 }
 
 /** Wraps every method so it waits for the seed before touching the store. */
@@ -270,6 +309,8 @@ export const mockBackend = {
   review: seeded(review),
   calendar: seeded(calendar),
   send: seeded(send),
+  paypalConnections: seeded(paypalConnectionService),
+  walletTopUp: seeded(walletTopUp),
 };
 
 /** Simulated KERNEL result for a proposal (mock mode only). */

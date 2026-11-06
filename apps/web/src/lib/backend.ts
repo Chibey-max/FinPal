@@ -22,7 +22,11 @@ import {
   createQualityScoreService,
   createReviewDecisionService,
   createSendFundsService,
+  createPaypalConnectionService,
+  createWalletTopUpService,
   createSupabaseSendDraftRepository,
+  createSupabasePaypalConnectionRepository,
+  createSupabaseUserWalletRepository,
   withSends,
   createSupabaseAuditEventRepository,
   createSupabaseCalendarConnectionRepository,
@@ -47,6 +51,8 @@ import {
   type ReviewDecisionService,
   type CommittedSpend,
   type SendFundsService,
+  type PaypalConnectionService,
+  type WalletTopUpService,
 } from "@finpal/backend";
 import type {
   CalendarEventsPage,
@@ -79,6 +85,8 @@ let reviewService: ReviewDecisionService | undefined;
 let webhookService: PaypalWebhookService | undefined;
 let assistantService: AssistantService | undefined;
 let sendFundsService: SendFundsService | undefined;
+let paypalConnectionService: PaypalConnectionService | undefined;
+let walletTopUpService: WalletTopUpService | undefined;
 let committedSpend: CommittedSpend | undefined;
 let paypalClient: ReturnType<typeof createPayPalHttpClient> | undefined;
 
@@ -167,7 +175,41 @@ export function getCommittedSpend(): CommittedSpend {
   return committedSpend;
 }
 
-/** Agent Send: Sandbox wallet + Payouts after human Approve & pay. */
+/** Log in with PayPal — identity for personal FinPal balance. */
+export function getPaypalConnectionService(): PaypalConnectionService {
+  if (isMockMode()) return mockBackend.paypalConnections;
+  if (paypalConnectionService) return paypalConnectionService;
+  const serverEnv = getServerEnv();
+  const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
+  paypalConnectionService = createPaypalConnectionService({
+    connections: createSupabasePaypalConnectionRepository(getServiceDb()),
+    clientId: serverEnv.PAYPAL_CLIENT_ID,
+    clientSecret: serverEnv.PAYPAL_CLIENT_SECRET,
+    apiBaseUrl: serverEnv.PAYPAL_API_BASE_URL,
+    redirectUri: `${appUrl}/api/v1/paypal/connect/callback`,
+    onError: (error) => console.error("PayPal Connect failed", error),
+  });
+  return paypalConnectionService;
+}
+
+/** Top up personal FinPal ledger via Sandbox Checkout. */
+export function getWalletTopUpService(): WalletTopUpService {
+  if (isMockMode()) return mockBackend.walletTopUp;
+  if (walletTopUpService) return walletTopUpService;
+  const db = getServiceDb();
+  const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
+  walletTopUpService = createWalletTopUpService({
+    paypal: getPayPalClient(),
+    connections: createSupabasePaypalConnectionRepository(db),
+    wallets: createSupabaseUserWalletRepository(db),
+    audit: getServiceAuditLog(),
+    returnUrl: `${appUrl}/api/v1/paypal/wallet/top-up/return`,
+    cancelUrl: `${appUrl}/app/send?topup=cancelled`,
+  });
+  return walletTopUpService;
+}
+
+/** Agent Send: personal ledger + Payouts after human Approve & pay. */
 export function getSendFundsService(): SendFundsService {
   if (isMockMode()) return mockBackend.send;
   if (sendFundsService) return sendFundsService;
@@ -179,11 +221,13 @@ export function getSendFundsService(): SendFundsService {
     spend: getCommittedSpend(),
     sends: createSupabaseSendDraftRepository(db),
     audit: getServiceAuditLog(),
+    connections: createSupabasePaypalConnectionRepository(db),
+    wallets: createSupabaseUserWalletRepository(db),
     limits: {
       perUserDaily: serverEnv.SEND_DAILY_LIMIT_PER_USER,
       totalDaily: serverEnv.SEND_DAILY_LIMIT_TOTAL,
     },
-    accountLabel: "PayPal Sandbox",
+    accountLabel: "FinPal balance",
   });
   return sendFundsService;
 }

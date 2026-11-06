@@ -80,9 +80,12 @@ export function SendFundsPanel({
   );
   const [history, setHistory] = useState(initialSends);
   const [pending, setPending] = useState(false);
+  const [toppingUp, setToppingUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("50.00");
   const [error, setError] = useState<string | null>(null);
 
   const problem = validate(amount, recipientEmail);
+  const connected = wallet?.connected === true;
 
   async function refreshWallet() {
     try {
@@ -114,6 +117,10 @@ export function SendFundsPanel({
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!connected) {
+      setError("Connect your PayPal account before sending.");
+      return;
+    }
     const message = validate(amount, recipientEmail);
     if (message || pending) {
       setError(message);
@@ -143,6 +150,36 @@ export function SendFundsPanel({
     }
   }
 
+  async function onTopUp() {
+    if (!connected || toppingUp) return;
+    const value = Number(topUpAmount);
+    if (!Number.isFinite(value) || value < 1) {
+      setError("Enter a top-up of at least $1.00.");
+      return;
+    }
+    setToppingUp(true);
+    setError(null);
+    try {
+      const session = await apiRequest<{
+        approveUrl: string | null;
+        orderId: string;
+      }>("/api/v1/paypal/wallet/top-up", {
+        body: { amount: value, currency: "USD" },
+      });
+      if (session.approveUrl) {
+        window.location.href = session.approveUrl;
+        return;
+      }
+      // Mock mode credits immediately.
+      await refreshWallet();
+      startTransition(() => router.refresh());
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setToppingUp(false);
+    }
+  }
+
   return (
     <div className="send-layout">
       <section className="card send-compose stack-md">
@@ -156,20 +193,57 @@ export function SendFundsPanel({
             </p>
             <p className="small ink3">
               {!wallet
-                ? "Couldn’t reach PayPal right now."
-                : wallet.available !== null
-                  ? `About ${formatMoney(wallet.available, wallet.currency)} in the shared ${wallet.accountLabel} wallet. Everyone sends from it, so each person can send up to ${formatMoney(wallet.dailyLimit, wallet.currency)} a day.`
-                  : `${wallet.accountLabel} · PayPal's balance isn't available to this app, so PayPal checks the funds when it pays. Up to ${formatMoney(wallet.dailyLimit, wallet.currency)} a day per person.`}
+                ? "Couldn’t reach your FinPal balance right now."
+                : !wallet.connected
+                  ? "Connect PayPal, then top up your personal FinPal balance from your Sandbox account."
+                  : wallet.available !== null
+                    ? `${formatMoney(wallet.available, wallet.currency)} in your FinPal balance (${wallet.paypalEmail ?? wallet.accountLabel}). Up to ${formatMoney(wallet.dailyLimit, wallet.currency)} a day.`
+                    : "Connect PayPal to fund your FinPal balance."}
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            onClick={() => void refreshWallet()}
-          >
-            Refresh
-          </button>
+          <div className="stack-sm" style={{ alignItems: "flex-end" }}>
+            {!connected ? (
+              <a href="/api/v1/paypal/connect" className="btn btn-outline btn-sm">
+                Connect PayPal
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => void refreshWallet()}
+              >
+                Refresh
+              </button>
+            )}
+          </div>
         </div>
+
+        {connected ? (
+          <div className="field-grid">
+            <label className="field">
+              <span>Top up (USD)</span>
+              <input
+                className="input input--inset mono"
+                inputMode="decimal"
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                placeholder="50.00"
+                autoComplete="off"
+                disabled={toppingUp}
+              />
+            </label>
+            <div className="form-actions" style={{ alignItems: "flex-end" }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                disabled={toppingUp}
+                onClick={() => void onTopUp()}
+              >
+                {toppingUp ? "Starting…" : "Top up from PayPal"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <form className="stack-md" onSubmit={onSubmit} noValidate>
           <div className="field-grid">
@@ -182,7 +256,7 @@ export function SendFundsPanel({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="40.00"
                 autoComplete="off"
-                disabled={pending}
+                disabled={pending || !connected}
               />
             </label>
             <label className="field">
@@ -194,7 +268,7 @@ export function SendFundsPanel({
                 onChange={(e) => setRecipientEmail(e.target.value)}
                 placeholder="name@email.com"
                 autoComplete="off"
-                disabled={pending}
+                disabled={pending || !connected}
               />
             </label>
           </div>
@@ -207,7 +281,7 @@ export function SendFundsPanel({
               onChange={(e) => setMemo(e.target.value)}
               placeholder="Birthday, rent share…"
               maxLength={200}
-              disabled={pending}
+              disabled={pending || !connected}
             />
           </label>
 
@@ -217,7 +291,7 @@ export function SendFundsPanel({
                 key={preset.email}
                 type="button"
                 className="preset"
-                disabled={pending}
+                disabled={pending || !connected}
                 onClick={() => setRecipientEmail(preset.email)}
               >
                 {preset.label}
@@ -236,12 +310,12 @@ export function SendFundsPanel({
               type="submit"
               size="xl"
               className="rounded-full text-[15px]"
-              disabled={pending || problem !== null}
+              disabled={pending || !connected || problem !== null}
             >
               {pending ? "Checking…" : "Review send"}
             </LiquidButton>
             <span className="small ink4">
-              Nothing leaves the wallet until you Approve &amp; pay.
+              Debits your FinPal balance only after you Approve &amp; pay.
             </span>
           </div>
         </form>
@@ -262,8 +336,9 @@ export function SendFundsPanel({
         ) : (
           <div className="empty-panel empty-panel--left">
             <p>
-              Fill in amount and recipient, then review. Sends use PayPal
-              Payouts from the Sandbox business wallet.
+              Connect PayPal, top up your personal FinPal balance, then send.
+              Payouts settle to the recipient from FinPal&apos;s Sandbox merchant
+              after you approve.
             </p>
           </div>
         )}

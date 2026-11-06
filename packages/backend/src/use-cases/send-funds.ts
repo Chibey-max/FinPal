@@ -28,8 +28,9 @@ import type { CommittedSpend } from "../services/committed-spend";
 import { formatMoney } from "./agent-support";
 
 /**
- * Every FinPal user sends from one shared PayPal Sandbox business account,
- * so FinPal limits sends itself: per person, and for everyone together.
+ * Sends debit each user's personal FinPal ledger (funded via PayPal Checkout).
+ * Merchant Payouts still settle to the recipient. FinPal also caps per person
+ * and total daily volume as a safety valve on the merchant pot.
  */
 export interface SendLimits {
   /** Most one person may send per day, in their timezone. */
@@ -50,8 +51,10 @@ export interface SendFundsServiceDeps {
   spend: CommittedSpend;
   sends: SendDraftRepository;
   audit: Pick<AuditLog, "record">;
+  connections: import("../repositories/paypal-connection-repository").PaypalConnectionRepository;
+  wallets: import("../repositories/user-wallet-repository").UserWalletRepository;
   limits?: Partial<SendLimits>;
-  /** Short public label for the Sandbox merchant wallet. */
+  /** Fallback label when PayPal isn't connected. */
   accountLabel?: string;
   now?: () => Date;
 }
@@ -166,7 +169,6 @@ function asPayPalError(error: unknown): PayPalApiError | null {
 }
 
 const cents = (amount: number) => Math.round(amount * 100);
-const DAY_MS = 86_400_000;
 
 function publicDraft(row: StoredSendDraft): SendDraft {
   return {
@@ -190,7 +192,7 @@ function publicDraft(row: StoredSendDraft): SendDraft {
 
 export function createSendFundsService(deps: SendFundsServiceDeps) {
   const now = deps.now ?? (() => new Date());
-  const accountLabel = deps.accountLabel ?? "PayPal Sandbox";
+  const accountLabel = deps.accountLabel ?? "FinPal balance";
   // An unset setting arrives as undefined; it must not replace a default.
   const limits: SendLimits = {
     perUserDaily: deps.limits?.perUserDaily ?? DEFAULT_SEND_LIMITS.perUserDaily,
@@ -255,30 +257,6 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
     }
   }
 
-  /** The shared wallet's balance as PayPal reports it, possibly hours old. */
-  async function readBalance() {
-    try {
-      const balances = await deps.paypal.getBalances();
-      return {
-        available: balances.available as number | null,
-        currency: balances.currency,
-        asOf: balances.asOf,
-      };
-    } catch (error) {
-      const paypalError = asPayPalError(error);
-      if (
-        paypalError &&
-        (paypalError.status === 403 ||
-          paypalError.issue === "NOT_AUTHORIZED" ||
-          paypalError.issue === "PERMISSION_DENIED")
-      ) {
-        // The app lacks Reporting permission; Payouts still work.
-        return { available: null, currency: "USD", asOf: now().toISOString() };
-      }
-      throw error;
-    }
-  }
-
   /** What's left of FinPal's own send limits today. */
   async function limitsLeft(
     userId: string,
@@ -330,40 +308,44 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
   }
 
   async function getWallet(userId: string): Promise<WalletSummary> {
-    const balance = await readBalance();
     const at = now();
+    const connection = await deps.connections.get(userId);
     const constraints = await deps.constraints.get(userId);
-    let available: number | null = null;
-    if (balance.available !== null) {
-      // PayPal's balance can be up to 3 hours old: take off what has been
-      // sent from the wallet since PayPal last refreshed it.
-      const refreshed = new Date(balance.asOf);
-      const since = Number.isNaN(refreshed.getTime()) ? at : refreshed;
-      const sentSince = await deps.sends.sumCommitted(
-        null,
-        balance.currency,
-        since,
-        new Date(at.getTime() + DAY_MS),
-      );
-      available =
-        Math.max(0, cents(balance.available) - cents(sentSince)) / 100;
+    const currency = "USD";
+
+    if (!connection || connection.needsReconnect) {
+      return {
+        available: null,
+        currency,
+        asOf: at.toISOString(),
+        accountLabel,
+        balanceStatus: "DISCONNECTED",
+        connected: false,
+        paypalEmail: null,
+        sendableToday: 0,
+        dailyLimit: limits.perUserDaily,
+      };
     }
+
+    const wallet = await deps.wallets.ensureWallet(userId, currency);
     const [left, rulesLeft] = await Promise.all([
-      limitsLeft(userId, balance.currency, at, constraints?.timezone ?? "UTC"),
-      capsLeft(userId, balance.currency, at, constraints),
+      limitsLeft(userId, currency, at, constraints?.timezone ?? "UTC"),
+      capsLeft(userId, currency, at, constraints),
     ]);
+    const available = wallet.available;
     return {
       available,
-      currency: balance.currency,
-      asOf: balance.asOf,
-      accountLabel,
-      balanceStatus: balance.available === null ? "UNAVAILABLE" : "LIVE",
-      // Everything that could stop a send today, except allowed hours.
+      currency,
+      asOf: wallet.updatedAt,
+      accountLabel: connection.email,
+      balanceStatus: "LIVE",
+      connected: true,
+      paypalEmail: connection.email,
       sendableToday: Math.min(
         left.perUser,
         left.total,
         rulesLeft,
-        available ?? Number.POSITIVE_INFINITY,
+        available,
       ),
       dailyLimit: limits.perUserDaily,
     };
@@ -394,35 +376,35 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
       at,
       constraints?.timezone ?? "UTC",
     );
+    if (!wallet.connected || wallet.balanceStatus === "DISCONNECTED") {
+      return block(
+        "Connect your PayPal account and top up your FinPal balance before sending.",
+      );
+    }
     if (cents(amount) > cents(left.perUser)) {
       return block(
-        `Everyone sends from one shared Sandbox wallet, so FinPal allows ${money(limits.perUserDaily)} of sends per person a day. You have ${money(left.perUser)} left today.`,
+        `FinPal allows ${money(limits.perUserDaily)} of sends per person a day. You have ${money(left.perUser)} left today.`,
       );
     }
     if (cents(amount) > cents(left.total)) {
       return block(
-        `The shared Sandbox wallet has reached FinPal's daily total for all users (${money(limits.totalDaily)}); ${money(left.total)} is left today. Try again tomorrow.`,
+        `FinPal's daily send total for all users (${money(limits.totalDaily)}) is reached; ${money(left.total)} is left today. Try again tomorrow.`,
       );
     }
-    if (wallet.available !== null && cents(amount) > cents(wallet.available)) {
+    if (wallet.available === null || cents(amount) > cents(wallet.available)) {
       return block(
-        `Not enough in the Sandbox wallet: about ${money(wallet.available)} is available. PayPal's balance can be up to 3 hours old, so this is an estimate.`,
+        `Not enough in your FinPal balance: ${money(wallet.available ?? 0)} available. Top up from your PayPal account first.`,
       );
     }
 
     const balanceAfterSend =
-      wallet.available === null
-        ? null
-        : (cents(wallet.available) - cents(amount)) / 100;
-    const balanceNote =
-      wallet.available === null
-        ? " PayPal's balance isn't available to this app, so PayPal checks the funds when it pays."
-        : "";
+      (cents(wallet.available) - cents(amount)) / 100;
 
     if (!constraints) {
       return {
         ruleOutcome: "MANUAL_REVIEW",
-        ruleReason: `No spending rules saved yet. Approve to send from the Sandbox wallet.${balanceNote}`,
+        ruleReason:
+          "No spending rules saved yet. Approve to send from your FinPal balance (funded from your PayPal).",
         balanceAfterSend,
       };
     }
@@ -466,9 +448,7 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
     return {
       ruleOutcome: "MANUAL_REVIEW",
       ruleReason:
-        wallet.available === null
-          ? `Within your rules. Approve to pay with PayPal Payouts.${balanceNote}`
-          : "Within your rules and the Sandbox balance. Approve to pay with PayPal Payouts.",
+        "Within your rules and your FinPal balance. Approve to pay with PayPal Payouts.",
       balanceAfterSend,
     };
   }
@@ -508,10 +488,16 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
     }
 
     const wallet = await getWallet(userId);
+    if (!wallet.connected) {
+      throw new SendError(
+        "PAYPAL_NOT_CONNECTED",
+        "Connect your PayPal account before sending.",
+      );
+    }
     if (currency !== wallet.currency.toUpperCase()) {
       throw new SendError(
         "SEND_PARSE_FAILED",
-        `Sends must be in ${wallet.currency}, the Sandbox wallet's currency.`,
+        `Sends must be in ${wallet.currency}.`,
       );
     }
 
@@ -588,8 +574,30 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
         payoutStatus: settled.payoutStatus,
       };
       if (settled.status === "SENT") {
+        await deps.wallets
+          .captureSendHold({
+            userId: settled.userId,
+            amount: settled.amount,
+            currency: settled.currency,
+            sendDraftId: settled.id,
+            entryId: randomUUID(),
+          })
+          .catch((error) =>
+            console.error("send ledger capture failed", settled.id, error),
+          );
         await record(settled, "SEND_SENT", { ...facts, memo: settled.memo });
-      } else {
+      } else if (settled.status === "FAILED") {
+        await deps.wallets
+          .releaseSendHold({
+            userId: settled.userId,
+            amount: settled.amount,
+            currency: settled.currency,
+            sendDraftId: settled.id,
+            entryId: randomUUID(),
+          })
+          .catch((error) =>
+            console.error("send ledger release failed", settled.id, error),
+          );
         await record(settled, "SEND_FAILED", facts);
       }
     }
@@ -688,7 +696,7 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
       );
     }
 
-    // PayPal refused it outright, so nothing was paid.
+    // PayPal refused it outright, so nothing was paid — release the hold.
     const failed: StoredSendDraft = {
       ...row,
       status: "FAILED",
@@ -697,6 +705,17 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
       updatedAt: now().toISOString(),
     };
     await deps.sends.save(failed);
+    await deps.wallets
+      .releaseSendHold({
+        userId: failed.userId,
+        amount: failed.amount,
+        currency: failed.currency,
+        sendDraftId: failed.id,
+        entryId: randomUUID(),
+      })
+      .catch((releaseError) =>
+        console.error("send ledger release failed", failed.id, releaseError),
+      );
     await record(failed, "SEND_FAILED", {
       reason: error.issue ?? "PAYPAL_DECLINED",
       httpStatus: error.status,
@@ -704,7 +723,7 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
     if (error.issue === "INSUFFICIENT_FUNDS") {
       throw new SendError(
         "INSUFFICIENT_BALANCE",
-        "PayPal says the Sandbox wallet doesn't have enough money for this send. Nothing was sent.",
+        "PayPal couldn't fund this payout from the merchant account. Your FinPal balance was restored. Nothing was sent.",
         details,
       );
     }
@@ -775,8 +794,32 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
           throw new SendError("SEND_NOT_APPROVABLE", rules.ruleReason);
         }
       } else {
-        // Only one approval can move the draft to PAYING, and its key is
-        // stored before PayPal is called, so a retry reuses it.
+        // Hold ledger funds before marking PAYING so concurrent sends cannot
+        // overdraw. Only one approval can claim the draft.
+        let heldNow = false;
+        try {
+          const hold = await deps.wallets.holdForSend({
+            userId,
+            amount: row.amount,
+            currency: row.currency,
+            sendDraftId: row.id,
+            entryId: randomUUID(),
+          });
+          heldNow = hold.held;
+        } catch (error) {
+          if (
+            error &&
+            typeof error === "object" &&
+            (error as { code?: string }).code === "INSUFFICIENT_BALANCE"
+          ) {
+            throw new SendError(
+              "INSUFFICIENT_BALANCE",
+              "Not enough in your FinPal balance to approve this send.",
+            );
+          }
+          throw error;
+        }
+
         const claimed = await deps.sends.updateIfStatus(
           userId,
           row.id,
@@ -793,6 +836,15 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
             amount: row.amount,
             currency: row.currency,
             recipientEmail: row.recipientEmail,
+          });
+        } else if (heldNow) {
+          // We created the hold but lost the draft race — put funds back.
+          await deps.wallets.releaseSendHold({
+            userId,
+            amount: row.amount,
+            currency: row.currency,
+            sendDraftId: row.id,
+            entryId: randomUUID(),
           });
         }
       }

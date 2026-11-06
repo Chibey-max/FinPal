@@ -7,7 +7,12 @@ import {
   type PayPalClient,
   type PayPalPayout,
 } from "../../src/integrations/paypal/paypal-client";
+import { createMemoryPaypalConnectionRepository } from "../../src/repositories/memory-paypal-connection-repository";
 import { createMemorySendDraftRepository } from "../../src/repositories/memory-send-draft-repository";
+import {
+  createMemoryUserWalletRepository,
+  seedMemoryWallet,
+} from "../../src/repositories/memory-user-wallet-repository";
 import { withSends } from "../../src/services/committed-spend";
 import {
   createSendFundsService,
@@ -136,15 +141,32 @@ const caps = (daily?: number): SpendingConstraints => ({
   amountCaps: { perPurchase: 1000, daily },
 });
 
-function setup(
+async function connectAndFund(
+  connections: ReturnType<typeof createMemoryPaypalConnectionRepository>,
+  wallets: ReturnType<typeof createMemoryUserWalletRepository>,
+  userId: string,
+  balance = 1000,
+) {
+  await connections.save(userId, {
+    refreshTokenEncrypted: `enc-${userId}`,
+    payerId: `PAYER-${userId.slice(-4)}`,
+    email: `${userId.slice(-4)}@sandbox.test`,
+  });
+  await seedMemoryWallet(wallets, userId, balance);
+}
+
+async function setup(
   options: {
     constraints?: SpendingConstraints | null;
     limits?: Partial<SendLimits>;
+    balance?: number;
   } = {},
 ) {
   const sends = createMemorySendDraftRepository();
   const audit = createInMemoryAudit();
   const paypal = createPayPal();
+  const connections = createMemoryPaypalConnectionRepository();
+  const wallets = createMemoryUserWalletRepository();
   const purchases = { total: 0 };
   let constraints = options.constraints ?? null;
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
@@ -155,9 +177,14 @@ function setup(
     spend,
     sends,
     audit: audit.log,
+    connections,
+    wallets,
     limits: options.limits,
     now: () => clock.now,
   });
+  const balance = options.balance ?? 1000;
+  await connectAndFund(connections, wallets, USER, balance);
+  await connectAndFund(connections, wallets, OTHER, balance);
   const draft = (message = "Send $40 to mom@example.com for her birthday") =>
     service.createDraft(USER, { message });
   return {
@@ -165,6 +192,8 @@ function setup(
     sends,
     audit,
     paypal,
+    connections,
+    wallets,
     purchases,
     spend,
     clock,
@@ -238,7 +267,7 @@ describe("mapPayoutStatus", () => {
 
 describe("approve", () => {
   it("pays once, with one batch id per draft", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     const sent = await t.service.approve(USER, draft.id, KEY);
     expect(sent).toMatchObject({ status: "SENT", payoutStatus: "SUCCESS" });
@@ -256,7 +285,7 @@ describe("approve", () => {
   });
 
   it("finishes a payout whose answer was lost, without paying twice", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     t.paypal.loseNextResponse();
     await expect(t.service.approve(USER, draft.id, KEY)).rejects.toEqual(
@@ -282,7 +311,7 @@ describe("approve", () => {
   });
 
   it("lets only one of two simultaneous approvals pay", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     const results = await Promise.all([
       t.service.approve(USER, draft.id, "send_key_tab_one"),
@@ -297,7 +326,7 @@ describe("approve", () => {
   });
 
   it("follows PayPal's original payout when the batch already exists", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     // An earlier attempt reached PayPal under another request id.
     await t.paypal.alreadyPaid({
@@ -313,7 +342,7 @@ describe("approve", () => {
   });
 
   it("checks the rules again at approval", async () => {
-    const t = setup({ constraints: caps(100) });
+    const t = await setup({ constraints: caps(100) });
     const draft = await t.draft("Send $80 to mom@example.com");
     expect(draft.ruleOutcome).toBe("MANUAL_REVIEW");
     // A purchase since the draft leaves only $50 of today's cap.
@@ -329,7 +358,7 @@ describe("approve", () => {
   });
 
   it("marks a send failed when PayPal refuses it outright", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     t.paypal.failNext(
       new PayPalApiError("Not enough money.", 422, "INSUFFICIENT_FUNDS"),
@@ -344,7 +373,7 @@ describe("approve", () => {
   });
 
   it("fails a denied batch that has no items", async () => {
-    const t = setup();
+    const t = await setup();
     t.paypal.setItemStatus(null);
     t.paypal.setBatchStatus("DENIED");
     const draft = await t.draft();
@@ -355,7 +384,7 @@ describe("approve", () => {
   });
 
   it("keeps PayPal's reason when a payout fails after it was sent", async () => {
-    const t = setup();
+    const t = await setup();
     t.paypal.setItemStatus("PENDING");
     const draft = await t.draft();
     expect(await t.service.approve(USER, draft.id, KEY)).toMatchObject({
@@ -379,7 +408,7 @@ describe("approve", () => {
   });
 
   it("does not count a reversed payout as spent", async () => {
-    const t = setup();
+    const t = await setup();
     t.paypal.setItemStatus("REVERSED");
     const draft = await t.draft();
     expect(await t.service.approve(USER, draft.id, KEY)).toMatchObject({
@@ -401,7 +430,7 @@ describe("limits and caps", () => {
   ] as const;
 
   it("counts sends against the caps purchases use, and the other way round", async () => {
-    const t = setup();
+    const t = await setup();
     const draft = await t.draft();
     await t.service.approve(USER, draft.id, KEY);
     t.purchases.total = 10;
@@ -410,7 +439,7 @@ describe("limits and caps", () => {
 
   it("uses the default limits when a setting is unset", async () => {
     // Unset environment settings arrive as undefined.
-    const t = setup({
+    const t = await setup({
       limits: { perUserDaily: undefined, totalDaily: undefined },
     });
     const wallet = await t.service.getWallet(USER);
@@ -420,13 +449,13 @@ describe("limits and caps", () => {
   });
 
   it("includes the user's own caps in what they can send today", async () => {
-    const t = setup({ constraints: caps(100) });
+    const t = await setup({ constraints: caps(100) });
     t.purchases.total = 30;
     expect((await t.service.getWallet(USER)).sendableToday).toBe(70);
   });
 
-  it("limits what one person can send from the shared wallet", async () => {
-    const t = setup({ limits: { perUserDaily: 50 } });
+  it("limits what one person can send per day", async () => {
+    const t = await setup({ limits: { perUserDaily: 50 } });
     const first = await t.draft("Send $40 to mom@example.com");
     await t.service.approve(USER, first.id, KEY);
     const second = await t.draft("Send $20 to dad@example.com");
@@ -435,29 +464,39 @@ describe("limits and caps", () => {
   });
 
   it("limits what everyone together can send", async () => {
-    const t = setup({ limits: { totalDaily: 100 } });
+    const t = await setup({ limits: { totalDaily: 100 } });
+    
     const theirs = await t.service.createDraft(OTHER, {
       message: "Send $90 to friend@example.com",
     });
     await t.service.approve(OTHER, theirs.id, "send_key_other_user");
     const mine = await t.draft("Send $20 to mom@example.com");
     expect(mine.ruleOutcome).toBe("BLOCK");
-    expect(mine.ruleReason).toMatch(/daily total for all users/);
+    expect(mine.ruleReason).toMatch(/daily send total for all users/);
   });
 
-  it("estimates the balance from PayPal's figure minus later sends", async () => {
-    const t = setup();
+  it("debits the personal FinPal ledger on a successful send", async () => {
+    const t = await setup();
     const draft = await t.draft();
     await t.service.approve(USER, draft.id, KEY);
     const wallet = await t.service.getWallet(USER);
-    // PayPal's $1,000 is from 09:00; the $40 left at 12:00.
     expect(wallet.available).toBe(960);
+    expect(wallet.connected).toBe(true);
+    expect(wallet.balanceStatus).toBe("LIVE");
     expect(wallet.sendableToday).toBe(210);
-    expect(wallet.asOf).toBe("2026-11-05T09:00:00Z");
+  });
+
+  it("blocks send when PayPal is not connected", async () => {
+    const t = await setup();
+    
+    await t.connections.remove(USER);
+    await expect(t.service.createDraft(USER, { message: "Send $10 to a@b.co" })).rejects.toEqual(
+      sendCode("PAYPAL_NOT_CONNECTED"),
+    );
   });
 
   it("counts a send on the day it left, however late it is refreshed", async () => {
-    const t = setup();
+    const t = await setup();
     t.paypal.setItemStatus("PENDING");
     const draft = await t.draft();
     await t.service.approve(USER, draft.id, KEY);
