@@ -190,5 +190,24 @@ export function createWalletTopUpService(deps: WalletTopUpDeps) {
     });
   }
 
-  return { start, complete, cancel };
+  /**
+   * PayPal return URL may hit a tunnel host without the FinPal session.
+   * Resolve the owner from the stored pending top-up (created only after
+   * an authenticated start).
+   */
+  async function completeFromReturn(
+    orderId: string,
+    sessionUserId?: string | null,
+  ): Promise<{ available: number; credited: boolean }> {
+    const topUp = await deps.wallets.findTopUpByOrderId(orderId);
+    if (!topUp) {
+      throw new SendError("SEND_NOT_FOUND", "Top-up not found.");
+    }
+    if (sessionUserId && sessionUserId !== topUp.userId) {
+      throw new SendError("SEND_NOT_FOUND", "Top-up not found.");
+    }
+    return complete(topUp.userId, orderId);
+  }
+
+  return { start, complete, completeFromReturn, cancel };
 }

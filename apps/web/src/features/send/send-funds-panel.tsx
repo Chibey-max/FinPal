@@ -195,15 +195,18 @@ export function SendFundsPanel({
               {!wallet
                 ? "Couldn’t reach your FinPal balance right now."
                 : !wallet.connected
-                  ? "Connect PayPal, then top up your personal FinPal balance from your Sandbox account."
+                  ? "Connect PayPal, then top up your personal FinPal ledger from Sandbox Checkout."
                   : wallet.available !== null
-                    ? `${formatMoney(wallet.available, wallet.currency)} in your FinPal balance (${wallet.paypalEmail ?? wallet.accountLabel}). Up to ${formatMoney(wallet.dailyLimit, wallet.currency)} a day.`
-                    : "Connect PayPal to fund your FinPal balance."}
+                    ? `${formatMoney(wallet.available, wallet.currency)} in your FinPal ledger (${wallet.paypalEmail ?? wallet.accountLabel}). Daily send cap ${formatMoney(wallet.dailyLimit, wallet.currency)}. Payouts leave FinPal’s Sandbox merchant, not your PayPal cash.`
+                    : "Connect PayPal to fund your FinPal ledger."}
             </p>
           </div>
           <div className="stack-sm" style={{ alignItems: "flex-end" }}>
             {!connected ? (
-              <a href="/api/v1/paypal/connect" className="btn btn-outline btn-sm">
+              <a
+                href="/api/v1/paypal/connect"
+                className="btn btn-outline btn-sm"
+              >
                 Connect PayPal
               </a>
             ) : (
@@ -336,9 +339,10 @@ export function SendFundsPanel({
         ) : (
           <div className="empty-panel empty-panel--left">
             <p>
-              Connect PayPal, top up your personal FinPal balance, then send.
-              Payouts settle to the recipient from FinPal&apos;s Sandbox merchant
-              after you approve.
+              Connect PayPal, top up the FinPal ledger via Checkout, then send.
+              After you approve, Payouts leave FinPal&apos;s Sandbox merchant —
+              not the connected user&apos;s PayPal balance. Use Demo (unclaimed)
+              or a Personal US sandbox email, not a Business account.
             </p>
           </div>
         )}
@@ -361,46 +365,53 @@ export function SendFundsPanel({
           {history.length === 0 ? (
             <p className="small ink3">No sends yet.</p>
           ) : (
-            <div className="send-history__table" role="table">
-              <div className="send-history__thead" role="row">
-                <span>When</span>
-                <span>To</span>
-                <span>Amount</span>
-                <span>Status</span>
-              </div>
-              {history.map((row) => (
-                <button
-                  key={row.id}
-                  type="button"
-                  className="send-history__row"
-                  role="row"
-                  onClick={() => setDraft(row)}
-                >
-                  <span className="small ink3">
-                    {formatWhen(row.updatedAt, timeZone)}
-                  </span>
-                  <span className="send-history__email">
-                    {row.recipientEmail}
-                  </span>
-                  <span className="mono">
-                    {formatMoney(row.amount, row.currency)}
-                  </span>
-                  <span
-                    className="chip"
-                    data-tone={
-                      row.payoutStatus === "FAILED" || row.status === "FAILED"
-                        ? "bad"
-                        : row.payoutStatus === "SUCCESS" ||
-                            row.payoutStatus === "UNCLAIMED"
-                          ? "ok"
-                          : (statusTone[row.status] ?? "warn")
-                    }
-                  >
-                    {statusLabel(row)}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <table className="send-history__table">
+              <thead>
+                <tr className="send-history__thead">
+                  <th>When</th>
+                  <th>To</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((row) => (
+                  <tr key={row.id}>
+                    <td colSpan={4} className="send-history__cell">
+                      <button
+                        type="button"
+                        className="send-history__row"
+                        onClick={() => setDraft(row)}
+                      >
+                        <span className="small ink3">
+                          {formatWhen(row.updatedAt, timeZone)}
+                        </span>
+                        <span className="send-history__email">
+                          {row.recipientEmail}
+                        </span>
+                        <span className="mono">
+                          {formatMoney(row.amount, row.currency)}
+                        </span>
+                        <span
+                          className="chip"
+                          data-tone={
+                            row.payoutStatus === "FAILED" ||
+                            row.status === "FAILED"
+                              ? "bad"
+                              : row.payoutStatus === "SUCCESS" ||
+                                  row.payoutStatus === "UNCLAIMED"
+                                ? "ok"
+                                : (statusTone[row.status] ?? "warn")
+                          }
+                        >
+                          {statusLabel(row)}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </section>
       </div>

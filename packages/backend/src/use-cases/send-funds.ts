@@ -341,12 +341,7 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
       balanceStatus: "LIVE",
       connected: true,
       paypalEmail: connection.email,
-      sendableToday: Math.min(
-        left.perUser,
-        left.total,
-        rulesLeft,
-        available,
-      ),
+      sendableToday: Math.min(left.perUser, left.total, rulesLeft, available),
       dailyLimit: limits.perUserDaily,
     };
   }
@@ -397,8 +392,7 @@ export function createSendFundsService(deps: SendFundsServiceDeps) {
       );
     }
 
-    const balanceAfterSend =
-      (cents(wallet.available) - cents(amount)) / 100;
+    const balanceAfterSend = (cents(wallet.available) - cents(amount)) / 100;
 
     if (!constraints) {
       return {

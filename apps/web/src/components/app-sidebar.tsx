@@ -342,15 +342,17 @@ export function AppSidebar({
             className="side-budget"
             aria-label={
               budget.left
-                ? `${budget.left} left today of ${budget.cap}`
-                : "Set a daily budget"
+                ? `${budget.left} remaining on today’s spending rule of ${budget.cap}`
+                : "Set a daily spending rule"
             }
             data-tip={
-              budget.left ? `${budget.left} left today` : "Set a budget"
+              budget.left
+                ? `${budget.left} left on today’s rule`
+                : "Set a daily rule"
             }
           >
             <span className="side-budget__full">
-              <span className="side__label">Left today</span>
+              <span className="side__label">Rules left today</span>
               {budget.left ? (
                 <>
                   <strong className="mono">{budget.left}</strong>
@@ -360,10 +362,10 @@ export function AppSidebar({
                   >
                     <i style={{ width: `${budget.percentLeft}%` }} />
                   </span>
-                  <span className="small ink4">of {budget.cap} a day</span>
+                  <span className="small ink4">daily cap {budget.cap}</span>
                 </>
               ) : (
-                <span className="small ink3">Set a daily budget</span>
+                <span className="small ink3">Set a daily spending rule</span>
               )}
             </span>
             {/* The rail keeps the meter as a slim vertical gauge. */}

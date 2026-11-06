@@ -7,10 +7,6 @@ import type {
   WalletTopUpRecord,
 } from "../user-wallet-repository";
 
-function cents(value: number) {
-  return Math.round(Number(value) * 100);
-}
-
 function mapWallet(row: Record<string, unknown>): UserWalletRecord {
   return {
     userId: row.user_id as string,
@@ -46,9 +42,51 @@ function mapLedger(row: Record<string, unknown>): WalletLedgerEntry {
   };
 }
 
+function throwIfInsufficient(error: { message?: string; code?: string }) {
+  const text = `${error.message ?? ""} ${error.code ?? ""}`;
+  if (text.includes("INSUFFICIENT_BALANCE")) {
+    throw Object.assign(new Error("INSUFFICIENT_BALANCE"), {
+      code: "INSUFFICIENT_BALANCE",
+    });
+  }
+}
+
+function parseOp(data: unknown): { applied: boolean; available: number } {
+  const row = data as { applied?: boolean; available?: number } | null;
+  return {
+    applied: Boolean(row?.applied),
+    available: Number(row?.available ?? 0),
+  };
+}
+
 export function createSupabaseUserWalletRepository(
   db: SupabaseClient,
 ): UserWalletRepository {
+  async function applyOp(input: {
+    op: "credit" | "hold" | "release" | "capture";
+    userId: string;
+    amount: number;
+    currency: string;
+    entryId: string;
+    paypalOrderId?: string | null;
+    sendDraftId?: string | null;
+  }) {
+    const { data, error } = await db.rpc("apply_wallet_op", {
+      p_op: input.op,
+      p_user_id: input.userId,
+      p_amount: input.amount,
+      p_currency: input.currency,
+      p_entry_id: input.entryId,
+      p_paypal_order_id: input.paypalOrderId ?? null,
+      p_send_draft_id: input.sendDraftId ?? null,
+    });
+    if (error) {
+      throwIfInsufficient(error);
+      throw error;
+    }
+    return parseOp(data);
+  }
+
   return {
     async getWallet(userId) {
       const { data, error } = await db
@@ -108,136 +146,56 @@ export function createSupabaseUserWalletRepository(
     },
 
     async creditTopUp(input) {
-      await this.ensureWallet(input.userId, input.currency);
-
-      const { error: ledgerError } = await db.from("wallet_ledger_entries").insert({
-        id: input.entryId,
-        user_id: input.userId,
-        kind: "TOP_UP",
+      const result = await applyOp({
+        op: "credit",
+        userId: input.userId,
         amount: input.amount,
         currency: input.currency,
-        paypal_order_id: input.paypalOrderId,
+        entryId: input.entryId,
+        paypalOrderId: input.paypalOrderId,
       });
-      if (ledgerError) {
-        // Unique on paypal_order_id for TOP_UP → already credited.
-        if (ledgerError.code === "23505") {
-          const wallet = await this.ensureWallet(input.userId, input.currency);
-          return { credited: false, available: wallet.available };
-        }
-        throw ledgerError;
+      if (result.applied) {
+        await db
+          .from("wallet_top_ups")
+          .update({ status: "COMPLETED", updated_at: new Date().toISOString() })
+          .eq("paypal_order_id", input.paypalOrderId);
       }
-
-      const wallet = await this.ensureWallet(input.userId, input.currency);
-      const available = (cents(wallet.available) + cents(input.amount)) / 100;
-      const { error: updateError } = await db
-        .from("user_wallets")
-        .update({ available })
-        .eq("user_id", input.userId);
-      if (updateError) throw updateError;
-
-      await db
-        .from("wallet_top_ups")
-        .update({ status: "COMPLETED", updated_at: new Date().toISOString() })
-        .eq("paypal_order_id", input.paypalOrderId);
-
-      return { credited: true, available };
+      return { credited: result.applied, available: result.available };
     },
 
     async holdForSend(input) {
-      const existing = await this.findHold(input.sendDraftId);
-      if (existing) {
-        const wallet = await this.ensureWallet(input.userId, input.currency);
-        return { held: false, available: wallet.available };
-      }
-
-      const wallet = await this.ensureWallet(input.userId, input.currency);
-      if (cents(wallet.available) < cents(input.amount)) {
-        throw Object.assign(new Error("INSUFFICIENT_BALANCE"), {
-          code: "INSUFFICIENT_BALANCE",
-        });
-      }
-
-      const available = (cents(wallet.available) - cents(input.amount)) / 100;
-      const { data: updated, error: updateError } = await db
-        .from("user_wallets")
-        .update({ available })
-        .eq("user_id", input.userId)
-        .gte("available", input.amount)
-        .select("available")
-        .maybeSingle();
-      if (updateError) throw updateError;
-      if (!updated) {
-        throw Object.assign(new Error("INSUFFICIENT_BALANCE"), {
-          code: "INSUFFICIENT_BALANCE",
-        });
-      }
-
-      const { error: ledgerError } = await db.from("wallet_ledger_entries").insert({
-        id: input.entryId,
-        user_id: input.userId,
-        kind: "SEND_HOLD",
+      const result = await applyOp({
+        op: "hold",
+        userId: input.userId,
         amount: input.amount,
         currency: input.currency,
-        send_draft_id: input.sendDraftId,
+        entryId: input.entryId,
+        sendDraftId: input.sendDraftId,
       });
-      if (ledgerError) {
-        if (ledgerError.code === "23505") {
-          return { held: false, available: Number(updated.available) };
-        }
-        // Roll balance back best-effort.
-        await db
-          .from("user_wallets")
-          .update({ available: wallet.available })
-          .eq("user_id", input.userId);
-        throw ledgerError;
-      }
-
-      return { held: true, available: Number(updated.available) };
+      return { held: result.applied, available: result.available };
     },
 
     async captureSendHold(input) {
-      const { error } = await db.from("wallet_ledger_entries").insert({
-        id: input.entryId,
-        user_id: input.userId,
-        kind: "SEND_CAPTURE",
+      await applyOp({
+        op: "capture",
+        userId: input.userId,
         amount: input.amount,
         currency: input.currency,
-        send_draft_id: input.sendDraftId,
+        entryId: input.entryId,
+        sendDraftId: input.sendDraftId,
       });
-      if (error && error.code !== "23505") throw error;
     },
 
     async releaseSendHold(input) {
-      const hold = await this.findHold(input.sendDraftId);
-      if (!hold) {
-        const wallet = await this.ensureWallet(input.userId, input.currency);
-        return { released: false, available: wallet.available };
-      }
-
-      const { error: ledgerError } = await db.from("wallet_ledger_entries").insert({
-        id: input.entryId,
-        user_id: input.userId,
-        kind: "SEND_RELEASE",
+      const result = await applyOp({
+        op: "release",
+        userId: input.userId,
         amount: input.amount,
         currency: input.currency,
-        send_draft_id: input.sendDraftId,
+        entryId: input.entryId,
+        sendDraftId: input.sendDraftId,
       });
-      if (ledgerError) {
-        if (ledgerError.code === "23505") {
-          const wallet = await this.ensureWallet(input.userId, input.currency);
-          return { released: false, available: wallet.available };
-        }
-        throw ledgerError;
-      }
-
-      const wallet = await this.ensureWallet(input.userId, input.currency);
-      const available = (cents(wallet.available) + cents(input.amount)) / 100;
-      const { error } = await db
-        .from("user_wallets")
-        .update({ available })
-        .eq("user_id", input.userId);
-      if (error) throw error;
-      return { released: true, available };
+      return { released: result.applied, available: result.available };
     },
 
     async findHold(sendDraftId) {

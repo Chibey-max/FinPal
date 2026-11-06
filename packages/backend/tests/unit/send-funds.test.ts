@@ -465,7 +465,7 @@ describe("limits and caps", () => {
 
   it("limits what everyone together can send", async () => {
     const t = await setup({ limits: { totalDaily: 100 } });
-    
+
     const theirs = await t.service.createDraft(OTHER, {
       message: "Send $90 to friend@example.com",
     });
@@ -488,11 +488,11 @@ describe("limits and caps", () => {
 
   it("blocks send when PayPal is not connected", async () => {
     const t = await setup();
-    
+
     await t.connections.remove(USER);
-    await expect(t.service.createDraft(USER, { message: "Send $10 to a@b.co" })).rejects.toEqual(
-      sendCode("PAYPAL_NOT_CONNECTED"),
-    );
+    await expect(
+      t.service.createDraft(USER, { message: "Send $10 to a@b.co" }),
+    ).rejects.toEqual(sendCode("PAYPAL_NOT_CONNECTED"));
   });
 
   it("counts a send on the day it left, however late it is refreshed", async () => {

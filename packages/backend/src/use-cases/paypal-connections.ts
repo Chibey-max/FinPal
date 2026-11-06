@@ -1,7 +1,4 @@
-import {
-  decryptToken,
-  encryptToken,
-} from "./calendar-connections";
+import { decryptToken, encryptToken } from "./calendar-connections";
 import {
   exchangePaypalCode,
   paypalConsentUrl,
@@ -37,7 +34,10 @@ export function createPaypalConnectionService(deps: PaypalConnectionDeps) {
         state,
       }),
 
-    async complete(userId: string, code: string): Promise<PaypalConnectionStatus> {
+    async complete(
+      userId: string,
+      code: string,
+    ): Promise<PaypalConnectionStatus> {
       const identity = await exchangePaypalCode({
         clientId,
         clientSecret,
@@ -47,7 +47,10 @@ export function createPaypalConnectionService(deps: PaypalConnectionDeps) {
         fetch: deps.fetch,
       });
       await connections.save(userId, {
-        refreshTokenEncrypted: encryptToken(identity.refreshToken, clientSecret),
+        refreshTokenEncrypted: encryptToken(
+          identity.refreshToken,
+          clientSecret,
+        ),
         payerId: identity.payerId,
         email: identity.email,
       });

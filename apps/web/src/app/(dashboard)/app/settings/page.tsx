@@ -105,8 +105,8 @@ export default async function SettingsPage() {
               {paypal.needsReconnect
                 ? "PayPal ended this connection. Connect again to top up and send."
                 : paypal.connected
-                  ? `Connected as ${paypal.email}. Top up funds your personal FinPal balance (Sandbox only).`
-                  : "Log in with PayPal so sends use your personal FinPal balance, funded from your Sandbox account."}
+                  ? `Connected as ${paypal.email}. Top-up funds a FinPal ledger (Sandbox Checkout). Sends pay out from FinPal’s merchant.`
+                  : "Log in with PayPal, then top up a FinPal ledger. Sends use merchant Payouts, not your PayPal cash."}
             </span>
           </div>
           {paypal.connected && !paypal.needsReconnect ? (
@@ -122,8 +122,8 @@ export default async function SettingsPage() {
             <span className="settings-row__title">AI assistant</span>
             <span className="small ink3">
               {ai.configured
-                ? `Groq · ${ai.model}. It shops and explains; your rules decide.`
-                : "Off. FinPal uses built-in rules instead."}
+                ? `Groq · ${ai.model}. It may pick the offer; it cannot pick AUTO_APPROVE or BLOCK. Merchant check is pass, fail, or not checked.`
+                : "Off. FinPal uses built-in rules. Without KERNEL, merchant trust is not checked and GOOD prices can still auto-approve."}
             </span>
           </div>
           <span className="chip" data-tone={ai.configured ? "ok" : "muted"}>

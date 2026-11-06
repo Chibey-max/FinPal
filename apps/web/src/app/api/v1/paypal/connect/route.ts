@@ -1,13 +1,16 @@
-import { randomBytes } from "node:crypto";
-
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getApiUserId, unauthorized } from "@/lib/api";
 import { appOrigin } from "@/lib/app-origin";
 import { getPaypalConnectionService } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
+import { createOAuthState } from "@/lib/oauth-state";
 
 const STATE_COOKIE = "finpal_paypal_state";
+
+function paypalStateSecret(): string | null {
+  return process.env.PAYPAL_CLIENT_SECRET?.trim() || null;
+}
 
 /** GET /api/v1/paypal/connect — start Log in with PayPal. */
 export async function GET(request: NextRequest) {
@@ -26,13 +29,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(back);
   }
 
-  const state = randomBytes(24).toString("base64url");
+  const secret = paypalStateSecret();
+  if (!secret) return unauthorized();
+
+  const state = createOAuthState(userId, secret);
+  const secure =
+    process.env.NODE_ENV === "production" ||
+    request.nextUrl.protocol === "https:";
   const response = NextResponse.redirect(
     getPaypalConnectionService().consentUrl(state),
   );
   response.cookies.set(STATE_COOKIE, state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/api/v1/paypal",
     maxAge: 600,

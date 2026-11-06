@@ -14,12 +14,12 @@ Branch: `feat/paypal-user-wallet`
 
 ## Live Sandbox
 
-1. Apply migration `20261106000000_paypal_user_wallet.sql` (or `supabase db push`).
+1. Apply wallet migrations including `20261107000000_wallet_atomic_balance.sql` (`supabase db push --remote`).
 2. Developer Dashboard → Sandbox app → enable **Log in with PayPal** + **Payouts**.
-3. Return URL: `{APP}/api/v1/paypal/connect/callback` (+ privacy/terms URLs).
+3. Return URL (https only): `{APP}/api/v1/paypal/connect/callback` (+ privacy/terms). Manage attributes: Email, Account verification status, PayPal account ID.
 4. Settings → Connect PayPal with a **Personal** sandbox user.
 5. Send → Top up → approve in Sandbox Checkout → ledger credits.
-6. Send to another Personal sandbox email → Approve & pay → prefer SUCCESS.
+6. Send **Demo (unclaimed)** or a Personal **US** sandbox email → Approve & pay. Do not use Business sandbox emails.
 7. Disconnect → create send fails with PAYPAL_NOT_CONNECTED.
 
 ## Automated

@@ -1365,9 +1365,16 @@ select.input option {
   font-weight: 600;
 }
 .send-history__table {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  width: 100%;
+  border-collapse: collapse;
+}
+.send-history__cell {
+  padding: 0;
+  border: 0;
+}
+.send-history__thead th {
+  font-weight: 600;
+  text-align: left;
 }
 .send-history__thead,
 .send-history__row {

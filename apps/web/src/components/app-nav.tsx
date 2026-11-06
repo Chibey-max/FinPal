@@ -8,22 +8,32 @@ import { ExpandMoreIcon } from "./icons";
 
 const scenarios = [
   {
+    href: "/app/proposals/new?preset=auto",
     preset: "auto",
     label: "Auto-approve",
     hint: "All checks pass",
     tone: "ok",
   },
   {
+    href: "/app/proposals/new?preset=review",
     preset: "review",
-    label: "Manual review",
-    hint: "Fair price, needs a person",
+    label: "Needs review",
+    hint: "Fair price, a person decides",
     tone: "warn",
   },
   {
+    href: "/app/proposals/new?preset=blocked",
     preset: "blocked",
     label: "Blocked",
-    hint: "Over cap and a poor price",
+    hint: "Never creates a PayPal order",
     tone: "bad",
+  },
+  {
+    href: "/app/send",
+    preset: "send",
+    label: "Send unclaimed",
+    hint: "Demo email · Payouts accepted",
+    tone: "ok",
   },
 ] as const;
 
@@ -37,7 +47,11 @@ export function DemoPath() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const active =
-    pathname === "/app/proposals/new" ? params.get("preset") : null;
+    pathname === "/app/send"
+      ? "send"
+      : pathname === "/app/proposals/new"
+        ? params.get("preset")
+        : null;
   const current = scenarios.find((s) => s.preset === active);
 
   useEffect(() => {
@@ -84,7 +98,7 @@ export function DemoPath() {
           <Link
             key={scenario.preset}
             role="menuitem"
-            href={`/app/proposals/new?preset=${scenario.preset}`}
+            href={scenario.href}
             data-tone={scenario.tone}
             aria-current={active === scenario.preset ? "true" : undefined}
             onClick={() => setOpen(false)}

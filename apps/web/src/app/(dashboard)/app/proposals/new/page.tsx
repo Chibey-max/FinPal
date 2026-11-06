@@ -113,11 +113,12 @@ export default async function NewProposalPage({
           <div className="page-head__text">
             <h1>Add one item</h1>
             <p>
-              Enter it yourself and your rules check it. Nothing is paid until
-              you approve.{" "}
+              Demo path for Auto-approve, Needs review, and Block (Block never
+              creates a PayPal order). Everyday shopping is on{" "}
               <Link href="/app/agent" className="link-quiet">
-                Or let the agent shop
+                Agent
               </Link>
+              . Nothing is paid until you approve.
             </p>
           </div>
           <ProposalForm

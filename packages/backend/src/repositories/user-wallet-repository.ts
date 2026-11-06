@@ -1,9 +1,5 @@
 export type WalletLedgerKind =
-  | "TOP_UP"
-  | "SEND_HOLD"
-  | "SEND_CAPTURE"
-  | "SEND_RELEASE"
-  | "ADJUSTMENT";
+  "TOP_UP" | "SEND_HOLD" | "SEND_CAPTURE" | "SEND_RELEASE" | "ADJUSTMENT";
 
 export interface UserWalletRecord {
   userId: string;

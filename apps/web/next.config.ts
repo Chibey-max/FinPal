@@ -54,7 +54,8 @@ const nextConfig: NextConfig = {
   // is not listed, so a page opened by network IP (from a phone or another
   // computer on the same Wi-Fi) renders as plain HTML and never becomes
   // interactive. These are the private network ranges.
-  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*"],
+  // Private LAN + localtunnel hosts used for PayPal HTTPS return URLs.
+  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*", "*.loca.lt"],
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,

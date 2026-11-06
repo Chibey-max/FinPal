@@ -19,8 +19,10 @@ export default async function AgentPage({
       <div className="page-head__text">
         <h1>Agent</h1>
         <p>
-          Shop a list or send from the Sandbox wallet. Rules check every move;
-          you approve before PayPal — voice and Snap never spend money.
+          Shop a list or send from the FinPal ledger. The model may pick an
+          offer; your rules pick AUTO_APPROVE, review, or BLOCK. Merchant check
+          is pass, fail, or not checked — not a score. You approve before
+          PayPal.
         </p>
       </div>
       {!constraints ? (

@@ -24,9 +24,10 @@ export default async function SendPage() {
         <div className="page-head__text">
           <h1>Send</h1>
           <p>
-            Connect PayPal, top up your personal FinPal balance, then send.
-            Demo recipient emails often stay Unclaimed; use a Sandbox personal
-            account email for Success.
+            Top up a FinPal ledger from Sandbox Checkout, then send. Payouts
+            leave FinPal&apos;s merchant, not your PayPal cash. Demo emails stay
+            Unclaimed; use a Personal US sandbox account for Success — not
+            Business.
           </p>
         </div>
       </div>

@@ -57,7 +57,11 @@ export function createMemoryUserWalletRepository(): UserWalletRepository {
     },
 
     async creditTopUp(input) {
-      if (ledger.some((e) => e.kind === "TOP_UP" && e.paypalOrderId === input.paypalOrderId)) {
+      if (
+        ledger.some(
+          (e) => e.kind === "TOP_UP" && e.paypalOrderId === input.paypalOrderId,
+        )
+      ) {
         const w = await this.ensureWallet(input.userId, input.currency);
         return { credited: false, available: w.available };
       }
@@ -94,8 +98,15 @@ export function createMemoryUserWalletRepository(): UserWalletRepository {
     },
 
     async holdForSend(input) {
-      if (ledger.some((e) => e.kind === "SEND_HOLD" && e.sendDraftId === input.sendDraftId)) {
-        return { held: false, available: walletOrThrow(input.userId).available };
+      if (
+        ledger.some(
+          (e) => e.kind === "SEND_HOLD" && e.sendDraftId === input.sendDraftId,
+        )
+      ) {
+        return {
+          held: false,
+          available: walletOrThrow(input.userId).available,
+        };
       }
       const wallet = await this.ensureWallet(input.userId, input.currency);
       if (cents(wallet.available) < cents(input.amount)) {
@@ -125,7 +136,8 @@ export function createMemoryUserWalletRepository(): UserWalletRepository {
     async captureSendHold(input) {
       if (
         ledger.some(
-          (e) => e.kind === "SEND_CAPTURE" && e.sendDraftId === input.sendDraftId,
+          (e) =>
+            e.kind === "SEND_CAPTURE" && e.sendDraftId === input.sendDraftId,
         )
       ) {
         return;
@@ -145,16 +157,23 @@ export function createMemoryUserWalletRepository(): UserWalletRepository {
     async releaseSendHold(input) {
       if (
         ledger.some(
-          (e) => e.kind === "SEND_RELEASE" && e.sendDraftId === input.sendDraftId,
+          (e) =>
+            e.kind === "SEND_RELEASE" && e.sendDraftId === input.sendDraftId,
         )
       ) {
-        return { released: false, available: walletOrThrow(input.userId).available };
+        return {
+          released: false,
+          available: walletOrThrow(input.userId).available,
+        };
       }
       const hold = ledger.find(
         (e) => e.kind === "SEND_HOLD" && e.sendDraftId === input.sendDraftId,
       );
       if (!hold) {
-        return { released: false, available: walletOrThrow(input.userId).available };
+        return {
+          released: false,
+          available: walletOrThrow(input.userId).available,
+        };
       }
       const wallet = walletOrThrow(input.userId);
       const available = (cents(wallet.available) + cents(input.amount)) / 100;
@@ -178,8 +197,9 @@ export function createMemoryUserWalletRepository(): UserWalletRepository {
 
     async findHold(sendDraftId) {
       return (
-        ledger.find((e) => e.kind === "SEND_HOLD" && e.sendDraftId === sendDraftId) ??
-        null
+        ledger.find(
+          (e) => e.kind === "SEND_HOLD" && e.sendDraftId === sendDraftId,
+        ) ?? null
       );
     },
   };

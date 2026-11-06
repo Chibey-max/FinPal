@@ -64,3 +64,46 @@ describe("wallet top-up + connect", () => {
     ).rejects.toMatchObject({ code: "PAYPAL_NOT_CONNECTED" });
   });
 });
+
+describe("memory wallet ledger", () => {
+  it("does not credit a second release for the same send", async () => {
+    const wallets = createMemoryUserWalletRepository();
+    await wallets.ensureWallet(USER, "USD");
+    await wallets.creditTopUp({
+      userId: USER,
+      amount: 40,
+      currency: "USD",
+      paypalOrderId: "ORDER-SEED",
+      entryId: "entry-topup",
+    });
+    const hold = await wallets.holdForSend({
+      userId: USER,
+      amount: 10,
+      currency: "USD",
+      sendDraftId: "draft-1",
+      entryId: "entry-hold",
+    });
+    expect(hold.held).toBe(true);
+    expect(hold.available).toBe(30);
+
+    const first = await wallets.releaseSendHold({
+      userId: USER,
+      amount: 10,
+      currency: "USD",
+      sendDraftId: "draft-1",
+      entryId: "entry-release-1",
+    });
+    expect(first.released).toBe(true);
+    expect(first.available).toBe(40);
+
+    const second = await wallets.releaseSendHold({
+      userId: USER,
+      amount: 10,
+      currency: "USD",
+      sendDraftId: "draft-1",
+      entryId: "entry-release-2",
+    });
+    expect(second.released).toBe(false);
+    expect(second.available).toBe(40);
+  });
+});

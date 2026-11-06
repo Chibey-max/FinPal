@@ -10,11 +10,14 @@ import { PayPalApiError } from "./paypal-client";
 const TOKEN_PATH = "/v1/oauth2/token";
 const USERINFO_PATH = "/v1/identity/oauth2/userinfo?schema=paypalv1.1";
 
-/** Scopes needed to identify the Sandbox user for Connect. */
+/**
+ * Scopes for Connect. Must match attributes enabled under Log in with PayPal →
+ * Manage: Email, Account verification status, PayPal account ID (payer ID).
+ * Do not request `profile` unless Full name is also checked there.
+ */
 export const PAYPAL_LOGIN_SCOPES = [
   "openid",
   "email",
-  "profile",
   "https://uri.paypal.com/services/paypalattributes",
 ].join(" ");
 
@@ -39,14 +42,17 @@ function authorizeHost(apiBaseUrl: string): string {
 export function paypalConsentUrl(
   options: PaypalOAuthOptions & { state: string },
 ): string {
+  // Log in with PayPal uses /connect (not /signin/authorize).
+  // https://developer.paypal.com/docs/log-in-with-paypal/integrate/
   const params = new URLSearchParams({
+    flowEntry: "static",
     client_id: options.clientId,
     response_type: "code",
     scope: PAYPAL_LOGIN_SCOPES,
     redirect_uri: options.redirectUri,
     state: options.state,
   });
-  return `${authorizeHost(options.apiBaseUrl)}/signin/authorize?${params}`;
+  return `${authorizeHost(options.apiBaseUrl)}/connect?${params}`;
 }
 
 const tokenSchema = z.object({
@@ -186,15 +192,13 @@ async function fetchPaypalUserInfo(options: {
 }
 
 /** Best-effort revoke; connection is deleted locally either way. */
-export async function revokePaypalToken(
-  options: {
-    apiBaseUrl: string;
-    clientId: string;
-    clientSecret: string;
-    token: string;
-    fetch?: typeof fetch;
-  },
-): Promise<void> {
+export async function revokePaypalToken(options: {
+  apiBaseUrl: string;
+  clientId: string;
+  clientSecret: string;
+  token: string;
+  fetch?: typeof fetch;
+}): Promise<void> {
   const doFetch = options.fetch ?? fetch;
   await doFetch(`${options.apiBaseUrl}${TOKEN_PATH}`, {
     method: "POST",

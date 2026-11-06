@@ -56,7 +56,6 @@ For the hackathon, the core success path is:
 The current product does not attempt to provide:
 
 - Live production payments.
-- User-connected PayPal accounts or PayPal OAuth.
 - Fully autonomous product discovery and purchasing.
 - Automatic extraction of a product from every calendar event.
 - Multiple calendar-provider integrations.
@@ -498,7 +497,7 @@ The complete core loop and the P1 integrations are implemented and covered by au
 - Append-only audit log, AG Grid decisions view, Bryntum calendar, Google Calendar prefill, and the optional Groq assistant.
 - A mock data source that runs the real use cases on in-memory data with simulated providers, for development without keys.
 
-Automated tests use simulated PayPal and Channel3 and an in-memory database. A live run against real Supabase, PayPal Sandbox, Channel3 and KERNEL has not yet been recorded.
+Automated tests use simulated PayPal and Channel3 and an in-memory database. Live Sandbox has been exercised for Log in with PayPal, Checkout top-up of the FinPal ledger, and Payouts (Unclaimed or country-limited Fail depending on the recipient). Record the shop → capture loop on the deployed host for the submission video; webhook delivery should appear in Activity when `PAYPAL_WEBHOOK_ID` is set.
 
 ## 21. Remaining Work
 

@@ -1,17 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getApiUserId, unauthorized } from "@/lib/api";
+import { getApiUserId } from "@/lib/api";
 import { appOrigin } from "@/lib/app-origin";
 import { getWalletTopUpService } from "@/lib/backend";
 
 /**
  * After the buyer approves the top-up order in PayPal Sandbox.
  * Query: token = order id (PayPal), topUpId = our id.
+ * May arrive without a Supabase session when APP_URL is a tunnel host.
  */
 export async function GET(request: NextRequest) {
-  const userId = await getApiUserId();
-  if (!userId) return unauthorized();
-
   const origin = appOrigin(request.nextUrl.origin);
   const back = new URL("/app/send", origin);
   const orderId =
@@ -25,7 +23,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await getWalletTopUpService().complete(userId, orderId);
+    const sessionUserId = await getApiUserId();
+    await getWalletTopUpService().completeFromReturn(orderId, sessionUserId);
     back.searchParams.set("topup", "ok");
   } catch (error) {
     console.error("Wallet top-up return failed", error);
