@@ -116,6 +116,7 @@ const entityPrefix: Record<AuditEvent["entityType"], string> = {
   evaluation: "evl",
   decision: "dec",
   payment_attempt: "pay",
+  send: "snd",
 };
 
 /** Short display id of what the event is about, e.g. dec_1a07. */

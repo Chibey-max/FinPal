@@ -15,6 +15,9 @@ import {
   type PurchaseHistory,
 } from "./agent-support";
 
+const looksLikeMoneyMove = (text: string) =>
+  /@|\$|\b(?:send|pay|payout|transfer|wire|venmo|zelle)\b/i.test(text);
+
 // Calendar-driven agent: reads upcoming events and suggests a purchase where
 // an event clearly implies one (a trip, a birthday). Suggestions are only
 // prompts: nothing is searched or proposed until the user picks one, and the
@@ -130,6 +133,10 @@ export function createCalendarSuggestions(deps: CalendarSuggestionDeps = {}) {
         if (!event && historyIsEmpty(history)) continue;
         if (event && seen.has(event.id)) continue;
         if (need.length < 3 || !reason) continue;
+        // Suggestions are things to buy. Event titles are untrusted, so one
+        // that reads like a money transfer ("Send $50 to …") never reaches
+        // the list box, where it could be mistaken for the user's request.
+        if (looksLikeMoneyMove(need)) continue;
         if (!onlyKnownNumbers(reason, JSON.stringify(facts))) continue;
         if (event) seen.add(event.id);
         suggestions.push({

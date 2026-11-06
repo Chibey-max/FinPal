@@ -68,9 +68,9 @@ export default function HomePage() {
               </div>
             </div>
             <p className="hero-summary">
-              Give FinPal your shopping list. It finds real offers, checks them
-              against your rules, and asks for your approval once before any
-              money moves.
+              Give FinPal a shopping list. It finds offers, your rules decide,
+              PayPal moves money only after you approve. An AI shopper that
+              cannot overspend.
             </p>
           </div>
           <span className="scroll-hint" data-story="hint">
@@ -134,7 +134,9 @@ export default function HomePage() {
           <h2>Rules you can read. Outcomes you can predict.</h2>
           <p>
             The price is compared with the middle price of at least three real
-            offers. The AI shops and explains, but the rules decide.
+            offers. The model may pick the offer; it cannot pick AUTO_APPROVE or
+            BLOCK. Merchant check is pass, fail, or not checked — if KERNEL is
+            off, GOOD prices can still auto-approve.
           </p>
           <div className="score-list">
             <div>

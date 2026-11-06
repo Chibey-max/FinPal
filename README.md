@@ -1,8 +1,24 @@
 # FinPal
 
+Give FinPal a shopping list. It finds offers, your rules decide, PayPal moves money only after you approve. An AI shopper that cannot overspend.
+
+**Live (web is the submission):** https://finpal-web-3bmw.onrender.com  
+**Video:** add the Devpost demo URL here after recording on the live site (not mock).  
+**Mobile:** Expo in `apps/mobile` is a companion on an older IA (no Agent/Send). Judges should use the web app.
+
+First load can take 12–60 seconds while Render wakes up. Sign-up is email/password. PayPal Checkout needs a **Sandbox Personal buyer** (put credentials in Devpost’s private testing field, not in this repo).
+
+### How this meets each criterion
+
+- **Technological implementation.** PayPal Sandbox Orders (authorize, cap recheck, capture/void), verified webhooks, Log in with PayPal, Checkout top-up of a personal FinPal ledger, and merchant Payouts after human approve. Groq may pick an offer; a deterministic decision table picks AUTO_APPROVE / MANUAL_REVIEW / BLOCK.
+- **Design.** Complete web product: Agent, Purchases, Send, Approvals, Rules, Calendar, Activity, Settings.
+- **Potential impact.** People who want an AI shopper that cannot overspend: rules, real Channel3 prices, merchant pass/fail/not-checked, then PayPal.
+- **Innovation.** The model never chooses the outcome. A blocked item never creates a PayPal order. Evidence (median, trust, reasons) is kept on an append-only audit log.
+- **Presentation.** Use **Demo path**: Auto-approve, Needs review, Block (no PayPal order), then Send unclaimed. Do not demo via loca.lt.
+
 FinPal is a sandbox-only agentic purchasing assistant for the PayPal AI Hackathon. Before any PayPal Sandbox payment is authorized, it checks the purchase against the user's spending rules, compares the price with real market offers, and checks the merchant. Every step is written to an append-only audit log.
 
-Decisions come from fixed, deterministic rules. An LLM may explain a decision in plain words, but it never chooses or changes the outcome.
+The model may pick which Channel3 offer to propose. It cannot pick AUTO_APPROVE or BLOCK. Merchant trust is pass, fail, unavailable, or not checked — not a score. Without KERNEL, GOOD prices can still auto-approve.
 
 > **Sandbox only.** Every payment is simulated in PayPal Sandbox: no real money is charged, authorized or transferred, and FinPal refuses any PayPal host that is not `*.sandbox.paypal.com`. Prices come from Channel3 and may be incomplete; decisions are for demonstration, not financial advice. See [Known limitations](docs/design.md#21a-known-limitations).
 
@@ -12,7 +28,7 @@ Decisions come from fixed, deterministic rules. An LLM may explain a decision in
 2. **Evaluate.**
    - **Spending rules:** time windows, per-purchase, daily and monthly caps, and currency. Currencies are never converted.
    - **Price check:** Quality Score v1 compares the price with the median of comparable Channel3 offers.
-   - **Merchant trust:** a KERNEL check.
+   - **Merchant trust:** KERNEL pass / fail / not checked (not a score).
 3. **Decide.** The rules return one of three outcomes:
    - `AUTO_APPROVE`
    - `MANUAL_REVIEW`: a person approves or rejects it.
@@ -22,31 +38,39 @@ Decisions come from fixed, deterministic rules. An LLM may explain a decision in
 
 4. **Pay.** Approved items go into one basket and one PayPal Sandbox order. The buyer approves once; FinPal rechecks the total against the caps, then authorizes and captures. Each step follows a guarded state machine and uses idempotency keys.
 
+5. **Send (optional).** Log in with PayPal, top up a FinPal ledger via Checkout, then send. The ledger is not PayPal Reporting Balances. Payouts leave the Sandbox merchant. Demo recipient emails often stay Unclaimed; use a Personal US sandbox email for Success — not a Business account.
+
 See [`docs/architecture.md`](docs/architecture.md) for the decision table, Quality Score thresholds and payment state machine.
 
 ## The app
 
-| Route            | What it shows                                                                                                                             |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`              | Landing page with an interactive walkthrough                                                                                              |
-| `/login`         | Sign in or create an account; password reset at `/forgot-password` and `/reset-password`                                                  |
-| `/app`           | **Agent**: drop a shopping list, answer any questions, approve the basket once. Personal suggestions, spend and outlook alongside         |
-| `/app/purchases` | **Purchases**: everything found and bought, filtered by Needs you, In progress and Done, with each item's evidence and the full audit log |
-| `/app/rules`     | **Rules**: caps, spending windows, presets or plain-language entry, and the Bryntum Calendar                                              |
+| Route            | What it shows                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `/`              | Landing page with an interactive walkthrough                                             |
+| `/login`         | Sign in or create an account; password reset at `/forgot-password` and `/reset-password` |
+| `/app`           | **Overview**: spend vs rules, needs you, outlook                                         |
+| `/app/agent`     | **Agent**: drop a shopping list, answer any questions, approve the basket once           |
+| `/app/purchases` | **Purchases**: everything found and bought, evidence, audit log, copy-evidence           |
+| `/app/send`      | **Send**: Connect, top up FinPal ledger, Payouts after Approve & pay                     |
+| `/app/approvals` | **Approvals**: review queue                                                              |
+| `/app/rules`     | **Rules**: caps, spending windows, presets or plain-language entry                       |
+| `/app/calendar`  | **Calendar**: week view (Bryntum trial watermark — skip in the video)                    |
+| `/app/activity`  | **Activity**: append-only audit                                                          |
+| `/app/settings`  | **Settings**: account, Google Calendar, PayPal Connect, AI on/off                        |
 
-A companion **mobile app** (Expo, in `apps/mobile`) shows the Overview, Decisions and decision detail from the same API. See [`apps/mobile/README.md`](apps/mobile/README.md).
+A companion **mobile app** (Expo, in `apps/mobile`) shows Overview, Decisions, Rules, Calendar and Activity from the same API. It does **not** include Agent or Send. See [`apps/mobile/README.md`](apps/mobile/README.md).
 
 ### Integrations
 
-| Service          | Used for                                                                            | Required                       |
-| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------ |
-| PayPal Sandbox   | Orders v2: create, authorize, capture, void, and webhooks                           | Yes (live mode)                |
-| Supabase         | Auth, Postgres, row-level security                                                  | Yes (live mode)                |
-| Channel3         | Comparable offers for the price check                                               | Yes (live mode)                |
-| KERNEL           | Merchant trust check                                                                | No; `NOT_CHECKED` without it   |
-| Google Calendar  | Each user's own events, for suggestions (OAuth)                                     | No                             |
-| Groq             | Shopping agent, calendar ideas, written rules, spending outlook, decision summaries | No; rule-based text without it |
-| AG Grid, Bryntum | Decisions and Activity grids; Calendar                                              | Bundled                        |
+| Service          | Used for                                                                                 | Required                       |
+| ---------------- | ---------------------------------------------------------------------------------------- | ------------------------------ |
+| PayPal Sandbox   | Orders v2 authorize/capture/void, webhooks, Log in with PayPal, Payouts, Checkout top-up | Yes (live mode)                |
+| Supabase         | Auth, Postgres, row-level security                                                       | Yes (live mode)                |
+| Channel3         | Comparable offers for the price check                                                    | Yes (live mode)                |
+| KERNEL           | Merchant page pass/fail. Without a key: `NOT_CHECKED` (GOOD can still auto-approve)      | No                             |
+| Google Calendar  | Each user's own events, for suggestions (OAuth)                                          | No                             |
+| Groq             | Shopping agent, calendar ideas, written rules, spending outlook, decision summaries      | No; rule-based text without it |
+| AG Grid, Bryntum | Decisions and Activity grids; Calendar                                                   | Bundled                        |
 
 ## Repository layout
 

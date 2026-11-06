@@ -7,6 +7,7 @@ export const auditEntityTypeSchema = z.enum([
   "evaluation",
   "decision",
   "payment_attempt",
+  "send",
 ]);
 
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>;
@@ -34,6 +35,12 @@ export const auditEventTypeSchema = z.enum([
   "PAYMENT_VOIDED",
   // third-party failures, with the provider's debug id
   "PAYPAL_CALL_FAILED",
+  // send (Payouts) + personal FinPal ledger
+  "SEND_DRAFT_CREATED",
+  "SEND_APPROVED",
+  "SEND_SENT",
+  "SEND_FAILED",
+  "WALLET_TOPPED_UP",
 ]);
 
 export type AuditEventType = z.infer<typeof auditEventTypeSchema>;

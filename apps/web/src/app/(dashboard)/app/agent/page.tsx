@@ -19,8 +19,10 @@ export default async function AgentPage({
       <div className="page-head__text">
         <h1>Agent</h1>
         <p>
-          Drop your shopping list. The agent finds the best options, your rules
-          check them, and you approve once.
+          Shop a list or send from the FinPal ledger. The model may pick an
+          offer; your rules pick AUTO_APPROVE, review, or BLOCK. Merchant check
+          is pass, fail, or not checked — not a score. You approve before
+          PayPal.
         </p>
       </div>
       {!constraints ? (

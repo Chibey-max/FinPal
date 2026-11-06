@@ -24,6 +24,26 @@ Do these in order: the PayPal webhook needs the public Render URL, and Render ne
 2. Under **Sandbox accounts**, note a personal (buyer) account and its password, for approving checkouts.
 3. The webhook is registered after the first deploy (step 6).
 
+**Send / personal wallet:** each user **Log in with PayPal**, then **tops up** a personal FinPal ledger via Sandbox Checkout (Orders AUTHORIZE → capture). Sends debit that ledger; merchant **Payouts EMAIL** still pay the recipient.
+
+Enable on the Sandbox REST app (**Apps & Credentials → your app**):
+
+1. **Payouts**
+2. **Log in with PayPal** → **Manage** / **Advanced Settings**
+3. **Return URL** (must match exactly): `<app-url>/api/v1/paypal/connect/callback`  
+   PayPal **rejects** `http://localhost…` return URLs. Use an **https** origin:
+   - Deployed: `https://finpal-web-3bmw.onrender.com/api/v1/paypal/connect/callback`  
+     Set Render `NEXT_PUBLIC_APP_URL` to `https://finpal-web-3bmw.onrender.com` (no path). Auto-deploy is off: **Manual Deploy → latest** after merge.
+   - Local live: run a tunnel to port 3000 (e.g. `npx localtunnel --port 3000` or cloudflared), set `NEXT_PUBLIC_APP_URL` to that `https://…` origin (no path), then register `{NEXT_PUBLIC_APP_URL}/api/v1/paypal/connect/callback`
+4. Under **Manage**, enable exactly: **Email**, **Account verification status**, **PayPal account ID (payer ID)** (required for Connect). Leave Full name off unless you also add the `profile` scope in code.
+5. Privacy + User agreement URLs (sandbox can use `https://example.com`)
+6. Save
+
+`invalid client_id or redirect_uri` → wrong Client ID/secret or return URL mismatch.  
+`invalid scope` → requested scopes don’t match the Manage checkboxes above (enable those three and Save).  
+Do **not** use loca.lt as the judge URL. Do **not** send Payouts to `*@business.example.com` (often “recipient country”). Use **Demo (unclaimed)** or a Personal US sandbox email.  
+`SEND_DAILY_LIMIT_PER_USER` (default 250) and `SEND_DAILY_LIMIT_TOTAL` (default 1000) remain safety caps.
+
 ### 3. Provider keys
 
 | Variable                     | Where                                      | Required                                       |

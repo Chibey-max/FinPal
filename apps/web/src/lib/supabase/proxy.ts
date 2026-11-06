@@ -62,7 +62,22 @@ export async function updateSession(request: NextRequest) {
     request.headers.get("authorization") ?? "",
   );
 
-  if (!isSignedIn && !hasBearer && pathname.startsWith("/api/v1/")) {
+  // External PayPal/Google returns land here without the Supabase cookie when
+  // APP_URL is a tunnel/different host. Handlers resolve the user from signed
+  // state or the stored order/top-up row instead of the session.
+  const oauthCallbacks = new Set([
+    "/api/v1/paypal/connect/callback",
+    "/api/v1/paypal/wallet/top-up/return",
+    "/api/v1/calendar/callback",
+    "/api/v1/payments/return",
+  ]);
+
+  if (
+    !isSignedIn &&
+    !hasBearer &&
+    pathname.startsWith("/api/v1/") &&
+    !oauthCallbacks.has(pathname)
+  ) {
     return NextResponse.json(
       { message: "Authentication required." },
       { status: 401 },

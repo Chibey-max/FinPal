@@ -15,6 +15,7 @@ import { describeEvent } from "@/features/activity/describe-event";
 import { PaymentActions } from "@/features/payments/payment-actions";
 import { isMockMode } from "@/lib/data-source";
 
+import { CopyEvidenceButton } from "./copy-evidence-button";
 import { DecisionActions, type DecisionActionState } from "./decision-actions";
 import { DecisionSummary } from "./decision-summary";
 import { OfferList } from "./offer-list";
@@ -78,13 +79,16 @@ export function DecisionDetailView({
             {proposal.productName} <span className="ink3">{amount}</span>
           </h1>
         </div>
-        <span className="chip chip-lg" data-tone={tone}>
-          {review === "APPROVED"
-            ? "Approved by you"
-            : review === "REJECTED"
-              ? "Rejected"
-              : outcomeLabel[decision.outcome]}
-        </span>
+        <div className="stack-sm" style={{ alignItems: "flex-end" }}>
+          <span className="chip chip-lg" data-tone={tone}>
+            {review === "APPROVED"
+              ? "Approved by you"
+              : review === "REJECTED"
+                ? "Rejected"
+                : outcomeLabel[decision.outcome]}
+          </span>
+          <CopyEvidenceButton detail={detail} />
+        </div>
       </div>
       <p className="detail-explanation">{decision.reason}</p>
       <div className="detail-grid">

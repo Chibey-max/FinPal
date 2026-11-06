@@ -3,6 +3,7 @@
 import type { Basket } from "@finpal/contracts";
 import { useEffect, useRef, useState } from "react";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useToast } from "@/components/toast";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatMoney } from "@/features/app/present";
@@ -32,6 +33,7 @@ export function CheckoutButton({
   disabled?: boolean;
 }) {
   const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [basket, setBasket] = useState<Basket | null>(null);
 
@@ -41,6 +43,7 @@ export function CheckoutButton({
       const created = await apiRequest<Basket>("/api/v1/baskets", {
         body: { decisionIds, idempotencyKey },
       });
+      setConfirmOpen(false);
       if (sandbox) {
         setBasket(created);
         return;
@@ -78,18 +81,44 @@ export function CheckoutButton({
     }
   }
 
+  const count = decisionIds.length;
+
   return (
     <>
       <LiquidButton
         type="button"
         size="xl"
         className="rounded-full text-[15px]"
-        onClick={start}
+        onClick={() => setConfirmOpen(true)}
         disabled={pending || disabled}
       >
         {pending ? <span className="spinner" aria-hidden /> : null}
         {pending ? "Opening PayPal…" : label}
       </LiquidButton>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Open PayPal checkout?"
+        description={
+          <>
+            You&apos;ll review{" "}
+            <strong>
+              {summary}
+              {count > 1 ? ` (${count} items)` : ""}
+            </strong>{" "}
+            in PayPal. Nothing is charged until you approve there.
+          </>
+        }
+        confirmLabel="Continue to PayPal"
+        busyLabel="Opening PayPal…"
+        tone="ok"
+        busy={pending}
+        onCancel={() => {
+          if (!pending) setConfirmOpen(false);
+        }}
+        onConfirm={() => void start()}
+      />
+
       {basket ? (
         <SandboxCheckout
           amount={formatMoney(basket.total, basket.currency)}

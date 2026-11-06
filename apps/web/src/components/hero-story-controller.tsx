@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { isIosDevice } from "@/lib/ios-perf";
+
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 const smoothstep = (value: number) => value * value * (3 - 2 * value);
 
@@ -12,6 +14,9 @@ const smoothstep = (value: number) => value * value * (3 - 2 * value);
  *   .card-zoom  scroll zoom      .card-tilt  pointer tilt
  *   .finpal-card idle float (CSS animation)
  * The shared liquid backdrop zooms through --backdrop-scale on <html>.
+ *
+ * On iOS, skips filter/brightness + backdrop rescale while scrolling and
+ * freezes the WebGL sphere via data-hero-scrolling (see fluid-sphere).
  */
 export function HeroStoryController() {
   const markerRef = useRef<HTMLSpanElement>(null);
@@ -21,6 +26,7 @@ export function HeroStoryController() {
     if (!story) return;
     const root = document.documentElement;
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ios = isIosDevice();
     const get = (name: string) =>
       story.querySelector<HTMLElement>(`[data-story="${name}"]`);
     const set = (name: string, styles: Partial<CSSStyleDeclaration>) => {
@@ -29,6 +35,16 @@ export function HeroStoryController() {
     };
 
     let frame = 0;
+    let scrollEnd = 0;
+    const markScrolling = () => {
+      if (!ios) return;
+      root.setAttribute("data-hero-scrolling", "");
+      clearTimeout(scrollEnd);
+      scrollEnd = window.setTimeout(() => {
+        root.removeAttribute("data-hero-scrolling");
+      }, 140);
+    };
+
     const update = () => {
       frame = 0;
       const rect = story.getBoundingClientRect();
@@ -46,15 +62,23 @@ export function HeroStoryController() {
         visibility: intro >= 1 ? "hidden" : "visible",
       });
       set("hint", { opacity: String(1 - seg(0, 0.05)) });
-      set("small-card", {
-        transform: `translateY(${zoom * 8}vh) scale(${1 + 9 * zoom ** 3})`,
-        filter: `brightness(${1 + 2.2 * seg(0.3, 0.48)})`,
-        opacity: String(1 - seg(0.5, 0.54)),
-      });
-      root.style.setProperty(
-        "--backdrop-scale",
-        String(1 + 0.18 * smoothstep(zoom) * (1 - seg(0.5, 0.62))),
-      );
+      // iOS: transform/opacity only — brightness filter forces expensive paints.
+      if (ios) {
+        set("small-card", {
+          transform: `translateY(${zoom * 8}vh) scale(${1 + 9 * zoom ** 3})`,
+          opacity: String(1 - seg(0.5, 0.54)),
+        });
+      } else {
+        set("small-card", {
+          transform: `translateY(${zoom * 8}vh) scale(${1 + 9 * zoom ** 3})`,
+          filter: `brightness(${1 + 2.2 * seg(0.3, 0.48)})`,
+          opacity: String(1 - seg(0.5, 0.54)),
+        });
+        root.style.setProperty(
+          "--backdrop-scale",
+          String(1 + 0.18 * smoothstep(zoom) * (1 - seg(0.5, 0.62))),
+        );
+      }
       set("flash", {
         opacity: String(Math.min(seg(0.34, 0.47), 1 - seg(0.52, 0.62))),
       });
@@ -80,7 +104,6 @@ export function HeroStoryController() {
       slide("scene-copy", 0.8, 0.9, -40);
     };
 
-    // Pointer tilt of the small card, eased (0.3s in CSS).
     const tilt = (event: PointerEvent) => {
       if (reduceMotion || event.pointerType === "touch") return;
       const x = event.clientX / innerWidth - 0.5;
@@ -90,6 +113,7 @@ export function HeroStoryController() {
       });
     };
     const onScroll = () => {
+      markScrolling();
       if (!frame) frame = requestAnimationFrame(update);
     };
 
@@ -99,6 +123,8 @@ export function HeroStoryController() {
     addEventListener("pointermove", tilt, { passive: true });
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(scrollEnd);
+      root.removeAttribute("data-hero-scrolling");
       removeEventListener("scroll", onScroll);
       removeEventListener("resize", onScroll);
       removeEventListener("pointermove", tilt);

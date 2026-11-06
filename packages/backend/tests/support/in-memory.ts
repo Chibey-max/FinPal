@@ -212,6 +212,63 @@ export function createFakePayPal() {
       }
       return true;
     },
+    getBalances: async () => {
+      calls.push("getBalances");
+      if (failNext) {
+        const error = failNext;
+        failNext = undefined;
+        throw error;
+      }
+      return {
+        available: 1240,
+        currency: "USD",
+        asOf: new Date().toISOString(),
+      };
+    },
+    createPayout: (input) => {
+      calls.push("createPayout");
+      return idempotent(input.requestId, () => {
+        if (failNext) {
+          const error = failNext;
+          failNext = undefined;
+          throw error;
+        }
+        sequence += 1;
+        return {
+          batchId: `BATCH-${sequence}`,
+          batchStatus: "SUCCESS",
+          payoutItemId: `ITEM-${sequence}`,
+          transactionStatus: "SUCCESS",
+        };
+      });
+    },
+    getPayoutBatch: async (batchId) => {
+      calls.push("getPayoutBatch");
+      if (failNext) {
+        const error = failNext;
+        failNext = undefined;
+        throw error;
+      }
+      return {
+        batchId,
+        batchStatus: "SUCCESS",
+        payoutItemId: `ITEM-${batchId}`,
+        transactionStatus: "SUCCESS",
+      };
+    },
+    getPayoutItem: async (payoutItemId) => {
+      calls.push("getPayoutItem");
+      if (failNext) {
+        const error = failNext;
+        failNext = undefined;
+        throw error;
+      }
+      return {
+        payoutItemId,
+        transactionStatus: "SUCCESS",
+        payoutBatchId: "BATCH-1",
+      };
+    },
   };
 
   return {

@@ -282,6 +282,14 @@ describe("shopping list", () => {
     ]);
   });
 
+  it("keeps leading quantities when splitting", () => {
+    expect(splitList("2 trousers, 2 shirts, 2 ice cream")).toEqual([
+      { need: "2 trousers", question: null },
+      { need: "2 shirts", question: null },
+      { need: "2 ice cream", question: null },
+    ]);
+  });
+
   it("keeps the price range in view, not just the cheapest", () => {
     const offers = Array.from({ length: 30 }, (_, i) => i);
     const spread = spreadAcrossPrices(offers, 8);

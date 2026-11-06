@@ -173,6 +173,7 @@
   cursor: pointer;
 }
 .landing-nav__menu svg {
+  display: block;
   width: 16px;
   height: 16px;
 }
@@ -1076,46 +1077,53 @@
     margin-inline: 6px;
     border-radius: 22px;
   }
-  /* The header on phones: lower, taller, with larger controls. About 75% of
-     the page wide, growing only when its contents need more room. Padding is
-     small and the controls fill the bar, so it stays the same height. */
+  /* Mobile pill — between the old oversized bar and the too-tight shrink. */
   .landing-nav {
-    top: 24px;
+    top: 16px;
     width: max-content;
-    min-width: 75%;
-    max-width: calc(100% - 28px);
+    min-width: 0;
+    max-width: calc(100% - 24px);
   }
   .landing-nav[data-hidden] {
-    transform: translate(-50%, calc(-100% - 48px));
+    transform: translate(-50%, calc(-100% - 40px));
   }
   .landing-nav__bar {
     justify-content: space-between;
-    padding: 7px 7px 7px 11px;
+    gap: 8px;
+    padding: 5px 5px 5px 12px;
+  }
+  .landing-nav .logo {
+    gap: 8px;
   }
   .landing-nav .logo-mark {
-    width: 40px;
-    height: 40px;
+    width: 28px !important;
+    height: 28px !important;
   }
   .landing-nav .logo-word {
-    font-size: 26px;
+    font-size: 19px;
   }
   .landing-nav__actions {
-    gap: 8px;
+    gap: 6px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 56px;
-    height: 56px;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px;
+    min-height: 42px;
   }
   .landing-nav__actions .theme-button svg,
   .landing-nav__menu svg {
-    width: 22px;
-    height: 22px;
+    width: 17px !important;
+    height: 17px !important;
   }
+  .landing-nav__actions .landing-nav__cta,
+  .landing-nav__actions a.landing-nav__cta,
   .landing-nav__actions a {
-    height: 56px;
-    padding-inline: 22px;
-    font-size: 17px;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding-inline: 16px !important;
+    font-size: 14.5px !important;
   }
   /* Brand on the left, theme toggle and app entry together on the right. The
      section links live in the bottom bar below, so the menu button and the
@@ -1301,27 +1309,31 @@
 @media (max-width: 400px) {
   .landing-nav__bar {
     gap: 6px;
-    padding: 7px 7px 7px 10px;
+    padding: 4px 4px 4px 10px;
   }
   .landing-nav__actions {
     gap: 5px;
   }
   .landing-nav .logo-mark {
-    width: 32px;
-    height: 32px;
+    width: 26px !important;
+    height: 26px !important;
   }
   .landing-nav .logo-word {
-    font-size: 21px;
+    font-size: 17px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 50px;
-    height: 50px;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px;
+    min-height: 40px;
   }
+  .landing-nav__actions .landing-nav__cta,
   .landing-nav__actions a {
-    height: 50px;
-    padding-inline: 16px;
-    font-size: 15px;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding-inline: 14px !important;
+    font-size: 14px !important;
   }
   /* The step labels beside the flow diagram's nodes: smaller and closer. */
   .flow__branch {
@@ -1337,31 +1349,35 @@
 /* The very narrowest phones (320px): the header's contents still have to fit. */
 @media (max-width: 340px) {
   .landing-nav__bar {
-    gap: 4px;
-    padding: 5px 5px 5px 8px;
+    gap: 5px;
+    padding: 4px 4px 4px 9px;
   }
   .landing-nav .logo-mark {
-    width: 28px;
-    height: 28px;
+    width: 24px !important;
+    height: 24px !important;
   }
   .landing-nav .logo {
     gap: 6px;
   }
   .landing-nav .logo-word {
-    font-size: 18px;
+    font-size: 16px;
   }
   .landing-nav__actions {
     gap: 4px;
   }
   .landing-nav__actions .theme-button,
   .landing-nav__menu {
-    width: 44px;
-    height: 44px;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px;
+    min-height: 38px;
   }
+  .landing-nav__actions .landing-nav__cta,
   .landing-nav__actions a {
-    height: 44px;
-    padding-inline: 12px;
-    font-size: 14px;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding-inline: 12px !important;
+    font-size: 13px !important;
   }
 }
 
@@ -1546,6 +1562,36 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .agent-demo__item {
+    animation: none;
+  }
+}
+
+/*
+ * iOS Safari only: drop backdrop-filter over the live WebGL orb while
+ * scrolling the landing. Desktop / Android keep glass blur. Signed-in /app
+ * styles are untouched (they live in app.css).
+ */
+@supports (-webkit-touch-callout: none) {
+  .landing-nav__bar,
+  .landing-section,
+  .landing-cta,
+  .landing-bottom-nav {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .landing-nav__bar {
+    background: var(--nav-solid);
+  }
+  .landing-section,
+  .landing-cta {
+    background: color-mix(in srgb, var(--section-bg) 92%, #040509);
+  }
+  [data-theme="light"] .landing-section,
+  [data-theme="light"] .landing-cta {
+    background: color-mix(in srgb, var(--section-bg) 94%, #edf0f5);
+  }
+  /* Idle float on the hero card costs compositor time over WebGL. */
+  .finpal-card {
     animation: none;
   }
 }

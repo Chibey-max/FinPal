@@ -21,6 +21,13 @@ import {
   createPayPalHttpClient,
   createQualityScoreService,
   createReviewDecisionService,
+  createSendFundsService,
+  createPaypalConnectionService,
+  createWalletTopUpService,
+  createSupabaseSendDraftRepository,
+  createSupabasePaypalConnectionRepository,
+  createSupabaseUserWalletRepository,
+  withSends,
   createSupabaseAuditEventRepository,
   createSupabaseCalendarConnectionRepository,
   createSupabaseConstraintsRepository,
@@ -42,6 +49,10 @@ import {
   type PaymentService,
   type PaypalWebhookService,
   type ReviewDecisionService,
+  type CommittedSpend,
+  type SendFundsService,
+  type PaypalConnectionService,
+  type WalletTopUpService,
 } from "@finpal/backend";
 import type {
   CalendarEventsPage,
@@ -73,6 +84,22 @@ let evaluationService: EvaluationService | undefined;
 let reviewService: ReviewDecisionService | undefined;
 let webhookService: PaypalWebhookService | undefined;
 let assistantService: AssistantService | undefined;
+let sendFundsService: SendFundsService | undefined;
+let paypalConnectionService: PaypalConnectionService | undefined;
+let walletTopUpService: WalletTopUpService | undefined;
+let committedSpend: CommittedSpend | undefined;
+let paypalClient: ReturnType<typeof createPayPalHttpClient> | undefined;
+
+function getPayPalClient() {
+  if (paypalClient) return paypalClient;
+  const serverEnv = getServerEnv();
+  paypalClient = createPayPalHttpClient({
+    clientId: serverEnv.PAYPAL_CLIENT_ID,
+    clientSecret: serverEnv.PAYPAL_CLIENT_SECRET,
+    baseUrl: serverEnv.PAYPAL_API_BASE_URL,
+  });
+  return paypalClient;
+}
 
 function getServiceDb(): SupabaseClient {
   serviceDb ??= createClient(
@@ -99,7 +126,7 @@ export function getEvaluationService(): EvaluationService {
   evaluationService = createEvaluationService({
     proposals: createSupabaseProposalRepository(db),
     constraints: createSupabaseConstraintsRepository(db),
-    payments: createSupabasePaymentAttemptRepository(db),
+    payments: getCommittedSpend(),
     quality: createQualityScoreService({
       offers: getComparableOffersService(),
     }),
@@ -119,17 +146,13 @@ export function getPaymentService(): PaymentService {
   if (isMockMode()) return mockBackend.payment;
   if (paymentService) return paymentService;
 
-  const serverEnv = getServerEnv();
   const db = getServiceDb();
   const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
 
   paymentService = createPaymentService({
-    paypal: createPayPalHttpClient({
-      clientId: serverEnv.PAYPAL_CLIENT_ID,
-      clientSecret: serverEnv.PAYPAL_CLIENT_SECRET,
-      baseUrl: serverEnv.PAYPAL_API_BASE_URL,
-    }),
+    paypal: getPayPalClient(),
     payments: createSupabasePaymentAttemptRepository(db),
+    spend: getCommittedSpend(),
     decisions: createSupabaseDecisionRepository(db),
     constraints: createSupabaseConstraintsRepository(db),
     audit: getServiceAuditLog(),
@@ -137,6 +160,76 @@ export function getPaymentService(): PaymentService {
     cancelUrl: `${appUrl}/app/purchases?payment=cancelled`,
   });
   return paymentService;
+}
+
+/**
+ * Purchases plus sends: what counts against the daily and monthly caps, for
+ * evaluation, checkout, sends and the spend meters alike.
+ */
+export function getCommittedSpend(): CommittedSpend {
+  if (isMockMode()) return mockBackend.spend;
+  committedSpend ??= withSends(
+    createSupabasePaymentAttemptRepository(getServiceDb()),
+    createSupabaseSendDraftRepository(getServiceDb()),
+  );
+  return committedSpend;
+}
+
+/** Log in with PayPal — identity for personal FinPal balance. */
+export function getPaypalConnectionService(): PaypalConnectionService {
+  if (isMockMode()) return mockBackend.paypalConnections;
+  if (paypalConnectionService) return paypalConnectionService;
+  const serverEnv = getServerEnv();
+  const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
+  paypalConnectionService = createPaypalConnectionService({
+    connections: createSupabasePaypalConnectionRepository(getServiceDb()),
+    clientId: serverEnv.PAYPAL_CLIENT_ID,
+    clientSecret: serverEnv.PAYPAL_CLIENT_SECRET,
+    apiBaseUrl: serverEnv.PAYPAL_API_BASE_URL,
+    redirectUri: `${appUrl}/api/v1/paypal/connect/callback`,
+    onError: (error) => console.error("PayPal Connect failed", error),
+  });
+  return paypalConnectionService;
+}
+
+/** Top up personal FinPal ledger via Sandbox Checkout. */
+export function getWalletTopUpService(): WalletTopUpService {
+  if (isMockMode()) return mockBackend.walletTopUp;
+  if (walletTopUpService) return walletTopUpService;
+  const db = getServiceDb();
+  const appUrl = getPublicEnv().NEXT_PUBLIC_APP_URL;
+  walletTopUpService = createWalletTopUpService({
+    paypal: getPayPalClient(),
+    connections: createSupabasePaypalConnectionRepository(db),
+    wallets: createSupabaseUserWalletRepository(db),
+    audit: getServiceAuditLog(),
+    returnUrl: `${appUrl}/api/v1/paypal/wallet/top-up/return`,
+    cancelUrl: `${appUrl}/app/send?topup=cancelled`,
+  });
+  return walletTopUpService;
+}
+
+/** Agent Send: personal ledger + Payouts after human Approve & pay. */
+export function getSendFundsService(): SendFundsService {
+  if (isMockMode()) return mockBackend.send;
+  if (sendFundsService) return sendFundsService;
+  const db = getServiceDb();
+  const serverEnv = getServerEnv();
+  sendFundsService = createSendFundsService({
+    paypal: getPayPalClient(),
+    constraints: createSupabaseConstraintsRepository(db),
+    spend: getCommittedSpend(),
+    sends: createSupabaseSendDraftRepository(db),
+    audit: getServiceAuditLog(),
+    connections: createSupabasePaypalConnectionRepository(db),
+    wallets: createSupabaseUserWalletRepository(db),
+    limits: {
+      perUserDaily: serverEnv.SEND_DAILY_LIMIT_PER_USER,
+      totalDaily: serverEnv.SEND_DAILY_LIMIT_TOTAL,
+    },
+    accountLabel: "FinPal balance",
+  });
+  return sendFundsService;
 }
 
 /** Day 14: approve or reject a MANUAL_REVIEW decision. */
@@ -390,8 +483,8 @@ export interface SpendSummary {
 }
 
 /**
- * Money committed (AUTHORIZED or CAPTURED) today and this month in the
- * user's timezone: the same figures the evaluation counts against caps.
+ * Money committed today and this month in the user's timezone, purchases
+ * (AUTHORIZED or CAPTURED) plus sends: the figures counted against caps.
  */
 export async function getSpendSummary(
   userId: string,
@@ -399,15 +492,13 @@ export async function getSpendSummary(
 ): Promise<SpendSummary> {
   const timezone = constraints?.timezone ?? "UTC";
   const currency = constraints?.currency ?? "USD";
-  const payments = isMockMode()
-    ? mockBackend.payments
-    : createSupabasePaymentAttemptRepository(getServiceDb());
+  const spend = getCommittedSpend();
   const at = new Date();
   const day = localDayRange(at, timezone);
   const month = localMonthRange(at, timezone);
   const [spentToday, spentThisMonth] = await Promise.all([
-    payments.sumCommitted(userId, currency, day.start, day.end),
-    payments.sumCommitted(userId, currency, month.start, month.end),
+    spend.sumCommitted(userId, currency, day.start, day.end),
+    spend.sumCommitted(userId, currency, month.start, month.end),
   ]);
   return { currency, spentToday, spentThisMonth };
 }

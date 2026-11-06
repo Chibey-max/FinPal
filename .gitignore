@@ -16,3 +16,6 @@ tmp/
 # Supabase CLI local state (linked project, cached versions)
 supabase/.temp/
 supabase/.branches/
+
+# Local demo recording artifacts
+demo-output/

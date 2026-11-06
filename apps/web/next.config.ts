@@ -40,7 +40,8 @@ const appPolicy = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "img-src 'self' data: blob:",
+  // https: so Channel3 / CDN product photos can render in the Agent bill.
+  "img-src 'self' data: blob: https:",
   // ws: for the dev server's hot reload.
   "connect-src 'self' ws: wss:",
   "frame-ancestors 'none'",
@@ -53,11 +54,21 @@ const nextConfig: NextConfig = {
   // is not listed, so a page opened by network IP (from a phone or another
   // computer on the same Wi-Fi) renders as plain HTML and never becomes
   // interactive. These are the private network ranges.
-  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*"],
+  // Private LAN + localtunnel hosts used for PayPal HTTPS return URLs.
+  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*", "*.loca.lt"],
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["@finpal/backend", "@finpal/contracts", "@finpal/ui"],
+  // Soft navigations reuse the last RSC payload for a short window so clicking
+  // between sections does not refetch and flash loading when nothing changed.
+  // Mutations still call router.refresh() / revalidatePath for a fresh view.
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
   // The vendor route reads Bryntum's prebuilt files at runtime; include
   // them in the standalone output.
   outputFileTracingIncludes: {

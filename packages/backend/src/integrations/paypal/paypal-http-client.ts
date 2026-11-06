@@ -3,8 +3,12 @@ import { z } from "zod";
 import {
   PayPalApiError,
   type CreatePayPalOrderInput,
+  type CreatePayPalPayoutInput,
+  type PayPalBalances,
   type PayPalClient,
   type PayPalOrder,
+  type PayPalPayout,
+  type PayPalPayoutItem,
 } from "./paypal-client";
 
 export interface PayPalHttpClientOptions {
@@ -62,12 +66,110 @@ const verifyWebhookResponseSchema = z.object({
   verification_status: z.string(),
 });
 
+const balancesResponseSchema = z.object({
+  balances: z
+    .array(
+      z.object({
+        currency: z.string(),
+        primary: z.boolean().optional(),
+        total_balance: z
+          .object({ currency_code: z.string(), value: z.string() })
+          .optional(),
+        available_balance: z
+          .object({ currency_code: z.string(), value: z.string() })
+          .optional(),
+      }),
+    )
+    .min(1),
+  // Account-level times, not per balance.
+  as_of_time: z.string().optional(),
+  last_refresh_time: z.string().optional(),
+});
+
+// A failed or unclaimed item says why, e.g. RECEIVER_COUNTRY_NOT_ALLOWED.
+const payoutItemErrorSchema = z
+  .object({ name: z.string().optional(), message: z.string().optional() })
+  .optional();
+
+const payoutCreateResponseSchema = z.object({
+  batch_header: z.object({
+    payout_batch_id: z.string(),
+    batch_status: z.string(),
+  }),
+  // Present on some responses immediately; otherwise we poll getPayoutItem.
+  items: z
+    .array(
+      z.object({
+        payout_item_id: z.string().optional(),
+        transaction_status: z.string().optional(),
+        errors: payoutItemErrorSchema,
+      }),
+    )
+    .optional(),
+});
+
+const payoutItemResponseSchema = z.object({
+  payout_item_id: z.string(),
+  transaction_status: z.string(),
+  payout_batch_id: z.string().optional(),
+  errors: payoutItemErrorSchema,
+});
+
+function toBalances(
+  body: z.infer<typeof balancesResponseSchema>,
+): PayPalBalances {
+  const row =
+    body.balances.find((entry) => entry.primary && entry.available_balance) ??
+    body.balances.find((entry) => entry.available_balance) ??
+    body.balances[0]!;
+  const available = row.available_balance ?? row.total_balance;
+  if (!available) {
+    throw new PayPalApiError(
+      "PayPal returned balances without an available amount.",
+      502,
+      "INVALID_RESPONSE",
+    );
+  }
+  return {
+    available: Number(available.value),
+    currency: available.currency_code,
+    // PayPal refreshes balances with a delay of up to 3 hours; the last
+    // refresh is how current the figure really is.
+    asOf: body.last_refresh_time ?? body.as_of_time ?? new Date().toISOString(),
+  };
+}
+
+function toPayout(
+  body: z.infer<typeof payoutCreateResponseSchema>,
+): PayPalPayout {
+  const item = body.items?.[0];
+  return {
+    batchId: body.batch_header.payout_batch_id,
+    batchStatus: body.batch_header.batch_status,
+    payoutItemId: item?.payout_item_id ?? null,
+    transactionStatus: item?.transaction_status ?? null,
+    errorMessage: item?.errors?.message ?? null,
+  };
+}
+
+function toPayoutItem(
+  body: z.infer<typeof payoutItemResponseSchema>,
+): PayPalPayoutItem {
+  return {
+    payoutItemId: body.payout_item_id,
+    transactionStatus: body.transaction_status,
+    payoutBatchId: body.payout_batch_id ?? null,
+    errorMessage: body.errors?.message ?? null,
+  };
+}
+
 const errorResponseSchema = z
   .object({
     name: z.string().optional(),
     message: z.string().optional(),
     debug_id: z.string().optional(),
     details: z.array(z.object({ issue: z.string().optional() })).optional(),
+    links: z.array(z.object({ href: z.string() })).optional(),
   })
   .partial();
 
@@ -129,6 +231,7 @@ export function createPayPalHttpClient(
       response.status,
       body.details?.[0]?.issue ?? body.name,
       body.debug_id ?? response.headers.get("paypal-debug-id") ?? undefined,
+      body.links?.map((link) => link.href) ?? [],
     );
   }
 
@@ -335,6 +438,65 @@ export function createPayPalHttpClient(
         required(body, "verifyWebhookSignature").verification_status ===
         "SUCCESS"
       );
+    },
+
+    async getBalances() {
+      const body = await request(
+        balancesResponseSchema,
+        "/v1/reporting/balances?currency_code=USD",
+        { method: "GET" },
+      );
+      return toBalances(required(body, "getBalances"));
+    },
+
+    async createPayout(input: CreatePayPalPayoutInput) {
+      const body = await request(
+        payoutCreateResponseSchema,
+        "/v1/payments/payouts",
+        {
+          method: "POST",
+          requestId: input.requestId,
+          body: {
+            sender_batch_header: {
+              sender_batch_id: input.senderBatchId,
+              email_subject: "You received money from FinPal",
+              email_message:
+                input.memo?.slice(0, 1000) ?? "Sent via FinPal Sandbox",
+            },
+            items: [
+              {
+                recipient_type: "EMAIL",
+                amount: {
+                  value: formatPayPalAmount(input.amount, input.currency),
+                  currency: input.currency,
+                },
+                receiver: input.recipientEmail,
+                note: input.memo?.slice(0, 1000) ?? undefined,
+                sender_item_id: input.senderBatchId.slice(0, 63),
+              },
+            ],
+          },
+        },
+      );
+      return toPayout(required(body, "createPayout"));
+    },
+
+    async getPayoutBatch(batchId: string) {
+      const body = await request(
+        payoutCreateResponseSchema,
+        `/v1/payments/payouts/${encodeURIComponent(batchId)}`,
+        { method: "GET" },
+      );
+      return toPayout(required(body, "getPayoutBatch"));
+    },
+
+    async getPayoutItem(payoutItemId: string) {
+      const body = await request(
+        payoutItemResponseSchema,
+        `/v1/payments/payouts-item/${encodeURIComponent(payoutItemId)}`,
+        { method: "GET" },
+      );
+      return toPayoutItem(required(body, "getPayoutItem"));
     },
   };
 }

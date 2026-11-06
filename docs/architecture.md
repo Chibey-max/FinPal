@@ -109,6 +109,10 @@ Precedence: any block condition wins and every block reason is reported; otherwi
 
 Each decision has structured `reasons` (`code`, `source`: constraints, amount, quality, trust or decision, and a readable `message`) plus a one-line `reason` summary.
 
+## Personal FinPal ledger vs PayPal
+
+Send does **not** read PayPal Reporting Balances (the HTTP client can, the product does not). After Log in with PayPal, the user tops up a **FinPal ledger** via Sandbox Checkout (Orders AUTHORIZE → capture). Approve & pay holds that ledger, then merchant **Payouts EMAIL** pay the recipient from FinPal’s Sandbox business account. Balance changes run in `apply_wallet_op` (`available = available ± amount` in one SQL statement) so concurrent top-up and send cannot drop a write.
+
 ## Security posture
 
 - All payments are PayPal Sandbox-only.

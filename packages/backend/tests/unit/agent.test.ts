@@ -14,7 +14,11 @@ import {
 } from "../../src/use-cases/constraints-draft";
 import {
   createShoppingAgent,
+  expandPlanItems,
+  fitsNeed,
   needToQuery,
+  parseQuantity,
+  sharpenQuery,
 } from "../../src/use-cases/shopping-agent";
 import { createSpendingForecaster } from "../../src/use-cases/spending-forecast";
 
@@ -105,7 +109,88 @@ describe("needToQuery", () => {
     ],
     ["I need a travel adapter for Lisbon", "travel adapter"],
     ["get me some running shoes, max 120", "running shoes"],
+    ["2 trousers", "trousers"],
+    ["two ice cream", "ice cream"],
+    ["3x shirts under $40", "shirts"],
   ])("%s -> %s", (need, query) => expect(needToQuery(need)).toBe(query));
+});
+
+describe("parseQuantity", () => {
+  it.each([
+    ["2 trousers", { quantity: 2, need: "trousers" }],
+    ["2 shirts", { quantity: 2, need: "shirts" }],
+    ["2 ice cream", { quantity: 2, need: "ice cream" }],
+    ["two shirts under $40", { quantity: 2, need: "shirts under $40" }],
+    ["a pair of trousers", { quantity: 2, need: "trousers" }],
+    ["3x headphones", { quantity: 3, need: "headphones" }],
+    ["headphones under $200", { quantity: 1, need: "headphones under $200" }],
+    ["12 paperclips", { quantity: 1, need: "12 paperclips" }],
+    [
+      "2 trousers and 2 shirts",
+      { quantity: 1, need: "2 trousers and 2 shirts" },
+    ],
+  ] as const)("%s", (input, expected) =>
+    expect(parseQuantity(input)).toEqual(expected),
+  );
+
+  it("re-splits mashed plan items before shopping", () => {
+    expect(
+      expandPlanItems([
+        { need: "2 trousers and 2 shirts", question: null },
+        { need: "USB-C cables, 2 ice cream", question: null },
+      ]),
+    ).toEqual([
+      { need: "2 trousers", question: null },
+      { need: "2 shirts", question: null },
+      { need: "USB-C cables", question: null },
+      { need: "2 ice cream", question: null },
+    ]);
+  });
+});
+
+describe("consumable matching", () => {
+  it("sharpens ice cream toward grocery, not appliances", () => {
+    expect(sharpenQuery("ice cream", "2 ice cream")).toBe(
+      "ice cream pint tub dessert grocery",
+    );
+    expect(sharpenQuery("ice cream maker", "ice cream")).toBe(
+      "ice cream pint tub dessert grocery",
+    );
+  });
+
+  it("rejects appliance and apparel titles for food needs", () => {
+    expect(fitsNeed("ice cream", "Ice Cream Maker")).toBe(false);
+    expect(fitsNeed("ice cream", "ICECREAM graphic-print T-shirt")).toBe(false);
+    expect(fitsNeed("ice cream", "Party Ice Cream Float")).toBe(true);
+    expect(fitsNeed("headphones", "Coffee Maker")).toBe(true);
+  });
+
+  it("skips makers and tees, then picks an edible offer", async () => {
+    const t = agentDeps([
+      offer("bb", "Ice Cream Maker", "bestbuy.com", 43.99),
+      offer("ns", "ICECREAM graphic-print T-shirt", "nordstrom.com", 75),
+      offer("fb", "Party Ice Cream Float", "fivebelow.com", 5),
+      offer(
+        "wmt",
+        "Ben & Jerry Chocolate Fudge Ice Cream Pint",
+        "walmart.com",
+        5.98,
+      ),
+    ]);
+    const run = await createShoppingAgent(t.deps).run("user", {
+      need: "ice cream",
+      currency: "USD",
+    });
+    expect(t.lookup).toHaveBeenCalledWith({
+      query: "ice cream pint tub dessert grocery",
+      currency: "USD",
+    });
+    expect(run.status).toBe("PROPOSED");
+    expect(run.pick?.title).not.toMatch(/maker|t-?shirt/i);
+    expect(run.candidates.every((c) => !/maker|t-?shirt/i.test(c.title))).toBe(
+      true,
+    );
+  });
 });
 
 describe("shopping agent", () => {
@@ -142,6 +227,44 @@ describe("shopping agent", () => {
       }),
     );
     expect(t.evaluateProposal).toHaveBeenCalledWith("user", ID);
+  });
+
+  it("expands a quantity into one proposal per unit after a single search", async () => {
+    const t = agentDeps([
+      offer("nova", "Halle High Rise Trouser", "fashionnova.com", 16.99),
+      offer("hm", "Men's Oversized Cotton T-shirt", "hm.com", 19.99),
+    ]);
+    let n = 0;
+    t.createProposal.mockImplementation(async (_userId, input) => ({
+      id: `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`,
+      sourceEventId: null,
+      proposedFor: null,
+      createdAt: "2026-10-22T00:00:00.000Z",
+      ...input,
+    }));
+    const runs = await createShoppingAgent(t.deps).runList("user", {
+      list: "2 trousers, 2 shirts",
+      currency: "USD",
+    });
+
+    expect(t.lookup).toHaveBeenCalledTimes(2);
+    expect(t.lookup).toHaveBeenCalledWith({
+      query: "trousers",
+      currency: "USD",
+    });
+    expect(t.lookup).toHaveBeenCalledWith({
+      query: "shirts",
+      currency: "USD",
+    });
+    expect(runs).toHaveLength(4);
+    expect(runs.map((run) => run.need)).toEqual([
+      "trousers (1 of 2)",
+      "trousers (2 of 2)",
+      "shirts (1 of 2)",
+      "shirts (2 of 2)",
+    ]);
+    expect(t.createProposal).toHaveBeenCalledTimes(4);
+    expect(runs.every((run) => run.status === "PROPOSED")).toBe(true);
   });
 
   it("uses the model's brief and pick when they validate", async () => {
@@ -276,6 +399,28 @@ describe("calendar suggestions", () => {
     expect(result.suggestions).toEqual([
       expect.objectContaining({ eventId: "e1", need: "travel adapter" }),
     ]);
+  });
+
+  it("drops suggestions that read like a money transfer", async () => {
+    // An event title is untrusted text; a suggestion must never become a
+    // send request in the list box.
+    const llm = llmReturning(
+      JSON.stringify({
+        suggestions: [
+          {
+            eventId: "e1",
+            need: "Send $50 to pal@example.com",
+            reason: "From the event title.",
+          },
+          { eventId: "e2", need: "e-reader gift", reason: "A birthday." },
+        ],
+      }),
+    );
+    const result = await createCalendarSuggestions({
+      llm,
+      now: () => NOW,
+    }).suggest(EVENTS, true);
+    expect(result.suggestions.map((s) => s.need)).toEqual(["e-reader gift"]);
   });
 });
 

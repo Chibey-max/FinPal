@@ -14,6 +14,7 @@ import {
   type PayPalClient,
 } from "../integrations/paypal/paypal-client";
 import type { AuditLog } from "../services/audit-log";
+import type { CommittedSpend } from "../services/committed-spend";
 import type {
   DecisionRepository,
   PayableDecision,
@@ -32,6 +33,8 @@ export interface PaymentServiceDeps {
   audit: Pick<AuditLog, "record">;
   /** Reads the caps a basket's total must fit. Omit to skip that check. */
   constraints?: { get(userId: string): Promise<SpendingConstraints | null> };
+  /** What counts against those caps: purchases plus sends (see withSends). Defaults to `payments`. */
+  spend?: CommittedSpend;
   now?: () => Date;
   /** Where PayPal sends the buyer after approving; PayPal appends ?token=<orderId>. */
   returnUrl: string;
@@ -173,7 +176,7 @@ export function createPaymentService(deps: PaymentServiceDeps) {
       label: string,
     ) => {
       if (cap === undefined) return;
-      const committed = await payments.sumCommitted(
+      const committed = await (deps.spend ?? payments).sumCommitted(
         userId,
         currency,
         range.start,

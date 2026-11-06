@@ -25,6 +25,11 @@ const titles: Record<AuditEventType, { title: string; tone: EventTone }> = {
   PAYMENT_CAPTURED: { title: "Payment taken", tone: "success" },
   PAYMENT_VOIDED: { title: "Payment cancelled", tone: "warning" },
   PAYPAL_CALL_FAILED: { title: "PayPal request failed", tone: "danger" },
+  SEND_DRAFT_CREATED: { title: "Send draft created", tone: "neutral" },
+  SEND_APPROVED: { title: "Send approved", tone: "neutral" },
+  SEND_SENT: { title: "Sent", tone: "success" },
+  SEND_FAILED: { title: "Send failed", tone: "danger" },
+  WALLET_TOPPED_UP: { title: "Wallet topped up", tone: "success" },
 };
 
 const decisionWords: Record<string, string> = {
@@ -112,6 +117,24 @@ export function describeEvent(event: AuditEvent): EventDescription {
           text(p.issue),
           text(p.debugId) ? `debug id ${p.debugId}` : undefined,
         ),
+      };
+    case "SEND_DRAFT_CREATED":
+    case "SEND_APPROVED":
+    case "SEND_SENT":
+    case "SEND_FAILED":
+      return {
+        ...base,
+        detail: join(
+          money(p),
+          text(p.recipientEmail),
+          text(p.payoutStatus),
+          text(p.ruleReason) ?? text(p.reason),
+        ),
+      };
+    case "WALLET_TOPPED_UP":
+      return {
+        ...base,
+        detail: join(money(p), text(p.paypalOrderId)),
       };
     default:
       return base;
@@ -202,6 +225,23 @@ export function summarizeEvent(event: AuditEvent): string {
           text(p.debugId) && `debug ${p.debugId}`,
         ) ?? "PayPal request failed"
       );
+    case "SEND_DRAFT_CREATED":
+      return (
+        join(money(p), text(p.recipientEmail), text(p.ruleOutcome)) ??
+        "Send draft"
+      );
+    case "SEND_APPROVED":
+      return join(money(p), text(p.recipientEmail)) ?? "Send approved";
+    case "SEND_SENT":
+      return (
+        join(money(p), text(p.recipientEmail), text(p.payoutStatus)) ?? "Sent"
+      );
+    case "SEND_FAILED":
+      return (
+        join(text(p.reason), money(p), text(p.payoutStatus)) ?? "Send failed"
+      );
+    case "WALLET_TOPPED_UP":
+      return join(money(p), "FinPal balance") ?? "Wallet topped up";
   }
 }
 
@@ -213,7 +253,7 @@ export function eventTypeTone(event: AuditEvent): EventTypeTone {
   if (/REJECTED|VOIDED|FAILED/.test(type)) return "bad";
   if (type === "DECISION_RECORDED" && event.payload.outcome === "BLOCK")
     return "bad";
-  if (/CAPTURED|APPROVED$/.test(type)) return "ok";
-  if (/PAYMENT|PAYPAL/.test(type)) return "info";
+  if (/CAPTURED|APPROVED$|SEND_SENT|WALLET_TOPPED_UP/.test(type)) return "ok";
+  if (/PAYMENT|PAYPAL|SEND_/.test(type)) return "info";
   return "plain";
 }

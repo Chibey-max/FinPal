@@ -13,7 +13,11 @@ export default async function ActivityPage() {
     <div className="app-page">
       <div className="page-head__text">
         <h1>Activity</h1>
-        <p>A permanent record of everything the agent and you have done.</p>
+        <p>
+          A permanent record of everything the agent and you have done. It
+          cannot be edited. PayPal webhook confirmations show here when the
+          Sandbox webhook is registered.
+        </p>
       </div>
       <ActivityGrid initial={page} timeZone={constraints?.timezone ?? "UTC"} />
     </div>

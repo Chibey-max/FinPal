@@ -2,11 +2,14 @@ import Link from "next/link";
 
 import { ShortcutsButton } from "@/components/shortcuts-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DisconnectCalendarButton } from "@/features/calendar/disconnect-calendar-button";
+import { DisconnectPaypalButton } from "@/features/send/disconnect-paypal-button";
 import { requireUser } from "@/lib/auth";
 import {
   getAssistantService,
   getCalendarConnectionService,
   getCalendarEvents,
+  getPaypalConnectionService,
 } from "@/lib/backend";
 import { isMockMode } from "@/lib/data-source";
 
@@ -14,6 +17,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const calendar = await getCalendarEvents(user.id, 1);
   const canConnect = getCalendarConnectionService() !== null;
+  const paypal = await getPaypalConnectionService().status(user.id);
   const mock = isMockMode();
   const ai = getAssistantService();
 
@@ -81,11 +85,10 @@ export default async function SettingsPage() {
               {calendar.configured ? "Sample data" : "Unavailable"}
             </span>
           ) : calendar.configured ? (
-            <form action="/api/v1/calendar/disconnect" method="post">
-              <button type="submit" className="btn btn-outline btn-sm">
-                Disconnect
-              </button>
-            </form>
+            <DisconnectCalendarButton
+              label="Disconnect"
+              className="btn btn-outline btn-sm"
+            />
           ) : (
             <a
               href="/api/v1/calendar/connect"
@@ -99,21 +102,28 @@ export default async function SettingsPage() {
           <div>
             <span className="settings-row__title">PayPal</span>
             <span className="small ink3">
-              Sandbox only. You approve each basket in PayPal, and no real money
-              moves.
+              {paypal.needsReconnect
+                ? "PayPal ended this connection. Connect again to top up and send."
+                : paypal.connected
+                  ? `Connected as ${paypal.email}. Top-up funds a FinPal ledger (Sandbox Checkout). Sends pay out from FinPal’s merchant.`
+                  : "Log in with PayPal, then top up a FinPal ledger. Sends use merchant Payouts, not your PayPal cash."}
             </span>
           </div>
-          <span className="chip" data-tone="info">
-            Sandbox
-          </span>
+          {paypal.connected && !paypal.needsReconnect ? (
+            <DisconnectPaypalButton />
+          ) : (
+            <a href="/api/v1/paypal/connect" className="btn btn-outline btn-sm">
+              {paypal.needsReconnect ? "Reconnect" : "Connect"}
+            </a>
+          )}
         </div>
         <div className="settings-row">
           <div>
             <span className="settings-row__title">AI assistant</span>
             <span className="small ink3">
               {ai.configured
-                ? `Groq · ${ai.model}. It shops and explains; your rules decide.`
-                : "Off. FinPal uses built-in rules instead."}
+                ? `Groq · ${ai.model}. It may pick the offer; it cannot pick AUTO_APPROVE or BLOCK. Merchant check is pass, fail, or not checked.`
+                : "Off. FinPal uses built-in rules. Without KERNEL, merchant trust is not checked and GOOD prices can still auto-approve."}
             </span>
           </div>
           <span className="chip" data-tone={ai.configured ? "ok" : "muted"}>

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Pagination, paginate } from "@/components/pagination";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { formatEventDate } from "@/features/app/present";
+import { DisconnectCalendarButton } from "@/features/calendar/disconnect-calendar-button";
 
 import { BryntumWeek } from "./bryntum-week";
 
@@ -139,13 +140,7 @@ export function CalendarWeek({
             <i aria-hidden /> Shaded hours: spending allowed by your rules
           </span>
         ) : null}
-        {configured && canConnect ? (
-          <form action="/api/v1/calendar/disconnect" method="post">
-            <button type="submit" className="link-quiet">
-              Disconnect Google Calendar
-            </button>
-          </form>
-        ) : null}
+        {configured && canConnect ? <DisconnectCalendarButton /> : null}
         <span className="footnote">
           {configured
             ? "FinPal reads only event titles and start times."
