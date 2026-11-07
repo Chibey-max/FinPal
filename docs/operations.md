@@ -50,7 +50,7 @@ Do **not** use loca.lt as the judge URL. Do **not** send Payouts to `*@business.
 | ---------------------------- | ------------------------------------------ | ---------------------------------------------- |
 | `CHANNEL3_API_KEY`           | Channel3 dashboard                         | Yes                                            |
 | `KERNEL_API_KEY`             | KERNEL dashboard                           | No; without it merchant trust is `NOT_CHECKED` |
-| `GROQ_API_KEY`, `GROQ_MODEL` | Groq console; `render.yaml` sets the model | No; without it explanations are rule-based     |
+| `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_AGENT_MODEL` | Groq console. Agent shop uses `GROQ_AGENT_MODEL` (or `llama-3.1-8b-instant` when `GROQ_MODEL` is gpt-oss) so Render's ~30s HTTP window is enough | No; without a key, wording is rule-based |
 
 ### 4. Google Calendar (optional)
 

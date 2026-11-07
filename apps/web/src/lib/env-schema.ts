@@ -35,6 +35,8 @@ export const serverEnvSchema = z.object({
   /** Groq key for plain-language explanations and proposal drafts. */
   GROQ_API_KEY: z.string().min(1).optional(),
   GROQ_MODEL: z.string().min(1).optional(),
+  /** Faster Groq model for Agent shop. Unset uses llama-3.1-8b-instant when GROQ_MODEL is a reasoning model. */
+  GROQ_AGENT_MODEL: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   /**
    * Send limits, in the wallet's currency, while every user pays from one
