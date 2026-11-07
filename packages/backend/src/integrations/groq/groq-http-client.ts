@@ -15,6 +15,19 @@ export interface GroqHttpClientOptions {
 }
 
 export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
+/** Instant model for Agent shop calls so Render's ~30s request budget holds. */
+export const DEFAULT_SHOP_GROQ_MODEL = "llama-3.1-8b-instant";
+
+export function shopGroqModel(
+  assistantModel?: string,
+  agentModel?: string,
+): string {
+  if (agentModel?.trim()) return agentModel.trim();
+  if (!assistantModel || assistantModel.includes("gpt-oss")) {
+    return DEFAULT_SHOP_GROQ_MODEL;
+  }
+  return assistantModel;
+}
 
 // Reasoning models spend part of the completion budget on hidden reasoning,
 // so they get low effort and room for it on top of the visible reply.
@@ -35,7 +48,7 @@ export function createGroqHttpClient(
   let baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
   const doFetch = options.fetch ?? fetch;
-  const timeoutMs = options.timeoutMs ?? 10_000;
+  const timeoutMs = options.timeoutMs ?? 12_000;
   const model = options.model ?? DEFAULT_GROQ_MODEL;
 
   return {
@@ -63,8 +76,14 @@ export function createGroqHttpClient(
           }),
           signal: AbortSignal.timeout(timeoutMs),
         });
-      } catch {
-        throw new LlmError("LLM_UNAVAILABLE", "Groq could not be reached.");
+      } catch (error) {
+        const timedOut =
+          error instanceof Error &&
+          (error.name === "TimeoutError" || error.name === "AbortError");
+        throw new LlmError(
+          "LLM_UNAVAILABLE",
+          timedOut ? "Groq timed out." : "Groq could not be reached.",
+        );
       }
 
       if (response.status === 401 || response.status === 403) {

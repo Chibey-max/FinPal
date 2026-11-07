@@ -411,6 +411,7 @@ function AgentConsoleView({
     try {
       const result = await apiRequest<AgentListResult>("/api/v1/agent/list", {
         body: { list: trimmed },
+        retries: 1,
       });
       setRuns(result.runs);
       pushAgent(summarizeRuns(result.runs));

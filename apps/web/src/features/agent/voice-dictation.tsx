@@ -130,7 +130,7 @@ async function transcribeBlob(blob: Blob): Promise<string> {
     });
   } catch {
     throw new Error(
-      "FinPal could not be reached. Check your connection and retry.",
+      "The server dropped the request. Retry — this is not your Wi‑Fi.",
     );
   }
   const data = (await response.json().catch(() => null)) as {

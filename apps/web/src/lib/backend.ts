@@ -14,6 +14,7 @@ import {
   createDecisionDetailService,
   createEvaluationService,
   createGroqHttpClient,
+  shopGroqModel,
   createKernelHttpClient,
   createKernelTrustChecker,
   createPaymentService,
@@ -285,10 +286,28 @@ function getLlm(): LlmClient | undefined {
       ? createGroqHttpClient({
           apiKey: env.GROQ_API_KEY,
           model: env.GROQ_MODEL,
+          timeoutMs: 12_000,
         })
       : null;
   }
   return llmClient ?? undefined;
+}
+
+let shopLlmClient: LlmClient | null | undefined;
+
+/** Agent shop uses a faster Groq model so Render's request window is enough. */
+function getShopLlm(): LlmClient | undefined {
+  if (shopLlmClient === undefined) {
+    const env = getGroqEnv();
+    shopLlmClient = env.GROQ_API_KEY
+      ? createGroqHttpClient({
+          apiKey: env.GROQ_API_KEY,
+          model: shopGroqModel(env.GROQ_MODEL, env.GROQ_AGENT_MODEL),
+          timeoutMs: 8_000,
+        })
+      : null;
+  }
+  return shopLlmClient ?? undefined;
 }
 
 const reportLlmError = (error: unknown) =>
@@ -311,7 +330,7 @@ let shoppingAgent: ShoppingAgent | undefined;
 export function getShoppingAgent(): ShoppingAgent {
   if (isMockMode()) {
     return createShoppingAgent({
-      llm: getLlm(),
+      llm: getShopLlm(),
       offers: mockBackend.offers,
       evaluation: mockBackend.evaluation,
       audit: mockBackend.audit,
@@ -319,7 +338,7 @@ export function getShoppingAgent(): ShoppingAgent {
     });
   }
   shoppingAgent ??= createShoppingAgent({
-    llm: getLlm(),
+    llm: getShopLlm(),
     offers: getComparableOffersService(),
     evaluation: getEvaluationService(),
     audit: getServiceAuditLog(),

@@ -11,10 +11,36 @@ export class ApiRequestError extends Error {
   }
 }
 
+const NETWORK_MESSAGE =
+  "The server dropped the request. Retry — this is not your Wi‑Fi.";
+
 /** Browser-side JSON call to the FinPal API. Throws ApiRequestError. */
 export async function apiRequest<T>(
   path: string,
-  init: { method?: "GET" | "POST"; body?: unknown } = {},
+  init: { method?: "GET" | "POST"; body?: unknown; retries?: number } = {},
+): Promise<T> {
+  const attempts = 1 + Math.max(0, init.retries ?? 0);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+    try {
+      return await apiRequestOnce<T>(path, init);
+    } catch (error) {
+      lastError = error;
+      const retryable =
+        error instanceof ApiRequestError &&
+        (error.code === "NETWORK" || error.status >= 500);
+      if (!retryable || attempt === attempts - 1) throw error;
+    }
+  }
+  throw lastError;
+}
+
+async function apiRequestOnce<T>(
+  path: string,
+  init: { method?: "GET" | "POST"; body?: unknown },
 ): Promise<T> {
   let response: Response;
   try {
@@ -27,11 +53,7 @@ export async function apiRequest<T>(
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
   } catch {
-    throw new ApiRequestError(
-      0,
-      "NETWORK",
-      "FinPal could not be reached. Check your connection and retry.",
-    );
+    throw new ApiRequestError(0, "NETWORK", NETWORK_MESSAGE);
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {

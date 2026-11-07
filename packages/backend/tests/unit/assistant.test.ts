@@ -1,7 +1,10 @@
 import type { DecisionDetail } from "@finpal/contracts";
 import { describe, expect, it, vi } from "vitest";
 
-import { createGroqHttpClient } from "../../src/integrations/groq/groq-http-client";
+import {
+  createGroqHttpClient,
+  shopGroqModel,
+} from "../../src/integrations/groq/groq-http-client";
 import type { LlmClient } from "../../src/integrations/groq/llm-client";
 import {
   createAssistantService,
@@ -241,6 +244,24 @@ describe("assistant proposal drafts", () => {
     }).draftProposal({ text: "Buy AirPods Pro 2 for $229" });
     expect(result.source).toBe("rules");
     expect(result.draft.proposedPrice).toBe(229);
+  });
+});
+
+describe("shopGroqModel", () => {
+  it("uses the instant model when the assistant model is gpt-oss", () => {
+    expect(shopGroqModel("openai/gpt-oss-120b")).toBe("llama-3.1-8b-instant");
+  });
+
+  it("keeps a non-reasoning assistant model", () => {
+    expect(shopGroqModel("llama-3.3-70b-versatile")).toBe(
+      "llama-3.3-70b-versatile",
+    );
+  });
+
+  it("prefers an explicit agent model", () => {
+    expect(shopGroqModel("openai/gpt-oss-120b", "llama-3.3-70b-versatile")).toBe(
+      "llama-3.3-70b-versatile",
+    );
   });
 });
 

@@ -193,7 +193,9 @@ export function createShoppingAgent(deps: ShoppingAgentDeps) {
     history?: PurchaseHistory,
   ): Promise<{ need: string; question: string | null }[]> {
     const rules = splitList(list);
-    if (!llm) return rules;
+    // One product is already a search query. Skipping Groq here saves a
+    // round-trip that regularly blows Render's request time limit.
+    if (!llm || rules.length <= 1) return rules;
     const reply = await askJson(
       llm,
       PLAN_PROMPT,

@@ -229,6 +229,26 @@ describe("shopping agent", () => {
     expect(t.evaluateProposal).toHaveBeenCalledWith("user", ID);
   });
 
+  it("does not ask the model to split a single-item list", async () => {
+    const llm = llmReturning(
+      JSON.stringify({
+        query: "iphone 12",
+        maxPrice: null,
+        mustHaves: [],
+      }),
+      JSON.stringify({
+        choice: 1,
+        reason: "Recognised brand at a fair listed price from the merchant.",
+      }),
+    );
+    const t = agentDeps();
+    await createShoppingAgent({ ...t.deps, llm }).runList("user", {
+      list: "iphone 12",
+      currency: "USD",
+    });
+    expect(llm.complete).toHaveBeenCalledTimes(2);
+  });
+
   it("expands a quantity into one proposal per unit after a single search", async () => {
     const t = agentDeps([
       offer("nova", "Halle High Rise Trouser", "fashionnova.com", 16.99),

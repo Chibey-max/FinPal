@@ -1,6 +1,8 @@
 import { agentShopRequestSchema } from "@finpal/contracts";
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60;
+
 import {
   getApiUserId,
   handleRouteError,
