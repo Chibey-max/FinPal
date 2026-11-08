@@ -80,7 +80,7 @@ A `GOOD` price under 50% of the median (`UNUSUALLY_LOW_RATIO`) also goes to manu
 
 1. Loads the proposal (owned by the user) and the user's constraints.
 2. Sums money already committed (`AUTHORIZED` or `CAPTURED`) today and this month **in the user's timezone**, for the daily and monthly caps.
-3. Runs `checkConstraints()` at the planned purchase time and the Quality Score in parallel, then the merchant trust check (KERNEL visits the cheapest Channel3 offer URL when `KERNEL_API_KEY` is set; otherwise `NOT_CHECKED`).
+3. Runs `checkConstraints()` at the planned purchase time and the Quality Score in parallel, then the merchant trust check (KERNEL visits the chosen listing URL on the proposal when `KERNEL_API_KEY` is set; otherwise `NOT_CHECKED`. Comparables are for Quality Score only).
 4. Applies `decide()` (`packages/backend/src/domain/decision-table.ts`).
 5. Stores the evaluation and decision (service role; users cannot insert them) and appends `EVALUATION_COMPLETED` and `DECISION_RECORDED` audit events. Trust evidence is persisted on `evaluations.trust_evidence`.
 

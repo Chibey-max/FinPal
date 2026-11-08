@@ -36,6 +36,8 @@ export function createInMemoryDb(clock: () => Date) {
         source: input.source,
         sourceEventId: input.sourceEventId ?? null,
         proposedFor: input.proposedFor ?? null,
+        offerUrl: input.offerUrl ?? null,
+        offerMerchant: input.offerMerchant ?? null,
         createdAt: clock().toISOString(),
       };
       proposalRows.push(row);

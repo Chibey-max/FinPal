@@ -250,6 +250,8 @@ export function createShoppingAgent(deps: ShoppingAgentDeps) {
       currency,
       source: "AGENT",
       sourceEventId: eventId,
+      offerUrl: chosen.url,
+      offerMerchant: chosen.merchant,
     });
     await deps.audit.record({
       userId,

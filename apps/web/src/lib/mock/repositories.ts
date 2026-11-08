@@ -42,6 +42,8 @@ export const proposals: ProposalRepository = {
       source: input.source,
       sourceEventId: input.sourceEventId ?? null,
       proposedFor: input.proposedFor ?? null,
+      offerUrl: input.offerUrl ?? null,
+      offerMerchant: input.offerMerchant ?? null,
       createdAt: now().toISOString(),
     };
     getStore().proposals.push(row);

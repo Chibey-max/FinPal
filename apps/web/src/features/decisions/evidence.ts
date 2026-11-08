@@ -166,14 +166,19 @@ const str = (value: unknown) =>
 
 /**
  * One line about what the merchant trust check looked at, from the stored
- * evidence (KERNEL visits the cheapest Channel3 merchant URL), e.g.
+ * evidence (KERNEL visits the chosen listing URL), e.g.
  * "Checked bestbuy.com · HTTP 200". Null when there is nothing to show.
  */
 export function describeTrustEvidence(
   evidence: Record<string, unknown>,
 ): string | null {
   const reason = str(evidence.reason);
-  if (reason === "kernel_not_configured") return null;
+  if (
+    reason === "kernel_not_configured" ||
+    reason === "no_selected_merchant_url"
+  ) {
+    return null;
+  }
   const target =
     str(evidence.merchant) ??
     (() => {

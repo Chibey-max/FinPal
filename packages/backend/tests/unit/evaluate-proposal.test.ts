@@ -5,7 +5,7 @@ import type {
   SpendingConstraints,
   TrustSignal,
 } from "@finpal/contracts";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   EvaluationRepository,
@@ -15,6 +15,7 @@ import type { ProposalRepository } from "../../src/repositories/proposal-reposit
 import type { QualityScoreService } from "../../src/services/quality-score-service";
 import {
   createEvaluationService,
+  createKernelTrustChecker,
   EvaluationError,
   type EvaluationService,
 } from "../../src/use-cases/evaluate-proposal";
@@ -60,6 +61,8 @@ function createProposals(): ProposalRepository {
         source: input.source,
         sourceEventId: input.sourceEventId ?? null,
         proposedFor: input.proposedFor ?? null,
+        offerUrl: input.offerUrl ?? null,
+        offerMerchant: input.offerMerchant ?? null,
         createdAt: now.toISOString(),
       };
       rows.push({ ...proposal, userId: owner });
@@ -306,6 +309,77 @@ describe("evaluation service", () => {
       entityId: proposal.id,
       type: "PROPOSAL_CREATED",
       payload: { productName: "Desk lamp", amount: 50, currency: "USD" },
+    });
+  });
+});
+
+describe("createKernelTrustChecker", () => {
+  const cheapest = {
+    productId: "cheap",
+    title: "Drill",
+    merchant: "jbtools.com",
+    price: 89,
+    currency: "USD",
+    url: "https://jbtools.com/cheap",
+  };
+
+  it("visits the chosen listing, not the cheapest comparable", async () => {
+    const checkMerchant = vi.fn(async () => ({
+      signal: "PASS" as const,
+      evidence: { url: "https://www.bestbuy.com/site/item", status: 200 },
+    }));
+    const checker = createKernelTrustChecker({ checkMerchant });
+    const result = await checker.check(
+      {
+        id: "00000000-0000-4000-8000-000000000001",
+        productName: "Drill",
+        proposedPrice: 129,
+        currency: "USD",
+        source: "AGENT",
+        sourceEventId: null,
+        proposedFor: null,
+        offerUrl: "https://www.bestbuy.com/site/item",
+        offerMerchant: "bestbuy.com",
+        createdAt: now.toISOString(),
+      },
+      [cheapest],
+    );
+    expect(checkMerchant).toHaveBeenCalledWith(
+      "https://www.bestbuy.com/site/item",
+    );
+    expect(result).toEqual({
+      signal: "PASS",
+      evidence: {
+        merchant: "bestbuy.com",
+        selected: true,
+        url: "https://www.bestbuy.com/site/item",
+        status: 200,
+      },
+    });
+  });
+
+  it("does not fall back to a comparable when no listing was chosen", async () => {
+    const checkMerchant = vi.fn();
+    const checker = createKernelTrustChecker({ checkMerchant });
+    const result = await checker.check(
+      {
+        id: "00000000-0000-4000-8000-000000000002",
+        productName: "Desk lamp",
+        proposedPrice: 50,
+        currency: "USD",
+        source: "MANUAL",
+        sourceEventId: null,
+        proposedFor: null,
+        offerUrl: null,
+        offerMerchant: null,
+        createdAt: now.toISOString(),
+      },
+      [cheapest],
+    );
+    expect(checkMerchant).not.toHaveBeenCalled();
+    expect(result.signal).toBe("NOT_CHECKED");
+    expect(result.evidence).toMatchObject({
+      reason: "no_selected_merchant_url",
     });
   });
 });

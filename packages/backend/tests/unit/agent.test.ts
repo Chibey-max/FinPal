@@ -219,6 +219,8 @@ describe("shopping agent", () => {
       currency: "USD",
       source: "AGENT",
       sourceEventId: undefined,
+      offerUrl: run.pick!.url,
+      offerMerchant: run.pick!.merchant,
     });
     expect(t.record).toHaveBeenCalledWith(
       expect.objectContaining({

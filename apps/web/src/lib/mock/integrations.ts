@@ -401,10 +401,9 @@ export const channel3: Channel3Client = {
 // form, so every decision-table branch can be demonstrated.
 
 export const trust: MerchantTrustChecker = {
-  async check(proposal, references) {
+  async check(proposal) {
     const signal = getStore().trust.get(proposal.id) ?? "NOT_CHECKED";
-    // Same evidence shape as the KERNEL checker: the merchant it would visit.
-    const offer = references[0];
+    const url = proposal.offerUrl;
     return {
       signal,
       evidence:
@@ -412,8 +411,9 @@ export const trust: MerchantTrustChecker = {
           ? { reason: "kernel_not_configured" }
           : {
               simulated: true,
-              merchant: offer?.merchant ?? null,
-              url: offer?.url ?? null,
+              selected: true,
+              merchant: proposal.offerMerchant ?? null,
+              url: url ?? null,
             },
     };
   },
