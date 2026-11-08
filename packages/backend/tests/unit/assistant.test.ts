@@ -25,6 +25,8 @@ function detail(
       source: "MANUAL",
       sourceEventId: null,
       proposedFor: null,
+      offerUrl: null,
+      offerMerchant: null,
       createdAt: "2026-10-20T10:00:00.000Z",
     },
     evaluation: {
@@ -259,9 +261,9 @@ describe("shopGroqModel", () => {
   });
 
   it("prefers an explicit agent model", () => {
-    expect(shopGroqModel("openai/gpt-oss-120b", "llama-3.3-70b-versatile")).toBe(
-      "llama-3.3-70b-versatile",
-    );
+    expect(
+      shopGroqModel("openai/gpt-oss-120b", "llama-3.3-70b-versatile"),
+    ).toBe("llama-3.3-70b-versatile");
   });
 });
 

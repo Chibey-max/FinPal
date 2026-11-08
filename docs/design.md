@@ -183,7 +183,7 @@ Time windows use an inclusive start and exclusive end and may cross midnight. Am
 
 KERNEL provides a basic merchant trust result. The model supports `PASS`, `FAIL`, `UNAVAILABLE`, and `NOT_CHECKED`-style outcomes so missing trust data can be handled explicitly.
 
-KERNEL is connected. When `KERNEL_API_KEY` is set, the evaluation opens a short-lived KERNEL browser session and loads the merchant page of the cheapest Channel3 reference offer:
+KERNEL is connected. When `KERNEL_API_KEY` is set, the evaluation opens a short-lived KERNEL browser session and loads the chosen listing URL stored on the proposal (not a cheaper Channel3 comparable):
 
 - HTTP 2xx or 3xx gives `PASS`; 4xx or 5xx gives `FAIL`.
 - A timeout, provider error or missing merchant URL gives `UNAVAILABLE`, which can never auto-approve.

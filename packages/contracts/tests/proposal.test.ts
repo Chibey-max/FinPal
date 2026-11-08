@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createProposalSchema } from "../src";
+import { createProposalRequestSchema, createProposalSchema } from "../src";
 
 const validProposal = {
   productName: "Noise-cancelling headphones",
@@ -29,9 +29,33 @@ describe("createProposalSchema", () => {
     ["a negative price", { proposedPrice: -5 }],
     ["a non-ISO currency", { currency: "US" }],
     ["an unknown source", { source: "EMAIL" }],
+    ["a javascript offer URL", { offerUrl: "javascript:alert(1)" }],
   ])("rejects %s", (_label, override) => {
     expect(
       createProposalSchema.safeParse({ ...validProposal, ...override }).success,
     ).toBe(false);
+  });
+
+  it("accepts the chosen listing URL for agent proposals", () => {
+    const result = createProposalSchema.parse({
+      ...validProposal,
+      source: "AGENT",
+      offerUrl: "https://www.bestbuy.com/site/item",
+      offerMerchant: "bestbuy.com",
+    });
+    expect(result.offerUrl).toBe("https://www.bestbuy.com/site/item");
+    expect(result.offerMerchant).toBe("bestbuy.com");
+  });
+});
+
+describe("createProposalRequestSchema", () => {
+  it("does not accept the chosen listing from the public API", () => {
+    const result = createProposalRequestSchema.parse({
+      ...validProposal,
+      offerUrl: "https://www.bestbuy.com/site/item",
+      offerMerchant: "bestbuy.com",
+    });
+    expect(result).not.toHaveProperty("offerUrl");
+    expect(result).not.toHaveProperty("offerMerchant");
   });
 });

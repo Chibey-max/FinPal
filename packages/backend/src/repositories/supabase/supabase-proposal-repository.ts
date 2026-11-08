@@ -13,6 +13,8 @@ const rowSchema = z.object({
   source: proposalSourceSchema,
   source_event_id: z.string().nullable(),
   proposed_for: z.string().nullable(),
+  offer_url: z.string().nullable(),
+  offer_merchant: z.string().nullable(),
   created_at: z.string(),
 });
 
@@ -26,12 +28,14 @@ function toProposal(raw: unknown): Proposal {
     source: row.source,
     sourceEventId: row.source_event_id,
     proposedFor: row.proposed_for,
+    offerUrl: row.offer_url,
+    offerMerchant: row.offer_merchant,
     createdAt: row.created_at,
   };
 }
 
 const columns =
-  "id, product_name, proposed_price, currency, source, source_event_id, proposed_for, created_at";
+  "id, product_name, proposed_price, currency, source, source_event_id, proposed_for, offer_url, offer_merchant, created_at";
 
 export function createSupabaseProposalRepository(
   db: SupabaseClient,
@@ -48,6 +52,8 @@ export function createSupabaseProposalRepository(
           source: input.source,
           source_event_id: input.sourceEventId ?? null,
           proposed_for: input.proposedFor ?? null,
+          offer_url: input.offerUrl ?? null,
+          offer_merchant: input.offerMerchant ?? null,
         })
         .select(columns)
         .single();

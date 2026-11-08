@@ -23,8 +23,8 @@ export interface MerchantTrustCheckResult {
 }
 
 /**
- * Merchant trust (KERNEL). Receives Channel3 reference offers so the check
- * can visit a real merchant URL. Until KERNEL is configured, every check is N/A.
+ * Merchant trust (KERNEL). Visits the chosen listing's URL. Until KERNEL is
+ * configured, every check is N/A. Comparables are for Quality Score only.
  */
 export interface MerchantTrustChecker {
   check(
@@ -40,27 +40,37 @@ export const trustNotConfigured: MerchantTrustChecker = {
   }),
 };
 
-/** Builds a trust checker that visits the cheapest reference offer via KERNEL. */
+function merchantHost(url: string, fallback?: string | null) {
+  if (fallback) return fallback;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+}
+
+/** Builds a trust checker that visits the selected offer via KERNEL. */
 export function createKernelTrustChecker(
   kernel: KernelClient,
 ): MerchantTrustChecker {
   return {
-    async check(proposal, references) {
-      const offer = references[0];
-      if (!offer?.url) {
+    async check(proposal) {
+      const url = proposal.offerUrl;
+      if (!url) {
         return {
-          signal: "UNAVAILABLE",
+          signal: "NOT_CHECKED",
           evidence: {
-            reason: "no_merchant_url",
+            reason: "no_selected_merchant_url",
             productName: proposal.productName,
           },
         };
       }
-      const result = await kernel.checkMerchant(offer.url);
+      const result = await kernel.checkMerchant(url);
       return {
         signal: result.signal,
         evidence: {
-          merchant: offer.merchant,
+          merchant: merchantHost(url, proposal.offerMerchant),
+          selected: true,
           ...result.evidence,
         },
       };
@@ -110,6 +120,8 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
           source: proposal.source,
           proposedFor: proposal.proposedFor,
           sourceEventId: proposal.sourceEventId,
+          offerUrl: proposal.offerUrl,
+          offerMerchant: proposal.offerMerchant,
         },
       });
       return proposal;
@@ -133,7 +145,7 @@ export function createEvaluationService(deps: EvaluationServiceDeps) {
       const at = proposal.proposedFor ? new Date(proposal.proposedFor) : now();
       const constraints = await deps.constraints.get(userId);
 
-      // Quality first so KERNEL can visit a Channel3 merchant URL.
+      // Quality first (comparables). KERNEL then visits the chosen offer URL.
       const [constraintCheck, quality] = await Promise.all([
         constraints
           ? (async () => {

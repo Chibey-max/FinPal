@@ -96,6 +96,9 @@ describe("describeTrustEvidence", () => {
       describeTrustEvidence({ reason: "kernel_not_configured" }),
     ).toBeNull();
     expect(describeTrustEvidence({})).toBeNull();
+    expect(
+      describeTrustEvidence({ reason: "no_selected_merchant_url" }),
+    ).toBeNull();
   });
 
   it("names the merchant KERNEL visited and the HTTP status", () => {

@@ -141,6 +141,8 @@ const detailRowSchema = z.object({
           source: proposalSourceSchema,
           source_event_id: z.string().nullable(),
           proposed_for: z.string().nullable(),
+          offer_url: z.string().nullable().default(null),
+          offer_merchant: z.string().nullable().default(null),
           created_at: z.string(),
         }),
       ),
@@ -159,7 +161,7 @@ export const decisionDetailSelect = `
     trust_evidence, created_at,
     proposals!inner (
       id, product_name, proposed_price, currency, source, source_event_id,
-      proposed_for, created_at
+      proposed_for, offer_url, offer_merchant, created_at
     )
   ),
   payment_attempts ( * )
@@ -183,6 +185,8 @@ export function toDecisionRecord(raw: unknown): DecisionRecord {
       source: proposal.source,
       sourceEventId: proposal.source_event_id,
       proposedFor: proposal.proposed_for,
+      offerUrl: proposal.offer_url,
+      offerMerchant: proposal.offer_merchant,
       createdAt: proposal.created_at,
     }),
     evaluation: evaluationSchema.parse({
